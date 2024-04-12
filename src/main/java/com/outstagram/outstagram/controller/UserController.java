@@ -26,7 +26,7 @@ public class UserController {
 
     @GetMapping("check-nickname")
     public ResponseEntity<String> checkNickName(@RequestParam String nickname) {
-        Boolean isDuplicate = userService.isDuplicatedEmail(nickname);
+        Boolean isDuplicate = userService.isDuplicatedNickname(nickname);
         if (isDuplicate) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("닉네임이 중복됩니다.");
         } else {
@@ -45,5 +45,3 @@ public class UserController {
         userService.insertUser(userInfo);
     }
 }
-
-
