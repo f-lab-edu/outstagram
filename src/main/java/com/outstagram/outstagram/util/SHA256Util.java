@@ -1,5 +1,8 @@
 package com.outstagram.outstagram.util;
 
+import com.outstagram.outstagram.exception.ApiException;
+import com.outstagram.outstagram.exception.errorcode.EncryptErrorCode;
+
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -20,7 +23,7 @@ public class SHA256Util {
             }
             SHA = sb.toString();
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("암호화 에러! SHA256Util 확인 필요", e);
+            throw new ApiException(EncryptErrorCode.ALGORITHM_NOT_FOUND);
         }
         return SHA;
     }
