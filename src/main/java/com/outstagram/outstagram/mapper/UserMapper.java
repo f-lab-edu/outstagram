@@ -9,7 +9,8 @@ import org.springframework.stereotype.Repository;
 public interface UserMapper {
     int countByEmail(@Param("email") String email);
     int countByNickname(@Param("nickname") String nickname);
-
     int insertUser(UserDTO user);
+
+    UserDTO findByEmailAndPassword(@Param("email") String email, @Param("password") String password);
 
 }

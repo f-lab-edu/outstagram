@@ -8,6 +8,6 @@ public interface UserService {
     Boolean isDuplicatedEmail(String email);
     Boolean isDuplicatedNickname(String nickname);
 
-
+    UserDTO login(String email, String password);
 
 }

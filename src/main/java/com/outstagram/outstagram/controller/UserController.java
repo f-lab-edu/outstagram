@@ -38,10 +38,28 @@ public class UserController {
     public void signup(
             @RequestBody @Valid UserDTO userInfo
     ) {
-        // 이메일, 비밀번호, 닉네임 중 하나라도 null이 있을 경우
-        if (!UserDTO.checkSignupData(userInfo)) {    
-            throw new NullPointerException("이메일, 비밀번호, 닉네임 모두 입력해야 합니다.");
-        }
+//        // 이메일, 비밀번호, 닉네임 중 하나라도 null이 있을 경우
+//        if (!UserDTO.checkSignupData(userInfo)) {
+//            throw new NullPointerException("이메일, 비밀번호, 닉네임 모두 입력해야 합니다.");
+//        }
         userService.insertUser(userInfo);
     }
+
+//    @PostMapping("/login")
+//    public ResponseEntity<UserLoginRes> login(
+//            @RequestBody @Valid
+//            UserLoginReq userLoginReq
+//    ) {
+//        UserDTO user = userService.login(userLoginReq.getEmail(), userLoginReq.getPassword());
+//
+//        if (user == null) {
+//            throw new ApiException(UserErrorCode.USER_NOT_FOUND);
+//        } else {
+//
+//        }
+//
+//    }
+
+
+
 }

@@ -15,4 +15,12 @@
         VALUES(#{email}, #{password}, #{nickname}, #{createDate}, #{updateDate})
     </insert>
 
+    <select id="findByEmailAndPassword" resultType="com.outstagram.outstagram.dto.UserDTO">
+        SELECT *
+        FROM user
+        WHERE email = #{email}
+        AND password = #{password}
+        AND is_deleted = 0
+    </select>
+
 </mapper>

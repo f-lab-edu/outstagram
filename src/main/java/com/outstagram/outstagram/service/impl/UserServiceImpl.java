@@ -59,4 +59,17 @@ public class UserServiceImpl implements UserService {
         int count = userMapper.countByNickname(nickname);
         return count > 0;
     }
+
+    /**
+     * 로그인 메서드
+     * @param email
+     * @param password
+     * @return
+     */
+    @Override
+    public UserDTO login(String email, String password) {
+        String cryptoPassword = encryptSHA256(password);
+        return userMapper.findByEmailAndPassword(email, cryptoPassword);
+    }
+
 }
