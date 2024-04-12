@@ -1,8 +1,8 @@
 package com.outstagram.outstagram.service.impl;
 
 import com.outstagram.outstagram.dto.UserDTO;
-import com.outstagram.outstagram.error.DuplicateEmailException;
-import com.outstagram.outstagram.error.DuplicateNicknameException;
+import com.outstagram.outstagram.exception.ApiException;
+import com.outstagram.outstagram.exception.errorcode.DuplicateErrorCode;
 import com.outstagram.outstagram.mapper.UserMapper;
 import com.outstagram.outstagram.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -26,8 +26,8 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     public void insertUser(UserDTO userInfo) {
-        if (isDuplicatedEmail(userInfo.getEmail())) throw new DuplicateEmailException("중복된 이메일 입니다.");
-        if (isDuplicatedNickname(userInfo.getNickname())) throw new DuplicateNicknameException("중복된 닉네임 입니다.");
+        if (isDuplicatedEmail(userInfo.getEmail())) throw new ApiException(DuplicateErrorCode.DUPLICATED);
+        if (isDuplicatedNickname(userInfo.getNickname())) throw new ApiException(DuplicateErrorCode.DUPLICATED);
 
         userInfo.setCreateDate(LocalDateTime.now());
         userInfo.setUpdateDate(LocalDateTime.now());
