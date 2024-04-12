@@ -6,13 +6,13 @@ import java.security.NoSuchAlgorithmException;
 public class SHA256Util {
     public static final String ENCRYPTION_TYPE = "SHA-256";
 
-    public static String encryptSHA256(String str) {
+    public static String encryptSHA256(String password) {
         String SHA;
 
         MessageDigest sh;
         try {
             sh = MessageDigest.getInstance(ENCRYPTION_TYPE);
-            sh.update(str.getBytes());
+            sh.update(password.getBytes());
             byte[] byteData = sh.digest();
             StringBuilder sb = new StringBuilder();
             for (byte byteDatum : byteData) {
