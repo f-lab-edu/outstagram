@@ -12,5 +12,7 @@ public class UserLoginRes {
         SUCCESS, FAIL, DELETED
     }
 
+
     private LoginStatus result;
+
 }

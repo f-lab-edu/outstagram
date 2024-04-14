@@ -23,11 +23,12 @@ import static com.outstagram.outstagram.controller.response.UserLoginRes.LoginSt
 @RequiredArgsConstructor
 @RequestMapping("/api/users")
 public class UserController {
+
     private final UserService userService;
 
-    @GetMapping("check-email")
-    public ResponseEntity<String> checkEmail(@RequestParam String email) {
-        Boolean isDuplicate = userService.isDuplicatedEmail(email);
+    @GetMapping("check-duplicated-email")
+    public ResponseEntity<String> checkDuplicatedEmail(@RequestParam String email) {
+        boolean isDuplicate = userService.validateDuplicatedEmail(email);
         if (isDuplicate) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("이메일이 중복됩니다.");
         } else {
@@ -35,9 +36,9 @@ public class UserController {
         }
     }
 
-    @GetMapping("check-nickname")
-    public ResponseEntity<String> checkNickName(@RequestParam String nickname) {
-        Boolean isDuplicate = userService.isDuplicatedNickname(nickname);
+    @GetMapping("check-duplicated-nickname")
+    public ResponseEntity<String> checkDuplicatedNickName(@RequestParam String nickname) {
+        boolean isDuplicate = userService.validateDuplicatedNickname(nickname);
         if (isDuplicate) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("닉네임이 중복됩니다.");
         } else {
@@ -47,7 +48,7 @@ public class UserController {
 
     @PostMapping("/signup")
     public void signup(
-            @RequestBody @Valid UserDTO userInfo
+        @RequestBody @Valid UserDTO userInfo
     ) {
 //        // 이메일, 비밀번호, 닉네임 중 하나라도 null이 있을 경우
 //        if (!UserDTO.checkSignupData(userInfo)) {
@@ -55,6 +56,7 @@ public class UserController {
 //        }
         userService.insertUser(userInfo);
     }
+
 
 
     /**
@@ -91,6 +93,7 @@ public class UserController {
                 );
 
     }
+
 
 
 
