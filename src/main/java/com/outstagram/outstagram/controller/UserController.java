@@ -56,6 +56,13 @@ public class UserController {
         userService.insertUser(userInfo);
     }
 
+
+    /**
+     * 세션 로그인 처리
+     * @param userLoginReq
+     * @param request
+     * @return
+     */
     @PostMapping("/login")
     public ResponseEntity<UserLoginRes> login(
             @RequestBody @Valid
