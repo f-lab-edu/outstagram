@@ -9,7 +9,7 @@ import java.security.NoSuchAlgorithmException;
 public class SHA256Util {
     public static final String ENCRYPTION_TYPE = "SHA-256";
 
-    public static String encryptSHA256(String password) {
+    public static String encryptedPassword(String password) {
         String SHA;
 
         MessageDigest sh;

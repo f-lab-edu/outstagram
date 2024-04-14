@@ -34,8 +34,4 @@ public class UserDTO {
     private LocalDateTime createDate;
     private LocalDateTime updateDate;
 
-
-    public static Boolean checkSignupData(UserDTO user) {
-        return user.getEmail() != null && user.getPassword() != null && user.getNickname() != null;
-    }
 }

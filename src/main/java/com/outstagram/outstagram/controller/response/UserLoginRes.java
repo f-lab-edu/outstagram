@@ -9,5 +9,5 @@ import lombok.Data;
 @Builder
 public class UserLoginRes {
 
-    
+
 }
