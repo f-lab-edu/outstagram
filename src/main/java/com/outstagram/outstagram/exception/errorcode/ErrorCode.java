@@ -7,6 +7,8 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 @Getter
 public enum ErrorCode {
+    // 인증 관련 에러 코드
+    UNAUTHORIZED_USER(HttpStatus.UNAUTHORIZED, "미인증 유저의 요청입니다."),
 
     // user 관련 에러 코드
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 유저는 존재하지 않습니다."),
@@ -17,11 +19,10 @@ public enum ErrorCode {
 
 
     // DB 관련 에러 코드
-    INSERT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "DB insert 에러!!")
-    ;
+    INSERT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "DB insert 에러!!");
 
 
     private final HttpStatus httpStatusCode;
     private final String description;
 
-    }
+}
