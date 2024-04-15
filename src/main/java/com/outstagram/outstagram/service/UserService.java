@@ -1,16 +1,15 @@
 package com.outstagram.outstagram.service;
 
+import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
+
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.DuplicateErrorCode;
 import com.outstagram.outstagram.mapper.UserMapper;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
-
-import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
 
 @Slf4j
 @Service
