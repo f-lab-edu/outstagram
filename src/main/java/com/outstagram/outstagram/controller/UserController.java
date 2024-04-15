@@ -4,7 +4,7 @@ import com.outstagram.outstagram.controller.request.UserLoginReq;
 import com.outstagram.outstagram.controller.response.UserLoginRes;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
-import com.outstagram.outstagram.exception.errorcode.UserErrorCode;
+import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -61,9 +61,6 @@ public class UserController {
 
     /**
      * 세션 로그인 처리
-     * @param userLoginReq
-     * @param request
-     * @return
      */
     @PostMapping("/login")
     public ResponseEntity<UserLoginRes> login(
@@ -75,7 +72,7 @@ public class UserController {
         log.info("==============loginUser = {}", user);
 
         if (user == null) {
-            throw new ApiException(UserErrorCode.USER_NOT_FOUND);
+            throw new ApiException(ErrorCode.USER_NOT_FOUND);
         }
 
         // 로그인 성공 처리
