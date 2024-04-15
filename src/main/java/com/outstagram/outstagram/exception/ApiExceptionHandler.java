@@ -1,6 +1,6 @@
 package com.outstagram.outstagram.exception;
 
-import com.outstagram.outstagram.exception.errorcode.ErrorCodeIfs;
+import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
@@ -21,7 +21,7 @@ public class ApiExceptionHandler {
         log.error("", ex);
 
         // 2. 발생한 예외에서 errorCode 가져와서
-        ErrorCodeIfs errorCode = ex.getErrorCodeIfs();
+        ErrorCode errorCode = ex.getErrorCode();
         // 3. errorResponse 만들기(에러 메시지 내용과 함께)
         ErrorResponse errorResponse = new ErrorResponse(errorCode.getDescription());
 

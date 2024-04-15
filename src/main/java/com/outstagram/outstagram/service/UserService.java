@@ -4,7 +4,7 @@ import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
 
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
-import com.outstagram.outstagram.exception.errorcode.DuplicateErrorCode;
+import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.UserMapper;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
@@ -23,9 +23,10 @@ public class UserService {
      */
 
     public void insertUser(UserDTO userInfo) {
-
+        
+        // 이메일, 닉네임 중 중복되는게 있을 때
         if (!validateUserInfo(userInfo)) {
-            throw new ApiException(DuplicateErrorCode.DUPLICATED);
+            throw new ApiException(ErrorCode.DUPLICATED);
         }
 
         userInfo.setCreateDate(LocalDateTime.now());
@@ -37,18 +38,13 @@ public class UserService {
 
         if (insertCount != 1) {
             log.error("insert user ERROR!!! {}", userInfo);
-            throw new RuntimeException(
-                "insert user error!!! insertUser() 확인하기\n" + "Params : " + userInfo);
+            throw new ApiException(ErrorCode.INSERT_ERROR);
         }
     }
 
 
     /**
      * 로그인 메서드
-     *
-     * @param email
-     * @param password
-     * @return
      */
     public UserDTO login(String email, String password) {
         String cryptoPassword = encryptedPassword(password);
@@ -59,9 +55,6 @@ public class UserService {
 
     /**
      * email, nickname 둘 다 중복되지 않을 경우 -> true
-     *
-     * @param userInfo
-     * @return
      */
     private boolean validateUserInfo(UserDTO userInfo) {
         return !validateDuplicatedEmail(userInfo.getEmail()) && !validateDuplicatedNickname(
