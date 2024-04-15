@@ -1,23 +1,22 @@
 package com.outstagram.outstagram.exception;
 
-import com.outstagram.outstagram.exception.errorcode.ErrorCodeIfs;
-import lombok.AllArgsConstructor;
+import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import lombok.Getter;
 
 
 @Getter
 public class ApiException extends RuntimeException{
 
-    private final ErrorCodeIfs errorCodeIfs;
+    private final ErrorCode errorCode;
     private final String description;
 
-    public ApiException(ErrorCodeIfs errorCodeIfs) {
-        this.errorCodeIfs = errorCodeIfs;
-        this.description = errorCodeIfs.getDescription();
+    public ApiException(ErrorCode errorCode) {
+        this.errorCode = errorCode;
+        this.description = errorCode.getDescription();
     }
 
-    public ApiException(ErrorCodeIfs errorCodeIfs, String message) {
-        this.errorCodeIfs = errorCodeIfs;
+    public ApiException(ErrorCode errorCode, String message) {
+        this.errorCode = errorCode;
         this.description = message;
     }
 }
