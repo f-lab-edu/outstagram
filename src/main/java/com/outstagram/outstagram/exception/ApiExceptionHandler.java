@@ -26,21 +26,22 @@ public class ApiExceptionHandler {
         ErrorResponse errorResponse = new ErrorResponse(errorCode.getDescription());
 
         return ResponseEntity
-                .status(errorCode.getHttpStatusCode())
-                .body(errorResponse);
+            .status(errorCode.getHttpStatusCode())
+            .body(errorResponse);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ErrorResponse> handleValidationExceptions(
+        MethodArgumentNotValidException ex) {
         String errorMessage = ex.getBindingResult().getFieldErrors().stream()
-                .map(DefaultMessageSourceResolvable::getDefaultMessage)
-                .collect(Collectors.joining(" "));
+            .map(DefaultMessageSourceResolvable::getDefaultMessage)
+            .collect(Collectors.joining(" "));
 
         return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(errorMessage));
+            .status(HttpStatus.BAD_REQUEST)
+            .body(new ErrorResponse(errorMessage));
     }
 
-    
+
 }

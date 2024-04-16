@@ -7,6 +7,8 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 @Getter
 public enum ErrorCode {
+    // 인증 관련 에러 코드
+    UNAUTHORIZED_USER(HttpStatus.UNAUTHORIZED, "미인증 유저의 요청입니다."),
 
     // 기본 에러 코드
     NULL_POINT(HttpStatus.INTERNAL_SERVER_ERROR, "Null Point Error!!"),
