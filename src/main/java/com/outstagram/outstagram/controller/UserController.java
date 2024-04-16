@@ -1,7 +1,8 @@
 package com.outstagram.outstagram.controller;
 
+import static com.outstagram.outstagram.common.SessionConst.LOGIN_USER;
+
 import com.outstagram.outstagram.controller.request.UserLoginReq;
-import com.outstagram.outstagram.controller.response.UserLoginRes;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
@@ -11,12 +12,13 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import static com.outstagram.outstagram.common.SessionConst.LOGIN_USER;
-import static com.outstagram.outstagram.controller.response.UserLoginRes.LoginStatus.SUCCESS;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
 @RestController
@@ -27,43 +29,31 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping("check-duplicated-email")
-    public ResponseEntity<String> checkDuplicatedEmail(@RequestParam String email) {
-        boolean isDuplicate = userService.validateDuplicatedEmail(email);
-        if (isDuplicate) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("이메일이 중복됩니다.");
-        } else {
-            return ResponseEntity.ok().body("해당 이메일 사용 가능합니다.");
-        }
+    public ResponseEntity<String> isDuplicatedEmail(@RequestParam String email) {
+        userService.validateDuplicatedEmail(email);
+        return ResponseEntity.ok().body("해당 이메일 사용 가능합니다.");
     }
 
     @GetMapping("check-duplicated-nickname")
-    public ResponseEntity<String> checkDuplicatedNickName(@RequestParam String nickname) {
-        boolean isDuplicate = userService.validateDuplicatedNickname(nickname);
-        if (isDuplicate) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("닉네임이 중복됩니다.");
-        } else {
-            return ResponseEntity.ok().body("해당 닉네임이 사용 가능합니다.");
-        }
+    public ResponseEntity<String> isDuplicatedNickName(@RequestParam String nickname) {
+        userService.validateDuplicatedNickname(nickname);
+        return ResponseEntity.ok().body("해당 닉네임이 사용 가능합니다.");
     }
 
     @PostMapping("/signup")
-    public void signup(
+    public ResponseEntity<String> signup(
         @RequestBody @Valid UserDTO userInfo
     ) {
-//        // 이메일, 비밀번호, 닉네임 중 하나라도 null이 있을 경우
-//        if (!UserDTO.checkSignupData(userInfo)) {
-//            throw new NullPointerException("이메일, 비밀번호, 닉네임 모두 입력해야 합니다.");
-//        }
         userService.insertUser(userInfo);
+        return ResponseEntity.ok().body("회원가입 성공");
     }
-
 
 
     /**
      * 세션 로그인 처리
      */
     @PostMapping("/login")
-    public ResponseEntity<UserLoginRes> login(
+    public ResponseEntity<String> login(
             @RequestBody @Valid
             UserLoginReq userLoginReq,
             HttpServletRequest request
@@ -82,12 +72,7 @@ public class UserController {
         // 세션에 로그인 회원 정보 보관
         session.setAttribute(LOGIN_USER, user);
 
-        return ResponseEntity
-                .ok(
-                        UserLoginRes.builder()
-                        .result(SUCCESS)
-                        .build()
-                );
+        return ResponseEntity.ok().body("로그인 성공");
 
     }
 
