@@ -1,6 +1,6 @@
 package com.outstagram.outstagram.config;
 
-import com.outstagram.outstagram.common.filter.LogInterceptor;
+import com.outstagram.outstagram.common.filter.LoggingInterceptor;
 import com.outstagram.outstagram.common.filter.LoginCheckInterceptor;
 import com.outstagram.outstagram.resolver.LoginMemberArgumentResolver;
 import java.util.List;
@@ -17,7 +17,7 @@ public class WebConfig implements WebMvcConfigurer {
      */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new LogInterceptor())
+        registry.addInterceptor(new LoggingInterceptor())
             .order(1)
             .addPathPatterns("/**");
 
