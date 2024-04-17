@@ -1,7 +1,8 @@
 package com.outstagram.outstagram.controller;
 
-import static com.outstagram.outstagram.common.SessionConst.LOGIN_USER;
+import static com.outstagram.outstagram.common.session.SessionConst.LOGIN_USER;
 
+import com.outstagram.outstagram.common.api.ApiResponse;
 import com.outstagram.outstagram.controller.request.UserLoginReq;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
@@ -12,6 +13,7 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,23 +31,30 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping("check-duplicated-email")
-    public ResponseEntity<String> isDuplicatedEmail(@RequestParam String email) {
+    public ResponseEntity<ApiResponse> isDuplicatedEmail(@RequestParam String email) {
         userService.validateDuplicatedEmail(email);
-        return ResponseEntity.ok().body("해당 이메일 사용 가능합니다.");
+
+        ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
+            .message("해당 이메일 사용 가능합니다.").build();
+        return ResponseEntity.ok().body(response);
     }
 
     @GetMapping("check-duplicated-nickname")
-    public ResponseEntity<String> isDuplicatedNickName(@RequestParam String nickname) {
+    public ResponseEntity<ApiResponse> isDuplicatedNickName(@RequestParam String nickname) {
         userService.validateDuplicatedNickname(nickname);
-        return ResponseEntity.ok().body("해당 닉네임이 사용 가능합니다.");
+
+        ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
+            .message("해당 닉네임이 사용 가능합니다.").build();
+        return ResponseEntity.ok().body(response);
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<String> signup(
-        @RequestBody @Valid UserDTO userInfo
-    ) {
+    public ResponseEntity<ApiResponse> signup(@RequestBody @Valid UserDTO userInfo) {
         userService.insertUser(userInfo);
-        return ResponseEntity.ok().body("회원가입 성공");
+
+        ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
+            .message("회원가입 성공").build();
+        return ResponseEntity.ok().body(response);
     }
 
 
@@ -53,11 +62,8 @@ public class UserController {
      * 세션 로그인 처리
      */
     @PostMapping("/login")
-    public ResponseEntity<String> login(
-            @RequestBody @Valid
-            UserLoginReq userLoginReq,
-            HttpServletRequest request
-    ) {
+    public ResponseEntity<ApiResponse> login(@RequestBody @Valid UserLoginReq userLoginReq,
+        HttpServletRequest request) {
         UserDTO user = userService.login(userLoginReq.getEmail(), userLoginReq.getPassword());
         log.info("==============loginUser = {}", user);
 
@@ -72,11 +78,11 @@ public class UserController {
         // 세션에 로그인 회원 정보 보관
         session.setAttribute(LOGIN_USER, user);
 
-        return ResponseEntity.ok().body("로그인 성공");
+        ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
+            .message("로그인 성공").build();
+        return ResponseEntity.ok().body(response);
 
     }
-
-
 
 
 }
