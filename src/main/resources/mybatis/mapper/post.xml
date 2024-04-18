@@ -3,8 +3,8 @@
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.outstagram.outstagram.mapper.PostMapper">
 
-
-  <insert id="insertPost" parameterType="com.outstagram.outstagram.dto.PostDTO">
+  <!--insert 성공 시, DB에서 자동으로 생성된 key를 가져와서 newPost 객체의 id 속성에 값을 넣어준다 (postMapper.insertPost(newPost);)  -->
+  <insert id="insertPost" parameterType="com.outstagram.outstagram.dto.PostDTO" useGeneratedKeys="true" keyProperty="id">
     INSERT INTO POST(contents, user_id, create_date, update_date)
     VALUES (#{contents}, #{userId}, #{createDate}, #{updateDate})
   </insert>
