@@ -1,6 +1,9 @@
 package com.outstagram.outstagram.service;
 
+import com.outstagram.outstagram.controller.request.CreatePostReq;
+import com.outstagram.outstagram.dto.PostDTO;
 import com.outstagram.outstagram.mapper.PostMapper;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,4 +26,13 @@ public class PostService {
         // 3. imageService를 통해 image insert
     }
 
+    public void createPost(CreatePostReq createPostReq) {
+        PostDTO newPost = PostDTO.builder()
+            .contents(createPostReq.getContents())
+            .likes(0)
+            .createDate(LocalDateTime.now())
+            .updateDate(LocalDateTime.now())
+            .build();
+        postMapper.insertPost(newPost);
+    }
 }

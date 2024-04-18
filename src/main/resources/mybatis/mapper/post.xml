@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.outstagram.outstagram.mapper.UserMapper">
+<mapper namespace="com.outstagram.outstagram.mapper.PostMapper">
 
 
   <insert id="insertPost" parameterType="com.outstagram.outstagram.dto.PostDTO">
-    INSERT INTO POST(contents, password, nickname, create_date, update_date)
-    VALUES (#{email}, #{password}, #{nickname}, #{createDate}, #{updateDate})
+    INSERT INTO POST(contents, likes, create_date, update_date)
+    VALUES (#{contents}, #{likes}, #{createDate}, #{updateDate})
   </insert>
 
 

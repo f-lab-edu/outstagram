@@ -24,7 +24,7 @@ public class MySqlConfig {
         sessionFactory.setMapperLocations(resolver.getResources("classpath:mybatis/mapper/*.xml"));
 
         Resource myBatisConfig = new PathMatchingResourcePatternResolver().getResource(
-            "classpath:mybatis-config");
+            "classpath:mybatis-config.xml");
         sessionFactory.setConfigLocation(myBatisConfig);
 
         return sessionFactory.getObject();

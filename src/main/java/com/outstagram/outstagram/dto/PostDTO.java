@@ -29,6 +29,8 @@ public class PostDTO {
 
     private Long userId;
 
+    private Integer likes;
+
     private Boolean isDeleted;
 
     @NotNull(message = "이미지는 1장 이상 존재해야 합니다.")
