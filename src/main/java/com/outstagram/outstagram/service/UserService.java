@@ -1,16 +1,15 @@
 package com.outstagram.outstagram.service;
 
+import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
+
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.UserMapper;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
-
-import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
 
 @Slf4j
 @Service
@@ -25,10 +24,8 @@ public class UserService {
 
     public void insertUser(UserDTO userInfo) {
         
-        // 이메일, 닉네임 중 중복되는게 있을 때
-        if (!validateUserInfo(userInfo)) {
-            throw new ApiException(ErrorCode.DUPLICATED);
-        }
+        // 이메일, 닉네임 중 중복 체크
+        validateUserInfo(userInfo);
 
         userInfo.setCreateDate(LocalDateTime.now());
         userInfo.setUpdateDate(LocalDateTime.now());
@@ -57,22 +54,26 @@ public class UserService {
     /**
      * email, nickname 둘 다 중복되지 않을 경우 -> true
      */
-    private boolean validateUserInfo(UserDTO userInfo) {
-        return !validateDuplicatedEmail(userInfo.getEmail()) && !validateDuplicatedNickname(
-            userInfo.getNickname());
+    private void validateUserInfo(UserDTO userInfo) {
+        validateDuplicatedEmail(userInfo.getEmail());
+        validateDuplicatedNickname(userInfo.getNickname());
     }
 
     /**
      * 중복 -> true
      */
-    public boolean validateDuplicatedEmail(String email) {
+    public void validateDuplicatedEmail(String email) {
         int count = userMapper.countByEmail(email);
-        return count > 0;
+        if (count > 0) {
+            throw new ApiException(ErrorCode.DUPLICATED);
+        }
     }
 
-    public boolean validateDuplicatedNickname(String nickname) {
+    public void validateDuplicatedNickname(String nickname) {
         int count = userMapper.countByNickname(nickname);
-        return count > 0;
+        if (count > 0) {
+            throw new ApiException(ErrorCode.DUPLICATED);
+        }
     }
 
 }

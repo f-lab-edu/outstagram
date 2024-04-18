@@ -1,8 +1,9 @@
 package com.outstagram.outstagram.controller;
 
-import static com.outstagram.outstagram.common.SessionConst.LOGIN_USER;
+import static com.outstagram.outstagram.common.session.SessionConst.LOGIN_USER;
 
-import com.outstagram.outstagram.common.annotation.Login;
+import com.outstagram.outstagram.common.api.ApiResponse;
+
 import com.outstagram.outstagram.controller.request.UserLoginReq;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
@@ -31,44 +32,40 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping("check-duplicated-email")
-    public ResponseEntity<String> checkDuplicatedEmail(@RequestParam String email) {
-        boolean isDuplicate = userService.validateDuplicatedEmail(email);
-        if (isDuplicate) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("이메일이 중복됩니다.");
-        } else {
-            return ResponseEntity.ok().body("해당 이메일 사용 가능합니다.");
-        }
+    public ResponseEntity<ApiResponse> isDuplicatedEmail(@RequestParam String email) {
+        userService.validateDuplicatedEmail(email);
+
+        ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
+            .message("해당 이메일 사용 가능합니다.").build();
+        return ResponseEntity.ok().body(response);
     }
 
     @GetMapping("check-duplicated-nickname")
-    public ResponseEntity<String> checkDuplicatedNickName(@RequestParam String nickname) {
-        boolean isDuplicate = userService.validateDuplicatedNickname(nickname);
-        if (isDuplicate) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("닉네임이 중복됩니다.");
-        } else {
-            return ResponseEntity.ok().body("해당 닉네임이 사용 가능합니다.");
-        }
+    public ResponseEntity<ApiResponse> isDuplicatedNickName(@RequestParam String nickname) {
+        userService.validateDuplicatedNickname(nickname);
+
+        ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
+            .message("해당 닉네임이 사용 가능합니다.").build();
+        return ResponseEntity.ok().body(response);
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<String> signup(
-        @RequestBody @Valid UserDTO userInfo
-    ) {
+    public ResponseEntity<ApiResponse> signup(@RequestBody @Valid UserDTO userInfo) {
         userService.insertUser(userInfo);
-        return ResponseEntity.ok("success");
-    }
 
+        ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
+            .message("회원가입 성공").build();
+        return ResponseEntity.ok().body(response);
+    }
 
 
     /**
      * 세션 로그인 처리
      */
     @PostMapping("/login")
-    public ResponseEntity<String> login(
-            @RequestBody @Valid
-            UserLoginReq userLoginReq,
-            HttpServletRequest request
-    ) {
+    public ResponseEntity<ApiResponse> login(@RequestBody @Valid UserLoginReq userLoginReq,
+        HttpServletRequest request) {
+
         UserDTO user = userService.login(userLoginReq.getEmail(), userLoginReq.getPassword());
         log.info("==============loginUser = {}", user);
 
@@ -82,20 +79,12 @@ public class UserController {
         HttpSession session = request.getSession();
         // 세션에 로그인 회원 정보 보관
         session.setAttribute(LOGIN_USER, user);
-
-        return ResponseEntity.ok("success");
+      
+        ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
+            .message("로그인 성공").build();
+      
+        return ResponseEntity.ok().body(response);
     }
-
-    @GetMapping("/home")
-    public void home(@Login UserDTO user) {
-        if (user == null) {
-            throw new ApiException(ErrorCode.UNAUTHORIZED_USER);
-        }
-        log.info("login user = {}", user);
-
-    }
-
-
 
 
 }
