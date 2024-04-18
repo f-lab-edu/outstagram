@@ -5,8 +5,8 @@
 
 
   <insert id="insertPost" parameterType="com.outstagram.outstagram.dto.PostDTO">
-    INSERT INTO POST(contents, likes, create_date, update_date)
-    VALUES (#{contents}, #{likes}, #{createDate}, #{updateDate})
+    INSERT INTO POST(contents, user_id, create_date, update_date)
+    VALUES (#{contents}, #{userId}, #{createDate}, #{updateDate})
   </insert>
 
 

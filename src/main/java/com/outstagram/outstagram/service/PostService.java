@@ -26,10 +26,10 @@ public class PostService {
         // 3. imageService를 통해 image insert
     }
 
-    public void createPost(CreatePostReq createPostReq) {
+    public void createPost(CreatePostReq createPostReq, Long userId) {
         PostDTO newPost = PostDTO.builder()
             .contents(createPostReq.getContents())
-            .likes(0)
+            .userId(userId)
             .createDate(LocalDateTime.now())
             .updateDate(LocalDateTime.now())
             .build();

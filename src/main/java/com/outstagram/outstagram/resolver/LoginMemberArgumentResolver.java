@@ -1,6 +1,7 @@
 package com.outstagram.outstagram.resolver;
 
-import static com.outstagram.outstagram.common.SessionConst.LOGIN_USER;
+
+import static com.outstagram.outstagram.common.session.SessionConst.LOGIN_USER;
 
 import com.outstagram.outstagram.common.annotation.Login;
 import com.outstagram.outstagram.dto.UserDTO;
