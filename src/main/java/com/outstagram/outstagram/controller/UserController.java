@@ -3,6 +3,7 @@ package com.outstagram.outstagram.controller;
 import static com.outstagram.outstagram.common.session.SessionConst.LOGIN_USER;
 
 import com.outstagram.outstagram.common.api.ApiResponse;
+
 import com.outstagram.outstagram.controller.request.UserLoginReq;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
@@ -64,6 +65,7 @@ public class UserController {
     @PostMapping("/login")
     public ResponseEntity<ApiResponse> login(@RequestBody @Valid UserLoginReq userLoginReq,
         HttpServletRequest request) {
+
         UserDTO user = userService.login(userLoginReq.getEmail(), userLoginReq.getPassword());
         log.info("==============loginUser = {}", user);
 
@@ -77,11 +79,11 @@ public class UserController {
         HttpSession session = request.getSession();
         // 세션에 로그인 회원 정보 보관
         session.setAttribute(LOGIN_USER, user);
-
+      
         ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
             .message("로그인 성공").build();
+      
         return ResponseEntity.ok().body(response);
-
     }
 
 
