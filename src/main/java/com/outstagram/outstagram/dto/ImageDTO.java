@@ -1,8 +1,8 @@
 package com.outstagram.outstagram.dto;
 
-import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
@@ -10,6 +10,7 @@ import org.springframework.data.annotation.Id;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class ImageDTO {
 
     @Id
@@ -17,7 +18,10 @@ public class ImageDTO {
 
     private Long postId;
 
-    @NotNull
+    private String originalImgName;
+
+    private String savedImgName;
+
     private String imgPath;
 
     private Boolean isDeleted;

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.outstagram.outstagram.mapper.ImageMapper">
+
+  <insert id="insertImages" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO image (post_id, original_img_name, saved_img_name, img_path, create_date, update_date)
+    VALUES
+    <foreach collection="list" item="image" separator=",">
+      (#{image.postId}, #{image.originalImgName}, #{image.savedImgName}, #{image.imgPath}, #{image.createDate}, #{image.updateDate})
+    </foreach>
+  </insert>
+
+</mapper>
