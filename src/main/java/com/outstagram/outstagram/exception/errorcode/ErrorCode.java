@@ -9,7 +9,7 @@ import org.springframework.http.HttpStatus;
 public enum ErrorCode {
     // 인증 관련 에러 코드
     UNAUTHORIZED_USER(HttpStatus.UNAUTHORIZED, "미인증 유저의 요청입니다."),
-  
+
     // 기본 에러 코드
     NULL_POINT(HttpStatus.INTERNAL_SERVER_ERROR, "Null Point Error!!"),
 
@@ -22,7 +22,8 @@ public enum ErrorCode {
 
 
     // DB 관련 에러 코드
-    INSERT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "DB insert 에러!!");
+    INSERT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "DB insert 에러!!"),
+
 
     // 토큰 관련 에러 코드
     INVALID_TOKEN(HttpStatus.BAD_REQUEST, "유효하지 않은 토큰입니다!"),
@@ -34,4 +35,4 @@ public enum ErrorCode {
     private final HttpStatus httpStatusCode;
     private final String description;
 
-}
+    }

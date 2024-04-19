@@ -24,8 +24,10 @@ public class UserService {
 
     public void insertUser(UserDTO userInfo) {
         
-        // 이메일, 닉네임 중 중복 체크
-        validateUserInfo(userInfo);
+        // 이메일, 닉네임 중 중복되는게 있을 때
+        if (!validateUserInfo(userInfo)) {
+            throw new ApiException(ErrorCode.DUPLICATED);
+        }
 
         userInfo.setCreateDate(LocalDateTime.now());
         userInfo.setUpdateDate(LocalDateTime.now());
@@ -54,26 +56,22 @@ public class UserService {
     /**
      * email, nickname 둘 다 중복되지 않을 경우 -> true
      */
-    private void validateUserInfo(UserDTO userInfo) {
-        validateDuplicatedEmail(userInfo.getEmail());
-        validateDuplicatedNickname(userInfo.getNickname());
+    private boolean validateUserInfo(UserDTO userInfo) {
+        return !validateDuplicatedEmail(userInfo.getEmail()) && !validateDuplicatedNickname(
+            userInfo.getNickname());
     }
 
     /**
      * 중복 -> true
      */
-    public void validateDuplicatedEmail(String email) {
+    public boolean validateDuplicatedEmail(String email) {
         int count = userMapper.countByEmail(email);
-        if (count > 0) {
-            throw new ApiException(ErrorCode.DUPLICATED);
-        }
+        return count > 0;
     }
 
-    public void validateDuplicatedNickname(String nickname) {
+    public boolean validateDuplicatedNickname(String nickname) {
         int count = userMapper.countByNickname(nickname);
-        if (count > 0) {
-            throw new ApiException(ErrorCode.DUPLICATED);
-        }
+        return count > 0;
     }
 
 }

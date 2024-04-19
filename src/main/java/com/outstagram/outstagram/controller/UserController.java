@@ -1,13 +1,9 @@
 package com.outstagram.outstagram.controller;
 
-
-import static com.outstagram.outstagram.common.session.SessionConst.LOGIN_USER;
-
-import com.outstagram.outstagram.common.api.ApiResponse;
-
-import com.outstagram.outstagram.controller.request.UserLoginReq;
-
+import static com.outstagram.outstagram.common.SessionConst.LOGIN_USER;
 import static com.outstagram.outstagram.controller.response.UserLoginRes.LoginStatus.SUCCESS;
+
+import static com.outstagram.outstagram.common.SessionConst.LOGIN_USER;
 
 import com.outstagram.outstagram.common.annotation.Login;
 import com.outstagram.outstagram.controller.request.UserLoginReq;
@@ -43,43 +39,46 @@ public class UserController {
     private final TokenService tokenService;
 
     @GetMapping("check-duplicated-email")
-    public ResponseEntity<ApiResponse> isDuplicatedEmail(@RequestParam String email) {
-        userService.validateDuplicatedEmail(email);
-
-        ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
-            .message("해당 이메일 사용 가능합니다.").build();
-        return ResponseEntity.ok().body(response);
+    public ResponseEntity<String> checkDuplicatedEmail(@RequestParam String email) {
+        boolean isDuplicate = userService.validateDuplicatedEmail(email);
+        if (isDuplicate) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("이메일이 중복됩니다.");
+        } else {
+            return ResponseEntity.ok().body("해당 이메일 사용 가능합니다.");
+        }
     }
 
     @GetMapping("check-duplicated-nickname")
-    public ResponseEntity<ApiResponse> isDuplicatedNickName(@RequestParam String nickname) {
-        userService.validateDuplicatedNickname(nickname);
-
-        ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
-            .message("해당 닉네임이 사용 가능합니다.").build();
-        return ResponseEntity.ok().body(response);
+    public ResponseEntity<String> checkDuplicatedNickName(@RequestParam String nickname) {
+        boolean isDuplicate = userService.validateDuplicatedNickname(nickname);
+        if (isDuplicate) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("닉네임이 중복됩니다.");
+        } else {
+            return ResponseEntity.ok().body("해당 닉네임이 사용 가능합니다.");
+        }
     }
 
     @PostMapping("/signup")
-
-    public ResponseEntity<ApiResponse> signup(@RequestBody @Valid UserDTO userInfo) {
+    public ResponseEntity<String> signup(
+        @RequestBody @Valid UserDTO userInfo
+    ) {
         userService.insertUser(userInfo);
-
-        ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
-            .message("회원가입 성공").build();
-        return ResponseEntity.ok().body(response);
+        return ResponseEntity.ok("success");
     }
+
 
 
     /**
      * 세션 로그인 처리
      */
     @PostMapping("/login")
-
-    public ResponseEntity<ApiResponse> login(@RequestBody @Valid UserLoginReq userLoginReq,
-        HttpServletRequest request) {
+    public ResponseEntity<String> login(
+            @RequestBody @Valid
+            UserLoginReq userLoginReq,
+            HttpServletRequest request
+    ) {
         UserDTO user = userService.login(userLoginReq.getEmail(), userLoginReq.getPassword());
-        log.info("loginUser = {}", user);
+        log.info("==============loginUser = {}", user);
 
         if (user == null) {
             throw new ApiException(ErrorCode.USER_NOT_FOUND);
@@ -92,11 +91,7 @@ public class UserController {
         // 세션에 로그인 회원 정보 보관
         session.setAttribute(LOGIN_USER, user);
 
-        ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
-            .message("로그인 성공").build();
-      
-        return ResponseEntity.ok().body(response);
-
+        return ResponseEntity.ok("success");
     }
 
     /**
@@ -127,6 +122,8 @@ public class UserController {
             );
 
     }
+
+
 
 
 }
