@@ -67,7 +67,7 @@ public class UserController {
         HttpServletRequest request) {
 
         UserDTO user = userService.login(userLoginReq.getEmail(), userLoginReq.getPassword());
-        log.info("==============loginUser = {}", user);
+        log.info("loginUser = {}", user);
 
         if (user == null) {
             throw new ApiException(ErrorCode.USER_NOT_FOUND);
