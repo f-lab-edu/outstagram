@@ -23,7 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ImageServiceImpl implements ImageService {
+public class ImageServiceLocal implements ImageService {
 
     @Value("com.outstagram.upload.path")
     private String uploadPath;
