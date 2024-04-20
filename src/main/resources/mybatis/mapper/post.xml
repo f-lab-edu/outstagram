@@ -11,7 +11,7 @@
 
   <!-- postId로 게시물 가져오기 -->
   <select id="findById" resultType="com.outstagram.outstagram.dto.PostDTO">
-    SELECT *
+    SELECT id, user_id, contents, likes
     FROM post
     WHERE id = #{postId}
       AND is_deleted = 0
