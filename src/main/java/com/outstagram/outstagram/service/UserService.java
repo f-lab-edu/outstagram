@@ -76,4 +76,11 @@ public class UserService {
         }
     }
 
+    /**
+     * userId로 유저 찾기
+     */
+    public UserDTO findByUserId(Long userId) {
+        return userMapper.findById(userId);
+    }
+
 }

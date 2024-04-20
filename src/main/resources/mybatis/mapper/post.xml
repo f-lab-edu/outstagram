@@ -9,5 +9,13 @@
     VALUES (#{contents}, #{userId}, #{createDate}, #{updateDate})
   </insert>
 
+  <!-- postId로 게시물 가져오기 -->
+  <select id="findById" resultType="com.outstagram.outstagram.dto.PostDTO">
+    SELECT *
+    FROM post
+    WHERE id = #{postId}
+      AND is_deleted = 0
+  </select>
+
 
 </mapper>

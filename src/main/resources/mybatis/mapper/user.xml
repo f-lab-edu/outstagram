@@ -23,4 +23,11 @@
         AND is_deleted = 0
     </select>
 
+    <select id="findById" resultType="com.outstagram.outstagram.dto.UserDTO">
+        SELECT id, nick_name, img_url
+        FROM user
+        WHERE id = #{userId}
+        AND is_deleted = 0
+    </select>
+
 </mapper>

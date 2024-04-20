@@ -44,6 +44,10 @@ public class ImageServiceLocal implements ImageService {
     }
 
 
+    /**
+     * 로컬 디렉토리에 이미지 저장하고, 이미지 정보 DB에 저장하기
+     */
+    @Override
     public void saveImages(List<MultipartFile> imgFiles, Long postId) {
         List<ImageDTO> imageDTOList = new ArrayList<>();
 
@@ -76,5 +80,15 @@ public class ImageServiceLocal implements ImageService {
         // 이미지 정보들 한꺼번에 DB에 저장
         imageMapper.insertImages(imageDTOList);
     }
+
+
+    /**
+     * postId로 이미지 정보들 가져오기
+     */
+    @Override
+    public List<ImageDTO> getImageInfo(Long postId) {
+        return imageMapper.findImagesByPostId(postId);
+    }
+
 
 }

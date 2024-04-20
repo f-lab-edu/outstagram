@@ -24,6 +24,9 @@ public enum ErrorCode {
     // 파일 입출력 관련 에러 코드
     FILE_IO_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "파일 입출력 과정에서 에러가 발생했습니다."),
 
+    // post 관련 에러 코드
+    POST_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 게시물은 존재하지 않습니다."),
+
     ;
 
 

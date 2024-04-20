@@ -11,4 +11,11 @@
     </foreach>
   </insert>
 
+  <select id="findImagesByPostId" resultType="com.outstagram.outstagram.dto.ImageDTO">
+    select img_path, saved_img_name
+    from image
+    where post_id = #{postId}
+      AND is_deleted = 0
+    order by id
+  </select>
 </mapper>
