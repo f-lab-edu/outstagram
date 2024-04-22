@@ -6,6 +6,7 @@ import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.response.PostRes;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.service.PostService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -26,7 +27,7 @@ public class PostController {
     private final PostService postService;
 
     @PostMapping
-    public ResponseEntity<ApiResponse> createPost(@ModelAttribute CreatePostReq createPostReq,
+    public ResponseEntity<ApiResponse> createPost(@ModelAttribute @Valid CreatePostReq createPostReq,
         @Login UserDTO user) {
         postService.insertPost(createPostReq, user.getId());
 

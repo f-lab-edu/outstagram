@@ -14,7 +14,9 @@ import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.service.UserService;
 import com.outstagram.outstagram.util.SHA256Util;
+
 import java.time.LocalDateTime;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -51,25 +53,25 @@ public class UserControllerTest {
     public void testIsDuplicatedEmail() throws Exception {
         String email = "test@test.com";
         mockMvc.perform(
-                MockMvcRequestBuilders.get("/api/users/check-duplicated-email").param("email", email))
-            .andExpect(status().isOk()).andExpect(content().string("해당 이메일 사용 가능합니다."));
+                        MockMvcRequestBuilders.get("/api/users/check-duplicated-email").param("email", email))
+                .andExpect(status().isOk()).andExpect(content().string("해당 이메일 사용 가능합니다."));
     }
 
     @Test
     public void testIsDuplicatedNickname() throws Exception {
         String nickname = "test";
         mockMvc.perform(MockMvcRequestBuilders.get("/api/users/check-duplicated-nickname")
-                .param("nickname", nickname)).andExpect(status().isOk())
-            .andExpect(content().string("해당 닉네임이 사용 가능합니다."));
+                        .param("nickname", nickname)).andExpect(status().isOk())
+                .andExpect(content().string("해당 닉네임이 사용 가능합니다."));
     }
 
     @Test
     public void testSignup() throws Exception {
         UserDTO user = createUserDTO();
         mockMvc.perform(
-                MockMvcRequestBuilders.post("/api/users/signup").contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(user))).andExpect(status().isOk())
-            .andExpect(content().string("회원가입 성공"));
+                        MockMvcRequestBuilders.post("/api/users/signup").contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(user))).andExpect(status().isOk())
+                .andExpect(content().string("회원가입 성공"));
     }
 
     @Test
@@ -83,9 +85,9 @@ public class UserControllerTest {
         session.setAttribute(LOGIN_USER, user);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/users/login").session(session)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(loginReq))).andExpect(status().isOk())
-            .andExpect(content().string("로그인 성공"));
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginReq))).andExpect(status().isOk())
+                .andExpect(content().string("로그인 성공"));
 
         assert session.getAttribute(LOGIN_USER) != null;
     }
@@ -95,20 +97,20 @@ public class UserControllerTest {
         UserLoginReq loginReq = new UserLoginReq("test@test.com", "testPassword");
 
         when(userService.login(anyString(), anyString())).thenThrow(
-            new ApiException(ErrorCode.USER_NOT_FOUND));
+                new ApiException(ErrorCode.USER_NOT_FOUND));
 
         mockMvc.perform(
-                MockMvcRequestBuilders.post("/api/users/login").contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(loginReq)))
-            .andExpect(status().isNotFound());
+                        MockMvcRequestBuilders.post("/api/users/login").contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(loginReq)))
+                .andExpect(status().isNotFound());
 
     }
 
     private UserDTO createUserDTO() {
         return UserDTO.builder().id(1L).nickname("test").email("test@test.com")
-            .password(SHA256Util.encryptedPassword("testPassword")).imgUrl("www.testImgUrl.com")
-            .isDeleted(false).createDate(LocalDateTime.now()).updateDate(LocalDateTime.now())
-            .build();
+                .password(SHA256Util.encryptedPassword("testPassword")).imgUrl("www.testImgUrl.com")
+                .isDeleted(false).createDate(LocalDateTime.now()).updateDate(LocalDateTime.now())
+                .build();
     }
 
 
