@@ -9,4 +9,6 @@ public interface ImageService {
     void saveImages(List<MultipartFile> imgFiles, Long postId);
 
     List<ImageDTO> getImageInfo(Long postId);
+
+    void deleteByIds(List<Long> deleteImgIds);
 }

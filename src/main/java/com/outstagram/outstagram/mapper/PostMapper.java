@@ -9,4 +9,6 @@ public interface PostMapper {
     int insertPost(PostDTO post);
 
     PostDTO findById(Long postId);
+
+    int updateContentsById(Long postId, String contents);
 }

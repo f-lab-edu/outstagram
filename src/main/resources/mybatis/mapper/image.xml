@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.outstagram.outstagram.mapper.ImageMapper">
 
   <insert id="insertImages" useGeneratedKeys="true" keyProperty="id">
@@ -12,10 +12,20 @@
   </insert>
 
   <select id="findImagesByPostId" resultType="com.outstagram.outstagram.dto.ImageDTO">
-    select img_path, saved_img_name
-    from image
-    where post_id = #{postId}
+    SELECT id, img_path, saved_img_name
+    FROM image
+    WHERE post_id = #{postId}
       AND is_deleted = 0
-    order by id
+    ORDER BY id
   </select>
+
+  <update id="deleteByIds" parameterType="java.util.List">
+    UPDATE image
+    SET is_deleted = 1,
+        update_date = NOW()
+    WHERE id IN
+          <foreach collection="list" item="id" open="(" separator="," close=")">
+            #{id}
+          </foreach>
+  </update>
 </mapper>

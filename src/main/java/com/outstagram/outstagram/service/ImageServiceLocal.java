@@ -63,14 +63,14 @@ public class ImageServiceLocal implements ImageService {
 
                 // ImageDTO 생성 및 리스트에 추가(한꺼번에 DB에 저장할 예정)
                 imageDTOList.add(
-                    ImageDTO.builder()
-                        .postId(postId)
-                        .originalImgName(originName)
-                        .savedImgName(savedName)
-                        .imgPath(uploadPath)
-                        .createDate(LocalDateTime.now())
-                        .updateDate(LocalDateTime.now())
-                        .build()
+                        ImageDTO.builder()
+                                .postId(postId)
+                                .originalImgName(originName)
+                                .savedImgName(savedName)
+                                .imgPath(uploadPath)
+                                .createDate(LocalDateTime.now())
+                                .updateDate(LocalDateTime.now())
+                                .build()
                 );
             } catch (IOException e) {
                 throw new ApiException(ErrorCode.FILE_IO_ERROR, "이미지 저장 도중에 발생한 파일 입출력 에러!!!");
@@ -78,7 +78,10 @@ public class ImageServiceLocal implements ImageService {
         }
 
         // 이미지 정보들 한꺼번에 DB에 저장
-        imageMapper.insertImages(imageDTOList);
+        int result = imageMapper.insertImages(imageDTOList);
+        if (result == 0) {
+            throw new ApiException(ErrorCode.INSERT_ERROR, "이미지 추가에 실패했습니다.");
+        }
     }
 
 
@@ -88,6 +91,14 @@ public class ImageServiceLocal implements ImageService {
     @Override
     public List<ImageDTO> getImageInfo(Long postId) {
         return imageMapper.findImagesByPostId(postId);
+    }
+
+    @Override
+    public void deleteByIds(List<Long> deleteImgIds) {
+        int result = imageMapper.deleteByIds(deleteImgIds);
+        if (result == 0) {
+            throw new ApiException(ErrorCode.DELETE_ERROR, "이미지 삭제에 실패했습니다.");
+        }
     }
 
 

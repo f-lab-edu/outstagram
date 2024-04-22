@@ -17,5 +17,12 @@
       AND is_deleted = 0
   </select>
 
+  <update id="updateById">
+    UPDATE post
+    SET contents = #{contents},
+        update_date = NOW()
+    WHERE id = #{id}
+  </update>
+
 
 </mapper>
