@@ -4,7 +4,7 @@ import com.outstagram.outstagram.common.annotation.Login;
 import com.outstagram.outstagram.common.api.ApiResponse;
 import com.outstagram.outstagram.controller.request.PostCreateReq;
 import com.outstagram.outstagram.controller.request.PostEditReq;
-import com.outstagram.outstagram.controller.response.MyPostRes;
+import com.outstagram.outstagram.controller.response.MyPostsRes;
 import com.outstagram.outstagram.controller.response.PostRes;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.service.PostService;
@@ -42,8 +42,8 @@ public class PostController {
     }
 
     @GetMapping("/")
-    public ResponseEntity<List<MyPostRes>> getMyPosts(@Login UserDTO user) {
-        List<MyPostRes> myPosts = postService.getMyPosts(user.getId());
+    public ResponseEntity<List<MyPostsRes>> getMyPosts(@Login UserDTO user) {
+        List<MyPostsRes> myPosts = postService.getMyPosts(user.getId());
 
         return ResponseEntity.ok(myPosts);
     }

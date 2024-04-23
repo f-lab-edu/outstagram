@@ -8,8 +8,6 @@ public interface ImageService {
 
     void saveImages(List<MultipartFile> imgFiles, Long postId);
 
-    ImageDTO getFirstImage(Long postId);
-
     List<ImageDTO> getImages(Long postId);
 
     void deleteByIds(List<Long> deleteImgIds);

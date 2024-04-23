@@ -2,10 +2,11 @@ package com.outstagram.outstagram.service;
 
 import com.outstagram.outstagram.controller.request.PostCreateReq;
 import com.outstagram.outstagram.controller.request.PostEditReq;
-import com.outstagram.outstagram.controller.response.MyPostRes;
+import com.outstagram.outstagram.controller.response.MyPostsRes;
 import com.outstagram.outstagram.controller.response.PostRes;
 import com.outstagram.outstagram.dto.ImageDTO;
 import com.outstagram.outstagram.dto.PostDTO;
+import com.outstagram.outstagram.dto.PostImageDTO;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
@@ -47,6 +48,22 @@ public class PostService {
         imageService.saveImages(postCreateReq.getImgFiles(),
             newPost.getId());
 
+    }
+
+    // TODO : like, bookmark 개발 후, 해당 내용 채우기
+    public List<MyPostsRes> getMyPosts(Long userId) {
+        // 유저의 게시물과 게시물의 대표이미지 1개 가져오기
+        List<PostImageDTO> postWithImgList = postMapper.findWithImageByUserId(userId);
+
+        return postWithImgList.stream()
+            .map(dto -> MyPostsRes.builder()
+                .contents(dto.getContents())
+                .likes(dto.getLikes())
+                .thumbnailUrl(dto.getImgPath()+ "\\" + dto.getSavedImgName())
+                .isLiked(null)
+                .isBookmarked(null)
+                .build())
+            .collect(Collectors.toList());
     }
 
     public PostRes getPost(Long postId, Long userId) {
@@ -140,27 +157,4 @@ public class PostService {
     }
 
 
-    // TODO : like, bookmark 개발 후, 해당 내용 채우기
-    public List<MyPostRes> getMyPosts(Long userId) {
-        // 유저가 작성한 게시물 목록 최신 순으로 가져오기
-        List<PostDTO> postList = postMapper.findByUserId(userId);
-
-        return postList.stream()
-            .map(post -> {
-                // 각 게시물의 첫번째 이미지 가져오기
-                ImageDTO firstImage = imageService.getFirstImage(post.getId());
-                Map<Long, String> imageUrlMap = new HashMap<>();
-                imageUrlMap.put(firstImage.getId(),
-                    firstImage.getImgPath() + "\\" + firstImage.getSavedImgName());
-
-                return MyPostRes.builder()
-                    .contents(post.getContents())
-                    .likes(post.getLikes())
-                    .isLiked(null)
-                    .isBookmarked(null)
-                    .postImgUrl(imageUrlMap)
-                    .build();
-            })
-            .collect(Collectors.toList());
-    }
 }

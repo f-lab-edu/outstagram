@@ -1,6 +1,5 @@
 package com.outstagram.outstagram.controller.response;
 
-import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -8,12 +7,12 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 @Builder
-public class MyPostRes {
+public class MyPostsRes {
 
 
     private String contents;
 
-    private Map<Long, String> postImgUrl;
+    private String thumbnailUrl;
 
     private Integer likes;
 

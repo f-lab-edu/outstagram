@@ -1,6 +1,7 @@
 package com.outstagram.outstagram.mapper;
 
 import com.outstagram.outstagram.dto.PostDTO;
+import com.outstagram.outstagram.dto.PostImageDTO;
 import java.util.List;
 import org.springframework.stereotype.Repository;
 
@@ -15,5 +16,5 @@ public interface PostMapper {
 
     int deleteById(Long postId);
 
-    List<PostDTO> findByUserId(Long userId);
+    List<PostImageDTO> findWithImageByUserId(Long userId);
 }
