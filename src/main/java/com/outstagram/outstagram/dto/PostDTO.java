@@ -2,9 +2,7 @@ package com.outstagram.outstagram.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
-import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -32,9 +30,6 @@ public class PostDTO {
     private Integer likes;
 
     private Boolean isDeleted;
-
-    @NotNull(message = "이미지는 1장 이상 존재해야 합니다.")
-    private List<ImageDTO> imgList;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createDate;
