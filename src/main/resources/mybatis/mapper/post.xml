@@ -9,6 +9,14 @@
     VALUES (#{contents}, #{userId}, #{createDate}, #{updateDate})
   </insert>
 
+  <select id="findByUserId" resultType="com.outstagram.outstagram.dto.PostDTO">
+    SELECT id, contents, likes
+    FROM post
+    WHERE user_id = #{userId}
+      AND is_deleted = 0
+    ORDER BY create_date DESC
+  </select>
+
   <!-- postId로 게시물 가져오기 -->
   <select id="findById" resultType="com.outstagram.outstagram.dto.PostDTO">
     SELECT id, user_id, contents, likes
@@ -23,6 +31,15 @@
         update_date = NOW()
     WHERE id = #{postId}
   </update>
+
+  <update id="deleteById">
+    UPDATE post
+    SET is_deleted = 1,
+        update_date = NOW()
+    WHERE id = #{postId}
+  </update>
+
+
 
 
 </mapper>

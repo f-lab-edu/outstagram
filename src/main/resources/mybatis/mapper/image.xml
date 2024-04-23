@@ -11,6 +11,15 @@
     </foreach>
   </insert>
 
+  <select id="findFirstByPostId" resultType="com.outstagram.outstagram.dto.ImageDTO">
+    SELECT id, img_path, saved_img_name
+    FROM image
+    WHERE post_id = #{postId}
+      AND is_deleted = 0
+    ORDER BY id
+    LIMIT 1
+  </select>
+
   <select id="findImagesByPostId" resultType="com.outstagram.outstagram.dto.ImageDTO">
     SELECT id, img_path, saved_img_name
     FROM image

@@ -4,14 +4,17 @@ import com.outstagram.outstagram.common.annotation.Login;
 import com.outstagram.outstagram.common.api.ApiResponse;
 import com.outstagram.outstagram.controller.request.PostCreateReq;
 import com.outstagram.outstagram.controller.request.PostEditReq;
+import com.outstagram.outstagram.controller.response.MyPostRes;
 import com.outstagram.outstagram.controller.response.PostRes;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.service.PostService;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -38,6 +41,13 @@ public class PostController {
                 .build());
     }
 
+    @GetMapping("/")
+    public ResponseEntity<List<MyPostRes>> getMyPosts(@Login UserDTO user) {
+        List<MyPostRes> myPosts = postService.getMyPosts(user.getId());
+
+        return ResponseEntity.ok(myPosts);
+    }
+
     @GetMapping("/{postId}")
     public ResponseEntity<PostRes> getPost(@PathVariable Long postId, @Login UserDTO user) {
         PostRes postRes = postService.getPost(postId, user.getId());
@@ -52,6 +62,14 @@ public class PostController {
 
         return ResponseEntity.ok(ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
             .message("게시물 수정 완료했습니다.").build());
+    }
+
+    @DeleteMapping("/{postId}")
+    public ResponseEntity<ApiResponse> deletePost(@PathVariable Long postId, @Login UserDTO user) {
+        postService.deletePost(postId, user.getId());
+
+        return ResponseEntity.ok(ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
+            .message("게시물 삭제 완료했습니다.").build());
     }
 }
 

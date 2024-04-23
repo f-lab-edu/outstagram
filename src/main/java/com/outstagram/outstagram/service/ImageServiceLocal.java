@@ -84,12 +84,17 @@ public class ImageServiceLocal implements ImageService {
         }
     }
 
+    @Override
+    public ImageDTO getFirstImage(Long postId) {
+        return imageMapper.findFirstByPostId(postId);
+    }
+
 
     /**
      * postId로 이미지 정보들 가져오기
      */
     @Override
-    public List<ImageDTO> getImageInfo(Long postId) {
+    public List<ImageDTO> getImages(Long postId) {
         return imageMapper.findImagesByPostId(postId);
     }
 

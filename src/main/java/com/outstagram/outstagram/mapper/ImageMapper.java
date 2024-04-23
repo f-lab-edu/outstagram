@@ -8,6 +8,8 @@ import org.springframework.stereotype.Repository;
 public interface ImageMapper {
     int insertImages(List<ImageDTO> imageList);
 
+    ImageDTO findFirstByPostId(Long postId);
+
     List<ImageDTO> findImagesByPostId(Long postId);
 
     /**
