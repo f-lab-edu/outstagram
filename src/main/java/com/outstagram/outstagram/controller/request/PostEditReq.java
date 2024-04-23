@@ -21,7 +21,6 @@ public class PostEditReq {
     /**
      * imgFiles에는 새로 추가된 이미지만 넘어온다고 가정
      */
-    @NotNull(message = "이미지는 최소 1장 이상 첨부해야 합니다.")
     private List<MultipartFile> imgFiles;
 
     private List<Long> deleteImgIds;
