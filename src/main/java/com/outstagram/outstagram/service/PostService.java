@@ -11,17 +11,16 @@ import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.PostMapper;
-import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -32,7 +31,9 @@ public class PostService {
 
     private final ImageService imageService;
     private final UserService userService;
+    private final LikeService likeService;
 
+    @Transactional
     public void insertPost(PostCreateReq postCreateReq, Long userId) {
         PostDTO newPost = PostDTO.builder()
             .contents(postCreateReq.getContents())
@@ -42,12 +43,14 @@ public class PostService {
             .build();
 
         // 게시물 내용 저장 (insertPost 정상 실행되면, newPost의 id 속성에 id값이 들어 있다)
-        postMapper.insertPost(newPost);
+        int result = postMapper.insertPost(newPost);
+        if (result == 0) {
+            throw new ApiException(ErrorCode.INSERT_ERROR);
+        }
 
         // 로컬 디렉토리에 이미지 저장 후, DB에 이미지 정보 저장
         imageService.saveImages(postCreateReq.getImgFiles(),
             newPost.getId());
-
     }
 
     // TODO : like, bookmark 개발 후, 해당 내용 채우기
@@ -59,7 +62,7 @@ public class PostService {
             .map(dto -> MyPostsRes.builder()
                 .contents(dto.getContents())
                 .likes(dto.getLikes())
-                .thumbnailUrl(dto.getImgPath()+ "\\" + dto.getSavedImgName())
+                .thumbnailUrl(dto.getImgPath() + "\\" + dto.getSavedImgName())
                 .isLiked(null)
                 .isBookmarked(null)
                 .build())
@@ -128,6 +131,10 @@ public class PostService {
 
     }
 
+    /**
+     * 게시물 삭제 메서드 실제 레코드를 삭제하지 않고 is_deleted = 1 방식으로 soft_delete
+     */
+    @Transactional
     public void deletePost(Long postId, Long userId) {
         // 삭제할 게시물 가져오기
         PostDTO post = postMapper.findById(postId);
@@ -140,6 +147,21 @@ public class PostService {
         if (result == 0) {
             throw new ApiException(ErrorCode.DELETE_ERROR, "게시물 삭제 오류 발생!!");
         }
+    }
+
+    /**
+     * 좋아요 증가 메서드 - 게시물의 좋아요 개수 증가 - like table에 row 추가하기
+     */
+    @Transactional
+    public void increaseLike(Long postId, Long userId) {
+        // 게시물 좋아요 1 증가
+        int result = postMapper.updateLikeCount(postId);
+        if (result == 0) {
+            throw new ApiException(ErrorCode.INSERT_ERROR);
+        }
+
+        // like 테이블에 좋아요 기록 저장
+        likeService.insertLike(userId, postId);
     }
 
     /**

@@ -17,4 +17,6 @@ public interface PostMapper {
     int deleteById(Long postId);
 
     List<PostImageDTO> findWithImageByUserId(Long userId);
+
+    int updateLikeCount(Long postId);
 }
