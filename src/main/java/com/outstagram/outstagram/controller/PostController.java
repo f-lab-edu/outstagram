@@ -77,7 +77,15 @@ public class PostController {
         postService.increaseLike(postId, user.getId());
 
         return ResponseEntity.ok(ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
-            .message("게시물 좋아요가 증가했습니다.").build());
+            .message("게시물 좋아요가 성공했습니다.").build());
+    }
+
+    @DeleteMapping("/{postId}/likes")
+    public ResponseEntity<ApiResponse> removeLike(@PathVariable Long postId, @Login UserDTO user) {
+        postService.unlikePost(postId, user.getId());
+
+        return ResponseEntity.ok(ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
+            .message("게시물 좋아요를 취소했습니다.").build());
     }
 }
 

@@ -154,13 +154,14 @@ public class PostService {
         }
     }
 
+
     /**
      * 좋아요 증가 메서드 - 게시물의 좋아요 개수 증가 - like table에 row 추가하기
      */
     @Transactional
     public void increaseLike(Long postId, Long userId) {
         // 게시물 좋아요 1 증가
-        int result = postMapper.updateLikeCount(postId);
+        int result = postMapper.updateLikeCount(postId, 1);
         if (result == 0) {
             throw new ApiException(ErrorCode.INSERT_ERROR);
         }
@@ -168,6 +169,25 @@ public class PostService {
         // like 테이블에 좋아요 기록 저장
         likeService.insertLike(userId, postId);
     }
+
+    /**
+     * 좋아요 취소 기능
+     *  - 게시물 좋아요 개수 1 감소
+     *  - like table에서 해당 기록 삭제
+     */
+    @Transactional
+    public void unlikePost(Long postId, Long userId) {
+        // 게시물의 좋아요 개수 1 감소
+        int result = postMapper.updateLikeCount(postId, -1);
+        if (result == 0) {
+            throw new ApiException(ErrorCode.UPDATE_ERROR);
+        }
+
+        // 좋아요 누른 기록 삭제
+        likeService.deleteLike(userId, postId);
+    }
+
+
 
     /**
      * 게시물 작성자인지 검증 -> 수정, 삭제 시 확인 필요
@@ -182,6 +202,7 @@ public class PostService {
             throw new ApiException(ErrorCode.UNAUTHORIZED_ACCESS, "게시물에 대한 권한이 없습니다.");
         }
     }
+
 
 
 }

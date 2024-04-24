@@ -71,11 +71,12 @@
 
   <update id="updateLikeCount">
     UPDATE post
-    SET likes = likes + 1,
+    SET likes = likes + #{count},
         update_date = NOW()
     WHERE id = #{postId}
         AND is_deleted = 0
   </update>
+
 
 
 

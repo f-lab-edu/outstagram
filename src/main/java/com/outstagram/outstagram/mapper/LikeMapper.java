@@ -9,4 +9,6 @@ public interface LikeMapper {
     int insertLike(LikeDTO like);
 
     boolean existsUserLike(Long userId, Long postId);
+
+    int deleteLike(Long userId, Long postId);
 }

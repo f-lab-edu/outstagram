@@ -30,4 +30,10 @@ public class LikeService {
         return likeMapper.existsUserLike(userId, postId);
     }
 
+    public void deleteLike(Long userId, Long postId) {
+        int result = likeMapper.deleteLike(userId, postId);
+        if (result == 0) {
+            throw new ApiException(ErrorCode.DELETE_ERROR);
+        }
+    }
 }
