@@ -5,6 +5,7 @@ import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.LikeMapper;
 import java.time.LocalDateTime;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -35,5 +36,9 @@ public class LikeService {
         if (result == 0) {
             throw new ApiException(ErrorCode.DELETE_ERROR);
         }
+    }
+
+    public List<Long> getLikePosts(Long userId) {
+        return likeMapper.findPostIdsByUserId(userId);
     }
 }

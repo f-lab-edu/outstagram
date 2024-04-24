@@ -77,6 +77,30 @@
         AND is_deleted = 0
   </update>
 
+  <!-- postId list 매개변수로 주어지면 해당 post들의 미리보기 정보 가져오기 -->
+  <select id="findLikePostsWithImageByPostIds" resultMap="postImageDTOMap">
+    SELECT p.id AS post_id,
+           p.contents,
+           p.likes,
+           i.img_path,
+           i.saved_img_name
+    FROM post AS p
+    JOIN image AS i ON p.id = i.post_id
+    WHERE p.id IN
+          <foreach item="postId" collection="likePosts" open="(" separator="," close=")">
+            #{postId}
+          </foreach>
+        AND p.is_deleted = 0
+        AND i.is_deleted = 0
+        AND i.id IN (
+            SELECT MIN(id)
+            FROM image
+            WHERE is_deleted = 0
+            GROUP BY post_id
+          )
+    ORDER BY p.create_date DESC
+  </select>
+
 
 
 

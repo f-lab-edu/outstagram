@@ -12,6 +12,7 @@ import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.PostMapper;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -171,9 +172,7 @@ public class PostService {
     }
 
     /**
-     * 좋아요 취소 기능
-     *  - 게시물 좋아요 개수 1 감소
-     *  - like table에서 해당 기록 삭제
+     * 좋아요 취소 기능 - 게시물 좋아요 개수 1 감소 - like table에서 해당 기록 삭제
      */
     @Transactional
     public void unlikePost(Long postId, Long userId) {
@@ -187,6 +186,32 @@ public class PostService {
         likeService.deleteLike(userId, postId);
     }
 
+    /**
+     * 로그인한 유저가 좋아요 누른 모든 게시물 가져오기
+     */
+    // TODO : isBookmarked 채우기
+    public List<MyPostsRes> getLikePosts(Long userId) {
+        // 유저가 좋아요 누른 게시물 Id 가져오기
+        List<Long> likePosts = likeService.getLikePosts(userId);
+
+        // 좋아요 누른 게시물 없으면 빈 list 반환
+        if (likePosts.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        // 좋아요 누른 게시물들 가져오기
+        List<PostImageDTO> likedPostImageList = postMapper.findLikePostsWithImageByPostIds(likePosts);
+
+        return likedPostImageList.stream()
+            .map(dto -> MyPostsRes.builder()
+                .contents(dto.getContents())
+                .likes(dto.getLikes())
+                .thumbnailUrl(dto.getImgPath() + "\\" + dto.getSavedImgName())
+                .isLiked(true)  // 애초에 좋아요 누른 게시물의 정보를 가져온거임 그래서 무조건 true
+                .isBookmarked(null)
+                .build())
+            .collect(Collectors.toList());
+    }
 
 
     /**
@@ -202,7 +227,4 @@ public class PostService {
             throw new ApiException(ErrorCode.UNAUTHORIZED_ACCESS, "게시물에 대한 권한이 없습니다.");
         }
     }
-
-
-
 }

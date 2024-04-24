@@ -72,6 +72,13 @@ public class PostController {
             .message("게시물 삭제 완료했습니다.").build());
     }
 
+    @GetMapping("/likes")
+    public ResponseEntity<List<MyPostsRes>> getLikePosts(@Login UserDTO user) {
+        List<MyPostsRes> myLikePosts =  postService.getLikePosts(user.getId());
+
+        return ResponseEntity.ok(myLikePosts);
+    }
+
     @PostMapping("/{postId}/likes")
     public ResponseEntity<ApiResponse> addLike(@PathVariable Long postId, @Login UserDTO user) {
         postService.increaseLike(postId, user.getId());
