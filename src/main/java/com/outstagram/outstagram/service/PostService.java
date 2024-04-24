@@ -53,7 +53,8 @@ public class PostService {
             newPost.getId());
     }
 
-    // TODO : like, bookmark 개발 후, 해당 내용 채우기
+    // TODO : post 조회 쿼리, image 조회 쿼리, user 조회 쿼리, like 조회 쿼리 => 총 4개 쿼리 발생
+    // TODO : bookmark 개발 후, 해당 내용 채우기
     public List<MyPostsRes> getMyPosts(Long userId) {
         // 유저의 게시물과 게시물의 대표이미지 1개 가져오기
         List<PostImageDTO> postWithImgList = postMapper.findWithImageByUserId(userId);
@@ -63,12 +64,13 @@ public class PostService {
                 .contents(dto.getContents())
                 .likes(dto.getLikes())
                 .thumbnailUrl(dto.getImgPath() + "\\" + dto.getSavedImgName())
-                .isLiked(null)
+                .isLiked(likeService.existsLike(userId, dto.getId()))
                 .isBookmarked(null)
                 .build())
             .collect(Collectors.toList());
     }
 
+    // TODO : post 조회 쿼리, image 조회 쿼리, user 조회 쿼리, like 조회 쿼리 => 총 4개 쿼리 발생
     public PostRes getPost(Long postId, Long userId) {
         // 1. Post 가져오기
         PostDTO post = postMapper.findById(postId);
@@ -79,23 +81,26 @@ public class PostService {
         // 2. Post의 이미지 정보 가져오기
         List<ImageDTO> imageList = imageService.getImages(post.getId());
 
-        // 3. PostRes를 위한 데이터 가져오기
-        UserDTO author = userService.findByUserId(post.getUserId());
-        boolean isAuthor = author.getId().equals(userId);   // 로그인한 유저가 작성한 Post인지 여부
+        // 3. 로그인한 유저가 게시물 작성자인지 판단
+        boolean isAuthor = post.getUserId().equals(userId);
 
+        // 4. 작성자 정보 가져오기 -> nickname과 유저 img 가져오기 위해서
+        UserDTO author = userService.findByUserId(post.getUserId());
+
+        // 5. 이미지 url 조합하기
         Map<Long, String> imageUrlMap = new HashMap<>();
         for (ImageDTO img : imageList) {
             imageUrlMap.put(img.getId(), img.getImgPath() + "\\" + img.getSavedImgName());
         }
-        // 4. PostRes 만들어서 반환하기
-        // TODO : isLiked, isBookmarked, comments 채우기
+
+        // TODO : isBookmarked, comments 채우기
         return PostRes.builder()
             .authorName(author.getNickname())
             .authorImgUrl(author.getImgUrl())
             .contents(post.getContents())
             .postImgUrls(imageUrlMap)
             .likes(post.getLikes())
-            .isLiked(null)
+            .isLiked(likeService.existsLike(userId, post.getId()))
             .isBookmarked(null)
             .isAuthor(isAuthor)
             .comments(null)

@@ -8,5 +8,11 @@
     VALUES (#{userId}, #{postId}, #{createDate})
   </insert>
 
+  <select id="existsUserLike" resultType="boolean">
+    SELECT CASE WHEN COUNT(*) > 0 THEN true ELSE false END
+    FROM `LIKE`
+    WHERE user_id = #{userId}
+      AND post_id = #{postId}
+  </select>
 
 </mapper>

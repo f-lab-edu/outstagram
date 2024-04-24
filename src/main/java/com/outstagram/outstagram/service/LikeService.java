@@ -26,4 +26,8 @@ public class LikeService {
         }
     }
 
+    public Boolean existsLike(Long userId, Long postId) {
+        return likeMapper.existsUserLike(userId, postId);
+    }
+
 }
