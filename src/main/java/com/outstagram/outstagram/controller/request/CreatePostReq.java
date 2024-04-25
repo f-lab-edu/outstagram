@@ -14,7 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class PostCreateReq {
+public class CreatePostReq {
     @NotBlank(message = "게시물 내용은 필수 입력입니다.")
     private String contents;
 

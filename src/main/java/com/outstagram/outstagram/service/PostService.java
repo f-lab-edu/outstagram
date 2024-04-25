@@ -1,7 +1,7 @@
 package com.outstagram.outstagram.service;
 
-import com.outstagram.outstagram.controller.request.PostCreateReq;
-import com.outstagram.outstagram.controller.request.PostEditReq;
+import com.outstagram.outstagram.controller.request.CreatePostReq;
+import com.outstagram.outstagram.controller.request.EditPostReq;
 import com.outstagram.outstagram.controller.response.MyPostsRes;
 import com.outstagram.outstagram.controller.response.PostRes;
 import com.outstagram.outstagram.dto.ImageDTO;
@@ -33,9 +33,10 @@ public class PostService {
     private final ImageService imageService;
     private final UserService userService;
 
-    public void insertPost(PostCreateReq postCreateReq, Long userId) {
+    @Transactional
+    public void insertPost(CreatePostReq createPostReq, Long userId) {
         PostDTO newPost = PostDTO.builder()
-            .contents(postCreateReq.getContents())
+            .contents(createPostReq.getContents())
             .userId(userId)
             .createDate(LocalDateTime.now())
             .updateDate(LocalDateTime.now())
@@ -45,7 +46,7 @@ public class PostService {
         postMapper.insertPost(newPost);
 
         // 로컬 디렉토리에 이미지 저장 후, DB에 이미지 정보 저장
-        imageService.saveImages(postCreateReq.getImgFiles(),
+        imageService.saveImages(createPostReq.getImgFiles(),
             newPost.getId());
 
     }
@@ -100,7 +101,7 @@ public class PostService {
     }
 
     @Transactional
-    public void editPost(Long postId, PostEditReq postEditReq, Long userId) {
+    public void editPost(Long postId, EditPostReq editPostReq, Long userId) {
         // 수정할 게시물 가져오기
         PostDTO post = postMapper.findById(postId);
 
@@ -108,19 +109,19 @@ public class PostService {
         validatePostOwner(post, userId);
 
         // 삭제할 이미지가 있다면 삭제하기(soft delete)
-        if (postEditReq.getDeleteImgIds() != null && !postEditReq.getDeleteImgIds().isEmpty()) {
-            imageService.deleteByIds(postEditReq.getDeleteImgIds());
+        if (editPostReq.getDeleteImgIds() != null && !editPostReq.getDeleteImgIds().isEmpty()) {
+            imageService.deleteByIds(editPostReq.getDeleteImgIds());
         }
 
         // 추가할 이미지가 있다면 추가하기
-        if (postEditReq.getImgFiles() != null && !postEditReq.getImgFiles().isEmpty()) {
-            imageService.saveImages(postEditReq.getImgFiles(),
+        if (editPostReq.getImgFiles() != null && !editPostReq.getImgFiles().isEmpty()) {
+            imageService.saveImages(editPostReq.getImgFiles(),
                 post.getId());
         }
 
         // 수정할 내용이 있다면 수정하기
-        if (!Objects.equals(postEditReq.getContents(), post.getContents())) {
-            int result = postMapper.updateContentsById(postId, postEditReq.getContents());
+        if (!Objects.equals(editPostReq.getContents(), post.getContents())) {
+            int result = postMapper.updateContentsById(postId, editPostReq.getContents());
             if (result == 0) {
                 throw new ApiException(ErrorCode.UPDATE_ERROR, "게시물 내용 수정 오류!!");
             }
@@ -128,6 +129,7 @@ public class PostService {
 
     }
 
+    @Transactional
     public void deletePost(Long postId, Long userId) {
         // 삭제할 게시물 가져오기
         PostDTO post = postMapper.findById(postId);

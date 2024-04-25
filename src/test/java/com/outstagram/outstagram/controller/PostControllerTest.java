@@ -1,7 +1,7 @@
 package com.outstagram.outstagram.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.outstagram.outstagram.controller.request.PostCreateReq;
+import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.service.PostService;
 import com.outstagram.outstagram.util.SHA256Util;
@@ -68,12 +68,12 @@ class PostControllerTest {
 
     @Test
     public void testCreatePost_Fail_NoImage() throws Exception {
-        PostCreateReq postCreateReq = PostCreateReq.builder()
+        CreatePostReq createPostReq = CreatePostReq.builder()
                 .contents("게시물 내용입니다.")
                 .imgFiles(null)
                 .build();
 
-        String jsonContent = objectMapper.writeValueAsString(postCreateReq);
+        String jsonContent = objectMapper.writeValueAsString(createPostReq);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/posts")
                         .contentType(MediaType.MULTIPART_FORM_DATA)

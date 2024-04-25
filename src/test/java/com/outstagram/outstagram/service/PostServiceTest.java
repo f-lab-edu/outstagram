@@ -1,6 +1,6 @@
 package com.outstagram.outstagram.service;
 
-import com.outstagram.outstagram.controller.request.PostCreateReq;
+import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.response.PostRes;
 import com.outstagram.outstagram.dto.ImageDTO;
 import com.outstagram.outstagram.dto.PostDTO;
@@ -40,7 +40,7 @@ class PostServiceTest {
     public void testInsertPost_Success() {
         // given
         MultipartFile mockFile = mock(MultipartFile.class);
-        PostCreateReq postCreateReq = PostCreateReq.builder()
+        CreatePostReq createPostReq = CreatePostReq.builder()
                 .contents("게시물 내용입니다.")
                 .imgFiles(List.of(mockFile))
                 .build();
@@ -53,7 +53,7 @@ class PostServiceTest {
             p.setId(1L);
             return null;
         });
-        postService.insertPost(postCreateReq, userId);
+        postService.insertPost(createPostReq, userId);
 
         // then
         // PostDTO 타입의 어떤 객체든지 상관 없이 insertPost가 정확히 1번 호출되었는지 검증해주는 코드
