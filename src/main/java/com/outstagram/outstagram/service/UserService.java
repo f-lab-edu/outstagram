@@ -32,12 +32,7 @@ public class UserService {
 
         userInfo.setPassword(encryptedPassword(userInfo.getPassword()));
 
-        int insertCount = userMapper.insertUser(userInfo);
-
-        if (insertCount != 1) {
-            log.error("insert user ERROR!!! {}", userInfo);
-            throw new ApiException(ErrorCode.INSERT_ERROR);
-        }
+        userMapper.insertUser(userInfo);
     }
 
 

@@ -44,10 +44,7 @@ public class PostService {
             .build();
 
         // 게시물 내용 저장 (insertPost 정상 실행되면, newPost의 id 속성에 id값이 들어 있다)
-        int result = postMapper.insertPost(newPost);
-        if (result == 0) {
-            throw new ApiException(ErrorCode.INSERT_ERROR);
-        }
+        postMapper.insertPost(newPost);
 
         // 로컬 디렉토리에 이미지 저장 후, DB에 이미지 정보 저장
         imageService.saveImages(postCreateReq.getImgFiles(),
@@ -164,7 +161,7 @@ public class PostService {
         // 게시물 좋아요 1 증가
         int result = postMapper.updateLikeCount(postId, 1);
         if (result == 0) {
-            throw new ApiException(ErrorCode.INSERT_ERROR);
+            throw new ApiException(ErrorCode.UPDATE_ERROR);
         }
 
         // like 테이블에 좋아요 기록 저장

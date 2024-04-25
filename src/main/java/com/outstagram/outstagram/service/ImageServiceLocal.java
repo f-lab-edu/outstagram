@@ -78,10 +78,7 @@ public class ImageServiceLocal implements ImageService {
         }
 
         // 이미지 정보들 한꺼번에 DB에 저장
-        int result = imageMapper.insertImages(imageDTOList);
-        if (result == 0) {
-            throw new ApiException(ErrorCode.INSERT_ERROR, "이미지 추가에 실패했습니다.");
-        }
+        imageMapper.insertImages(imageDTOList);
     }
 
     /**

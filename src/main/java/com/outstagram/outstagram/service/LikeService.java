@@ -21,10 +21,8 @@ public class LikeService {
             .postId(postId)
             .createDate(LocalDateTime.now())
             .build();
-        int result = likeMapper.insertLike(newLike);
-        if (result == 0) {
-            throw new ApiException(ErrorCode.INSERT_ERROR);
-        }
+
+        likeMapper.insertLike(newLike);
     }
 
     public Boolean existsLike(Long userId, Long postId) {
