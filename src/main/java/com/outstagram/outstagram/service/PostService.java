@@ -11,17 +11,17 @@ import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.PostMapper;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
 @Slf4j
 @Service
@@ -32,6 +32,7 @@ public class PostService {
 
     private final ImageService imageService;
     private final UserService userService;
+    private final LikeService likeService;
 
     @Transactional
     public void insertPost(CreatePostReq createPostReq, Long userId) {
@@ -48,10 +49,10 @@ public class PostService {
         // 로컬 디렉토리에 이미지 저장 후, DB에 이미지 정보 저장
         imageService.saveImages(createPostReq.getImgFiles(),
             newPost.getId());
-
     }
 
-    // TODO : like, bookmark 개발 후, 해당 내용 채우기
+    // TODO : post 조회 쿼리, image 조회 쿼리, user 조회 쿼리, like 조회 쿼리 => 총 4개 쿼리 발생
+    // TODO : bookmark 개발 후, 해당 내용 채우기
     public List<MyPostsRes> getMyPosts(Long userId) {
         // 유저의 게시물과 게시물의 대표이미지 1개 가져오기
         List<PostImageDTO> postWithImgList = postMapper.findWithImageByUserId(userId);
@@ -60,8 +61,8 @@ public class PostService {
             .map(dto -> MyPostsRes.builder()
                 .contents(dto.getContents())
                 .likes(dto.getLikes())
-                .thumbnailUrl(dto.getImgPath()+ "\\" + dto.getSavedImgName())
-                .isLiked(null)
+                .thumbnailUrl(dto.getImgPath() + "\\" + dto.getSavedImgName())
+                .isLiked(likeService.existsLike(userId, dto.getId()))
                 .isBookmarked(null)
                 .build())
             .collect(Collectors.toList());
@@ -77,23 +78,26 @@ public class PostService {
         // 2. Post의 이미지 정보 가져오기
         List<ImageDTO> imageList = imageService.getImages(post.getId());
 
-        // 3. PostRes를 위한 데이터 가져오기
-        UserDTO author = userService.findByUserId(post.getUserId());
-        boolean isAuthor = author.getId().equals(userId);   // 로그인한 유저가 작성한 Post인지 여부
+        // 3. 로그인한 유저가 게시물 작성자인지 판단
+        boolean isAuthor = post.getUserId().equals(userId);
 
+        // 4. 작성자 정보 가져오기 -> nickname과 유저 img 가져오기 위해서
+        UserDTO author = userService.findByUserId(post.getUserId());
+
+        // 5. 이미지 url 조합하기
         Map<Long, String> imageUrlMap = new HashMap<>();
         for (ImageDTO img : imageList) {
             imageUrlMap.put(img.getId(), img.getImgPath() + "\\" + img.getSavedImgName());
         }
-        // 4. PostRes 만들어서 반환하기
-        // TODO : isLiked, isBookmarked, comments 채우기
+
+        // TODO : isBookmarked, comments 채우기
         return PostRes.builder()
             .authorName(author.getNickname())
             .authorImgUrl(author.getImgUrl())
             .contents(post.getContents())
             .postImgUrls(imageUrlMap)
             .likes(post.getLikes())
-            .isLiked(null)
+            .isLiked(likeService.existsLike(userId, post.getId()))
             .isBookmarked(null)
             .isAuthor(isAuthor)
             .comments(null)
@@ -129,6 +133,9 @@ public class PostService {
 
     }
 
+    /**
+     * 게시물 삭제 메서드 실제 레코드를 삭제하지 않고 is_deleted = 1 방식으로 soft_delete
+     */
     @Transactional
     public void deletePost(Long postId, Long userId) {
         // 삭제할 게시물 가져오기
@@ -144,6 +151,65 @@ public class PostService {
         }
     }
 
+
+    /**
+     * 좋아요 증가 메서드 - 게시물의 좋아요 개수 증가 - like table에 row 추가하기
+     */
+    @Transactional
+    public void increaseLike(Long postId, Long userId) {
+        // 게시물 좋아요 1 증가
+        int result = postMapper.updateLikeCount(postId, 1);
+        if (result == 0) {
+            throw new ApiException(ErrorCode.UPDATE_ERROR);
+        }
+
+        // like 테이블에 좋아요 기록 저장
+        likeService.insertLike(userId, postId);
+    }
+
+    /**
+     * 좋아요 취소 기능 - 게시물 좋아요 개수 1 감소 - like table에서 해당 기록 삭제
+     */
+    @Transactional
+    public void unlikePost(Long postId, Long userId) {
+        // 게시물의 좋아요 개수 1 감소
+        int result = postMapper.updateLikeCount(postId, -1);
+        if (result == 0) {
+            throw new ApiException(ErrorCode.UPDATE_ERROR);
+        }
+
+        // 좋아요 누른 기록 삭제
+        likeService.deleteLike(userId, postId);
+    }
+
+    /**
+     * 로그인한 유저가 좋아요 누른 모든 게시물 가져오기
+     */
+    // TODO : isBookmarked 채우기
+    public List<MyPostsRes> getLikePosts(Long userId) {
+        // 유저가 좋아요 누른 게시물 Id 가져오기
+        List<Long> likePosts = likeService.getLikePosts(userId);
+
+        // 좋아요 누른 게시물 없으면 빈 list 반환
+        if (likePosts.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 좋아요 누른 게시물들 가져오기
+        List<PostImageDTO> likedPostImageList = postMapper.findLikePostsWithImageByPostIds(likePosts);
+
+        return likedPostImageList.stream()
+            .map(dto -> MyPostsRes.builder()
+                .contents(dto.getContents())
+                .likes(dto.getLikes())
+                .thumbnailUrl(dto.getImgPath() + "\\" + dto.getSavedImgName())
+                .isLiked(true)  // 애초에 좋아요 누른 게시물의 정보를 가져온거임 그래서 무조건 true
+                .isBookmarked(null)
+                .build())
+            .collect(Collectors.toList());
+    }
+
+
     /**
      * 게시물 작성자인지 검증 -> 수정, 삭제 시 확인 필요
      */
@@ -157,6 +223,4 @@ public class PostService {
             throw new ApiException(ErrorCode.UNAUTHORIZED_ACCESS, "게시물에 대한 권한이 없습니다.");
         }
     }
-
-
 }

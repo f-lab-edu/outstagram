@@ -71,6 +71,29 @@ public class PostController {
         return ResponseEntity.ok(ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
             .message("게시물 삭제 완료했습니다.").build());
     }
+
+    @GetMapping("/likes")
+    public ResponseEntity<List<MyPostsRes>> getLikePosts(@Login UserDTO user) {
+        List<MyPostsRes> myLikePosts =  postService.getLikePosts(user.getId());
+
+        return ResponseEntity.ok(myLikePosts);
+    }
+
+    @PostMapping("/{postId}/likes")
+    public ResponseEntity<ApiResponse> addLike(@PathVariable Long postId, @Login UserDTO user) {
+        postService.increaseLike(postId, user.getId());
+
+        return ResponseEntity.ok(ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
+            .message("게시물 좋아요가 성공했습니다.").build());
+    }
+
+    @DeleteMapping("/{postId}/likes")
+    public ResponseEntity<ApiResponse> removeLike(@PathVariable Long postId, @Login UserDTO user) {
+        postService.unlikePost(postId, user.getId());
+
+        return ResponseEntity.ok(ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
+            .message("게시물 좋아요를 취소했습니다.").build());
+    }
 }
 
 
