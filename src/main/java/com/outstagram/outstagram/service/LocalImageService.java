@@ -18,12 +18,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ImageServiceLocal implements ImageService {
+public class LocalImageService implements ImageService {
 
     @Value("com.outstagram.upload.path")
     private String uploadPath;
@@ -47,6 +48,7 @@ public class ImageServiceLocal implements ImageService {
     /**
      * 로컬 디렉토리에 이미지 저장하고, 이미지 정보 DB에 저장하기
      */
+    @Transactional
     @Override
     public void saveImages(List<MultipartFile> imgFiles, Long postId) {
         List<ImageDTO> imageDTOList = new ArrayList<>();
@@ -73,7 +75,7 @@ public class ImageServiceLocal implements ImageService {
                         .build()
                 );
             } catch (IOException e) {
-                throw new ApiException(ErrorCode.FILE_IO_ERROR, "이미지 저장 도중에 발생한 파일 입출력 에러!!!");
+                throw new ApiException(e, ErrorCode.FILE_IO_ERROR);
             }
         }
 
@@ -89,6 +91,7 @@ public class ImageServiceLocal implements ImageService {
         return imageMapper.findImagesByPostId(postId);
     }
 
+    @Transactional
     @Override
     public void deleteByIds(List<Long> deleteImgIds) {
         int result = imageMapper.deleteByIds(deleteImgIds);

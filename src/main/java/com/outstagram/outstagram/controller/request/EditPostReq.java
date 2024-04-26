@@ -1,7 +1,6 @@
 package com.outstagram.outstagram.controller.request;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,7 +13,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class PostEditReq {
+public class EditPostReq {
     @NotBlank(message = "게시물 내용은 필수 입력입니다.")
     private String contents;
 

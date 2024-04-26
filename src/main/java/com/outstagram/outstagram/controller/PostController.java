@@ -2,8 +2,8 @@ package com.outstagram.outstagram.controller;
 
 import com.outstagram.outstagram.common.annotation.Login;
 import com.outstagram.outstagram.common.api.ApiResponse;
-import com.outstagram.outstagram.controller.request.PostCreateReq;
-import com.outstagram.outstagram.controller.request.PostEditReq;
+import com.outstagram.outstagram.controller.request.CreatePostReq;
+import com.outstagram.outstagram.controller.request.EditPostReq;
 import com.outstagram.outstagram.controller.response.MyPostsRes;
 import com.outstagram.outstagram.controller.response.PostRes;
 import com.outstagram.outstagram.dto.UserDTO;
@@ -33,8 +33,8 @@ public class PostController {
 
     @PostMapping
     public ResponseEntity<ApiResponse> createPost(
-        @ModelAttribute @Valid PostCreateReq postCreateReq, @Login UserDTO user) {
-        postService.insertPost(postCreateReq, user.getId());
+        @ModelAttribute @Valid CreatePostReq createPostReq, @Login UserDTO user) {
+        postService.insertPost(createPostReq, user.getId());
 
         return ResponseEntity.ok(
             ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK).message("게시물을 저장했습니다.")
@@ -57,8 +57,8 @@ public class PostController {
 
     @PatchMapping("/{postId}")
     public ResponseEntity<ApiResponse> editPost(@PathVariable Long postId,
-        @ModelAttribute @Valid PostEditReq postEditReq, @Login UserDTO user) {
-        postService.editPost(postId, postEditReq, user.getId());
+        @ModelAttribute @Valid EditPostReq editPostReq, @Login UserDTO user) {
+        postService.editPost(postId, editPostReq, user.getId());
 
         return ResponseEntity.ok(ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
             .message("게시물 수정 완료했습니다.").build());
