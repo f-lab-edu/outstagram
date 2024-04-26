@@ -17,4 +17,6 @@ public interface UserMapper {
     UserDTO findByEmailAndPassword(@Param("email") String email,
         @Param("password") String password);
 
+    UserDTO findById(Long userId);
+
 }

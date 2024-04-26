@@ -16,10 +16,17 @@
     </insert>
 
     <select id="findByEmailAndPassword" resultType="com.outstagram.outstagram.dto.UserDTO">
-        SELECT *
+        SELECT id, nickname, email, img_url
         FROM user
         WHERE email = #{email}
         AND password = #{password}
+        AND is_deleted = 0
+    </select>
+
+    <select id="findById" resultType="com.outstagram.outstagram.dto.UserDTO">
+        SELECT id, nickname, img_url
+        FROM user
+        WHERE id = #{userId}
         AND is_deleted = 0
     </select>
 

@@ -19,4 +19,10 @@ public class ApiException extends RuntimeException {
         this.errorCode = errorCode;
         this.description = message;
     }
+
+    public ApiException(Throwable ex, ErrorCode errorCode) {
+        super(ex);
+        this.errorCode = errorCode;
+        this.description = errorCode.getDescription();
+    }
 }

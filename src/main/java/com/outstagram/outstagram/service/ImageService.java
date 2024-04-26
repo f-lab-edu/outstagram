@@ -1,21 +1,14 @@
 package com.outstagram.outstagram.service;
 
-import com.outstagram.outstagram.mapper.ImageMapper;
+import com.outstagram.outstagram.dto.ImageDTO;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-@Slf4j
-@Service
-@RequiredArgsConstructor
-public class ImageService {
+public interface ImageService {
 
-    private final ImageMapper imageMapper;
+    void saveImages(List<MultipartFile> imgFiles, Long postId);
 
+    List<ImageDTO> getImages(Long postId);
 
-    public void insertImages(List<MultipartFile> imgFiles) {
-
-    }
+    void deleteByIds(List<Long> deleteImgIds);
 }
