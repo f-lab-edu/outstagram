@@ -1,6 +1,6 @@
 package com.outstagram.outstagram.controller;
 
-import static com.outstagram.outstagram.common.session.SessionConst.LOGIN_USER;
+import static com.outstagram.outstagram.common.constant.SessionConst.LOGIN_USER;
 
 import com.outstagram.outstagram.common.api.ApiResponse;
 import com.outstagram.outstagram.controller.request.UserLoginReq;

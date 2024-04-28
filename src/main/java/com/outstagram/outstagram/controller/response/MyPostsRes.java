@@ -9,6 +9,7 @@ import lombok.Data;
 @Builder
 public class MyPostsRes {
 
+    private Long postId;
 
     private String contents;
 
