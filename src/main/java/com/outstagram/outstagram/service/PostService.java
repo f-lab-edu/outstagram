@@ -1,5 +1,7 @@
 package com.outstagram.outstagram.service;
 
+import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
+
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditPostReq;
 import com.outstagram.outstagram.controller.response.MyPostsRes;
@@ -11,16 +13,17 @@ import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.PostMapper;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
 
 @Slf4j
 @Service
@@ -55,7 +58,6 @@ public class PostService {
     public List<MyPostsRes> getMyPosts(Long userId, Long lastId) {
         // 유저의 (게시물과 게시물의 대표이미지) 10개씩 가져오기
         List<PostImageDTO> postWithImgList = postMapper.findWithImageByUserId(userId, lastId, PAGE_SIZE);
-
 
         return postWithImgList.stream()
                 .map(dto -> MyPostsRes.builder()
@@ -199,14 +201,15 @@ public class PostService {
         List<PostImageDTO> likedPostImageList = postMapper.findPostsWithImageByPostIds(likePosts, lastId, PAGE_SIZE);
 
         return likedPostImageList.stream()
-                .map(dto -> MyPostsRes.builder()
-                        .contents(dto.getContents())
-                        .likes(dto.getLikes())
-                        .thumbnailUrl(dto.getImgPath() + "\\" + dto.getSavedImgName())
-                        .isLiked(true)  // 애초에 좋아요 누른 게시물의 정보를 가져온거임 그래서 무조건 true
-                        .isBookmarked(bookmarkService.existsBookmark(userId, dto.getId()))
-                        .build())
-                .collect(Collectors.toList());
+            .map(dto -> MyPostsRes.builder()
+                .postId(dto.getId())
+                .contents(dto.getContents())
+                .likes(dto.getLikes())
+                .thumbnailUrl(dto.getImgPath() + "\\" + dto.getSavedImgName())
+                .isLiked(true)  // 애초에 좋아요 누른 게시물의 정보를 가져온거임 그래서 무조건 true
+                .isBookmarked(bookmarkService.existsBookmark(userId, dto.getId()))
+                .build())
+            .collect(Collectors.toList());
     }
 
     /**

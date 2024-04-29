@@ -104,6 +104,7 @@
         GROUP BY post_id
         )
         ORDER BY post_id DESC
+        LIMIT #{size}
     </select>
 
 
