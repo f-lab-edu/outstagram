@@ -90,7 +90,8 @@
         i.saved_img_name
         FROM post AS p
         JOIN image AS i ON p.id = i.post_id
-        WHERE p.id IN
+        WHERE post_id &lt; #{lastId}
+        AND p.id IN
         <foreach item="postId" collection="likePosts" open="(" separator="," close=")">
             #{postId}
         </foreach>

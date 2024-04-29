@@ -186,7 +186,7 @@ public class PostService {
     /**
      * 로그인한 유저가 좋아요 누른 모든 게시물 가져오기
      */
-    public List<MyPostsRes> getLikePosts(Long userId) {
+    public List<MyPostsRes> getLikePosts(Long userId, Long lastId) {
         // 유저가 좋아요 누른 게시물 Id 가져오기
         List<Long> likePosts = likeService.getLikePosts(userId);
 
@@ -195,8 +195,8 @@ public class PostService {
             return new ArrayList<>();
         }
 
-        // 좋아요 누른 게시물들 가져오기
-        List<PostImageDTO> likedPostImageList = postMapper.findPostsWithImageByPostIds(likePosts);
+        // 좋아요 누른 게시물들 가져오기 (10개씩 가져오기)
+        List<PostImageDTO> likedPostImageList = postMapper.findPostsWithImageByPostIds(likePosts, lastId, PAGE_SIZE);
 
         return likedPostImageList.stream()
                 .map(dto -> MyPostsRes.builder()
@@ -212,7 +212,7 @@ public class PostService {
     /**
      * 로그인한 유저가 북마크한 모든 게시물 가져오기
      */
-    public List<MyPostsRes> getBookmarkedPosts(Long userId) {
+    public List<MyPostsRes> getBookmarkedPosts(Long userId, Long lastId) {
         // 유저가 북마크한 게시물 Id 가져오기
         List<Long> bookmarkedPosts = bookmarkService.getBookmarkedPosts(userId);
 
@@ -222,7 +222,7 @@ public class PostService {
         }
 
         // 북마크한 게시물들 가져오기
-        List<PostImageDTO> bookmarkedPostImageList = postMapper.findPostsWithImageByPostIds(bookmarkedPosts);
+        List<PostImageDTO> bookmarkedPostImageList = postMapper.findPostsWithImageByPostIds(bookmarkedPosts, lastId, PAGE_SIZE);
 
         return bookmarkedPostImageList.stream()
             .map(dto -> MyPostsRes.builder()
