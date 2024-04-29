@@ -82,7 +82,7 @@
     </update>
 
     <!-- postId list 매개변수로 주어지면 해당 post들의 미리보기 정보 가져오기 -->
-    <select id="findLikePostsWithImageByPostIds" resultMap="postImageDTOMap">
+    <select id="findPostsWithImageByPostIds" resultMap="postImageDTOMap">
         SELECT p.id AS post_id,
         p.contents,
         p.likes,

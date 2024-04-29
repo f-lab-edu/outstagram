@@ -248,7 +248,7 @@ class PostServiceTest {
         );
 
         when(likeService.getLikePosts(userId)).thenReturn(mockLikePostIds);
-        when(postMapper.findLikePostsWithImageByPostIds(mockLikePostIds)).thenReturn(mockPostImages);
+        when(postMapper.findPostsWithImageByPostIds(mockLikePostIds)).thenReturn(mockPostImages);
 
         List<MyPostsRes> likePosts = postService.getLikePosts(userId);
 
@@ -261,7 +261,7 @@ class PostServiceTest {
         assertEquals(mockPostImages.get(1).getLikes(), likePosts.get(1).getLikes());
 
         verify(likeService).getLikePosts(userId);
-        verify(postMapper).findLikePostsWithImageByPostIds(mockLikePostIds);
+        verify(postMapper).findPostsWithImageByPostIds(mockLikePostIds);
     }
 
 }
