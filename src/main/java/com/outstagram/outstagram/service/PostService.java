@@ -1,5 +1,7 @@
 package com.outstagram.outstagram.service;
 
+import static com.outstagram.outstagram.common.constant.OptimisticLockConst.MAX_RETRIES;
+
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditPostReq;
 import com.outstagram.outstagram.controller.response.MyPostsRes;
@@ -155,16 +157,47 @@ public class PostService {
     /**
      * 좋아요 증가 메서드 - 게시물의 좋아요 개수 증가 - like table에 row 추가하기
      */
-    @Transactional
+    @Transactional//(isolation = Isolation.SERIALIZABLE)
     public void increaseLike(Long postId, Long userId) {
-        // 게시물 좋아요 1 증가
-        int result = postMapper.updateLikeCount(postId, 1);
-        if (result == 0) {
-            throw new ApiException(ErrorCode.UPDATE_ERROR);
+        int attempt = 0;
+
+        while (true) {
+            try {
+                // 버전 가져오기
+                PostDTO post = postMapper.findById(postId);
+                if (post == null) {
+                    throw new ApiException(ErrorCode.POST_NOT_FOUND);
+                }
+
+                // 게시물 좋아요 1 증가
+                int result = postMapper.updateLikeCount(postId, 1, post.getVersion());
+
+                // 업데이트 성공 시
+                if (result > 0) {
+                    likeService.insertLike(userId, postId);
+                    break;
+                }
+
+                // 최대 재시도 횟수 초과 시 예외 던짐
+                if (attempt > MAX_RETRIES) {
+                    throw new ApiException(ErrorCode.RETRY_EXCEEDED);
+                }
+
+                // 재시도 횟수 증가
+                attempt++;
+            } catch (Exception e) {
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+
+
+
         }
 
-        // like 테이블에 좋아요 기록 저장
-        likeService.insertLike(userId, postId);
+
     }
 
     /**
@@ -172,8 +205,9 @@ public class PostService {
      */
     @Transactional
     public void unlikePost(Long postId, Long userId) {
+        PostDTO post = postMapper.findById(postId);
         // 게시물의 좋아요 개수 1 감소
-        int result = postMapper.updateLikeCount(postId, -1);
+        int result = postMapper.updateLikeCount(postId, -1, post.getVersion());
         if (result == 0) {
             throw new ApiException(ErrorCode.UPDATE_ERROR);
         }
@@ -196,7 +230,8 @@ public class PostService {
         }
 
         // 좋아요 누른 게시물들 가져오기
-        List<PostImageDTO> likedPostImageList = postMapper.findLikePostsWithImageByPostIds(likePosts);
+        List<PostImageDTO> likedPostImageList = postMapper.findLikePostsWithImageByPostIds(
+            likePosts);
 
         return likedPostImageList.stream()
             .map(dto -> MyPostsRes.builder()

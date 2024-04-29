@@ -5,8 +5,8 @@
 
   <!--insert 성공 시, DB에서 자동으로 생성된 key를 가져와서 newPost 객체의 id 속성에 값을 넣어준다 (postMapper.insertPost(newPost);)  -->
   <insert id="insertPost" parameterType="com.outstagram.outstagram.dto.PostDTO" useGeneratedKeys="true" keyProperty="id">
-    INSERT INTO POST(contents, user_id, create_date, update_date)
-    VALUES (#{contents}, #{userId}, #{createDate}, #{updateDate})
+    INSERT INTO POST(contents, user_id, create_date, update_date, version)
+    VALUES (#{contents}, #{userId}, #{createDate}, #{updateDate}, 1)
   </insert>
 
   <resultMap id="postImageDTOMap" type="com.outstagram.outstagram.dto.PostImageDTO">
@@ -47,7 +47,7 @@
 
   <!-- postId로 게시물 가져오기 -->
   <select id="findById" resultType="com.outstagram.outstagram.dto.PostDTO">
-    SELECT id, user_id, contents, likes
+    SELECT id, user_id, contents, likes, version
     FROM post
     WHERE id = #{postId}
       AND is_deleted = 0
@@ -72,8 +72,10 @@
   <update id="updateLikeCount">
     UPDATE post
     SET likes = likes + #{count},
-        update_date = NOW()
+        update_date = NOW(),
+        version = version + 1
     WHERE id = #{postId}
+        AND version = #{currentVersion}
         AND is_deleted = 0
   </update>
 

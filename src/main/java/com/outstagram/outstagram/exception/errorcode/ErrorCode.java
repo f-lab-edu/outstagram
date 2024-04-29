@@ -28,7 +28,12 @@ public enum ErrorCode {
     FILE_IO_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "파일 입출력 과정에서 에러가 발생했습니다."),
 
     // post 관련 에러 코드,
-    POST_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 게시물은 존재하지 않습니다.");
+    POST_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 게시물은 존재하지 않습니다."),
+
+    // lock 관련 에러 코드
+    RETRY_EXCEEDED(HttpStatus.INTERNAL_SERVER_ERROR, "업데이트 재시도 횟수를 초과했습니다."),
+
+    ;
 
 
 

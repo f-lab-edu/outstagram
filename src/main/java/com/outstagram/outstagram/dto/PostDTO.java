@@ -37,4 +37,5 @@ public class PostDTO {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updateDate;
 
+    private Integer version;
 }
