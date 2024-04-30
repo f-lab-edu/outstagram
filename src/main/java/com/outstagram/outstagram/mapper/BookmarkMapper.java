@@ -1,6 +1,7 @@
 package com.outstagram.outstagram.mapper;
 
 import com.outstagram.outstagram.dto.BookmarkDTO;
+import com.outstagram.outstagram.dto.PostImageDTO;
 import java.util.List;
 import org.springframework.stereotype.Repository;
 
@@ -13,5 +14,5 @@ public interface BookmarkMapper {
 
     int deleteBookmark(Long userId, Long postId);
 
-    List<Long> findPostIdsByUserId(Long userId);
+    List<PostImageDTO> findWithPostsAndImageByUserId(Long userId, Long lastId, int size);
 }

@@ -14,7 +14,6 @@ import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.PostMapper;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -189,18 +188,9 @@ public class PostService {
      * 로그인한 유저가 좋아요 누른 모든 게시물 가져오기
      */
     public List<MyPostsRes> getLikePosts(Long userId, Long lastId) {
-        // 유저가 좋아요 누른 게시물 Id 가져오기
-        List<Long> likePosts = likeService.getLikePosts(userId);
+        List<PostImageDTO> likePosts = likeService.getLikePosts(userId, lastId);
 
-        // 좋아요 누른 게시물 없으면 빈 list 반환
-        if (likePosts.isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        // 좋아요 누른 게시물들 가져오기 (10개씩 가져오기)
-        List<PostImageDTO> likedPostImageList = postMapper.findPostsWithImageByPostIds(likePosts, lastId, PAGE_SIZE);
-
-        return likedPostImageList.stream()
+        return likePosts.stream()
             .map(dto -> MyPostsRes.builder()
                 .postId(dto.getId())
                 .contents(dto.getContents())
@@ -216,18 +206,9 @@ public class PostService {
      * 로그인한 유저가 북마크한 모든 게시물 가져오기
      */
     public List<MyPostsRes> getBookmarkedPosts(Long userId, Long lastId) {
-        // 유저가 북마크한 게시물 Id 가져오기
-        List<Long> bookmarkedPosts = bookmarkService.getBookmarkedPosts(userId);
+        List<PostImageDTO> bookmarkPosts = bookmarkService.getBookmarkedPosts(userId, lastId);
 
-        // 북마크한 게시물 없으면 빈 list 반환
-        if (bookmarkedPosts.isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        // 북마크한 게시물들 가져오기
-        List<PostImageDTO> bookmarkedPostImageList = postMapper.findPostsWithImageByPostIds(bookmarkedPosts, lastId, PAGE_SIZE);
-
-        return bookmarkedPostImageList.stream()
+        return bookmarkPosts.stream()
             .map(dto -> MyPostsRes.builder()
                 .postId(dto.getId())
                 .contents(dto.getContents())

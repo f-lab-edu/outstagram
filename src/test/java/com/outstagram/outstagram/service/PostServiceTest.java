@@ -219,7 +219,6 @@ class PostServiceTest {
     @Test
     public void testGetLikePosts() {
         Long userId = 1L;
-        List<Long> mockLikePostIds = Arrays.asList(2L, 3L, 4L);
         List<PostImageDTO> mockPostImages = Arrays.asList(
             PostImageDTO.builder()
                 .id(2L)
@@ -247,8 +246,7 @@ class PostServiceTest {
                 .build()
         );
 
-        when(likeService.getLikePosts(userId)).thenReturn(mockLikePostIds);
-        when(postMapper.findPostsWithImageByPostIds(mockLikePostIds, 4L, PAGE_SIZE)).thenReturn(mockPostImages);
+        when(likeService.getLikePosts(userId, null)).thenReturn(mockPostImages);
 
         List<MyPostsRes> likePosts = postService.getLikePosts(userId, 4L);
 
@@ -260,8 +258,7 @@ class PostServiceTest {
         assertTrue(likePosts.get(0).getIsLiked());
         assertEquals(mockPostImages.get(1).getLikes(), likePosts.get(1).getLikes());
 
-        verify(likeService).getLikePosts(userId);
-        verify(postMapper).findPostsWithImageByPostIds(mockLikePostIds, 4L, PAGE_SIZE);
+        verify(likeService).getLikePosts(userId, null);
     }
 
 }

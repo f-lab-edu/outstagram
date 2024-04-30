@@ -69,8 +69,7 @@ public class PostController {
 
     @GetMapping("/likes")
     public ResponseEntity<List<MyPostsRes>> getLikePosts(@RequestParam(required = false) Long lastId, @Login UserDTO user) {
-        Long lastID = (lastId == null) ? Long.MAX_VALUE : lastId;
-        List<MyPostsRes> myLikePosts =  postService.getLikePosts(user.getId(), lastID);
+        List<MyPostsRes> myLikePosts =  postService.getLikePosts(user.getId(), lastId);
 
         return ResponseEntity.ok(myLikePosts);
     }
@@ -93,8 +92,7 @@ public class PostController {
 
     @GetMapping("/bookmarks")
     public ResponseEntity<List<MyPostsRes>> getBookmarkedPosts(@RequestParam(required = false) Long lastId, @Login UserDTO user) {
-        Long lastID = (lastId == null) ? Long.MAX_VALUE : lastId;
-        List<MyPostsRes> myLikePosts =  postService.getBookmarkedPosts(user.getId(), lastID);
+        List<MyPostsRes> myLikePosts =  postService.getBookmarkedPosts(user.getId(), lastId);
 
         return ResponseEntity.ok(myLikePosts);
     }

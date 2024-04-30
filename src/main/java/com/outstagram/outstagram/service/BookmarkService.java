@@ -1,6 +1,9 @@
 package com.outstagram.outstagram.service;
 
+import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
+
 import com.outstagram.outstagram.dto.BookmarkDTO;
+import com.outstagram.outstagram.dto.PostImageDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.BookmarkMapper;
@@ -36,7 +39,7 @@ public class BookmarkService {
         }
     }
 
-    public List<Long> getBookmarkedPosts(Long userId) {
-        return bookmarkMapper.findPostIdsByUserId(userId);
+    public List<PostImageDTO> getBookmarkedPosts(Long userId, Long postId) {
+        return bookmarkMapper.findWithPostsAndImageByUserId(userId, postId, PAGE_SIZE);
     }
 }

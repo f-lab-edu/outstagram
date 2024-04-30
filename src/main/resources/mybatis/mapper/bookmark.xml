@@ -27,4 +27,50 @@
     WHERE user_id = #{userId}
   </select>
 
+  <resultMap id="postImageDTOMap" type="com.outstagram.outstagram.dto.PostImageDTO">
+    <!-- PostDTO의 필드 매핑 -->
+    <id property="id" column="post_id"/>
+    <result property="contents" column="contents"/>
+    <result property="likes" column="likes"/>
+
+    <!-- PostImageDTO의 확장된 필드 매핑 -->
+    <result property="imgPath" column="img_path"/>
+    <result property="savedImgName" column="saved_img_name"/>
+  </resultMap>
+
+
+  <select id="findWithPostsAndImageByUserId" resultMap="postImageDTOMap">
+    SELECT
+    b.post_id AS post_id,
+    p.contents,
+    p.likes,
+    i.img_path,
+    i.saved_img_name
+    FROM
+    bookmark AS b
+
+    JOIN (
+    SELECT post_id, MIN(id) AS min_image_id
+    FROM image
+    WHERE is_deleted = 0
+    GROUP BY post_id
+    ) AS min_img ON b.post_id = min_img.post_id
+    JOIN image AS i ON min_img.post_id = i.post_id AND min_img.min_image_id = i.id
+    JOIN post AS p ON b.post_id = p.id
+
+    WHERE
+    b.user_id = #{userId}
+    AND p.is_deleted = 0
+    <if test="lastId != null">
+      AND b.create_date &lt; (
+      SELECT create_date
+      FROM bookmark
+      WHERE post_id = #{lastId}
+      LIMIT 1
+      )
+    </if>
+
+    ORDER BY b.create_date DESC
+    LIMIT #{size}
+  </select>
 </mapper>
