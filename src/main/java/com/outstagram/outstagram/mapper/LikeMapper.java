@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface LikeMapper {
 
-    int insertLike(LikeDTO like);
+    void insertLike(LikeDTO like);
 
     boolean existsUserLike(Long userId, Long postId);
 

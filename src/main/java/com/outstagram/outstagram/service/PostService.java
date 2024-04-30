@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
@@ -157,7 +158,7 @@ public class PostService {
     /**
      * 좋아요 증가 메서드 - 게시물의 좋아요 개수 증가 - like table에 row 추가하기
      */
-    @Transactional//(isolation = Isolation.SERIALIZABLE)
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void increaseLike(Long postId, Long userId) {
         int attempt = 0;
 
@@ -192,9 +193,6 @@ public class PostService {
                     throw new RuntimeException(ex);
                 }
             }
-
-
-
         }
 
 
@@ -203,17 +201,42 @@ public class PostService {
     /**
      * 좋아요 취소 기능 - 게시물 좋아요 개수 1 감소 - like table에서 해당 기록 삭제
      */
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void unlikePost(Long postId, Long userId) {
-        PostDTO post = postMapper.findById(postId);
-        // 게시물의 좋아요 개수 1 감소
-        int result = postMapper.updateLikeCount(postId, -1, post.getVersion());
-        if (result == 0) {
-            throw new ApiException(ErrorCode.UPDATE_ERROR);
-        }
+        int attempt = 0;
 
-        // 좋아요 누른 기록 삭제
-        likeService.deleteLike(userId, postId);
+        while (true) {
+            try {
+                // 버전 가져오기
+                PostDTO post = postMapper.findById(postId);
+                if (post == null) {
+                    throw new ApiException(ErrorCode.POST_NOT_FOUND);
+                }
+
+                // 게시물 좋아요 1 감소
+                int result = postMapper.updateLikeCount(postId, -1, post.getVersion());
+
+                // 업데이트 성공 시
+                if (result > 0) {
+                    likeService.deleteLike(userId, postId);
+                    break;
+                }
+
+                // 최대 재시도 횟수 초과 시 예외 던짐
+                if (attempt > MAX_RETRIES) {
+                    throw new ApiException(ErrorCode.RETRY_EXCEEDED);
+                }
+
+                // 재시도 횟수 증가
+                attempt++;
+            } catch (Exception e) {
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+        }
     }
 
     /**
