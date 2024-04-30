@@ -1,7 +1,7 @@
 package com.outstagram.outstagram.common.filter;
 
 
-import static com.outstagram.outstagram.common.session.SessionConst.LOGIN_USER;
+import static com.outstagram.outstagram.common.constant.SessionConst.LOGIN_USER;
 
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;

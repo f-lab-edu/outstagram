@@ -1,105 +1,111 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.outstagram.outstagram.mapper.PostMapper">
 
-  <!--insert 성공 시, DB에서 자동으로 생성된 key를 가져와서 newPost 객체의 id 속성에 값을 넣어준다 (postMapper.insertPost(newPost);)  -->
-  <insert id="insertPost" parameterType="com.outstagram.outstagram.dto.PostDTO" useGeneratedKeys="true" keyProperty="id">
-    INSERT INTO POST(contents, user_id, create_date, update_date)
-    VALUES (#{contents}, #{userId}, #{createDate}, #{updateDate})
-  </insert>
+    <!--insert 성공 시, DB에서 자동으로 생성된 key를 가져와서 newPost 객체의 id 속성에 값을 넣어준다 (postMapper.insertPost(newPost);)  -->
+    <insert id="insertPost" parameterType="com.outstagram.outstagram.dto.PostDTO" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO post (contents, user_id, create_date, update_date)
+        VALUES (#{contents}, #{userId}, #{createDate}, #{updateDate})
+    </insert>
 
-  <resultMap id="postImageDTOMap" type="com.outstagram.outstagram.dto.PostImageDTO">
-    <!-- PostDTO의 필드 매핑 -->
-    <id property="id" column="post_id"/>
-    <result property="contents" column="contents"/>
-    <result property="likes" column="likes"/>
+    <resultMap id="postImageDTOMap" type="com.outstagram.outstagram.dto.PostImageDTO">
+        <!-- PostDTO의 필드 매핑 -->
+        <id property="id" column="post_id"/>
+        <result property="contents" column="contents"/>
+        <result property="likes" column="likes"/>
 
-    <!-- PostImageDTO의 확장된 필드 매핑 -->
-    <result property="imgPath" column="img_path"/>
-    <result property="savedImgName" column="saved_img_name"/>
-  </resultMap>
+        <!-- PostImageDTO의 확장된 필드 매핑 -->
+        <result property="imgPath" column="img_path"/>
+        <result property="savedImgName" column="saved_img_name"/>
+    </resultMap>
 
-  <!-- userId로 게시물과 대표 이미지 1개 가져오기 -->
-  <select id="findWithImageByUserId" resultMap="postImageDTOMap">
-    SELECT p.id AS post_id,
-           p.contents,
-           p.likes,
-           i.img_path,
-           i.saved_img_name
-    FROM
+    <!-- userId로 게시물과 대표 이미지 1개 가져오기(커서 기반 페이지네이션 적용) -->
+    <select id="findWithImageByUserId" resultMap="postImageDTOMap">
+        SELECT p.id AS post_id,
+        p.contents,
+        p.likes,
+        i.img_path,
+        i.saved_img_name
+        FROM
         post AS p
-    JOIN
+        JOIN
         image AS i ON p.id = i.post_id
-    WHERE
+        WHERE
         p.user_id = #{userId}
         AND p.is_deleted = 0
         AND i.is_deleted = 0
+        <if test="lastId != null">
+            AND post_id &lt; #{lastId}
+        </if>
         AND i.id IN (
-            SELECT MIN(id)
-            FROM image
-            WHERE is_deleted = 0
-            GROUP BY post_id
-      )
-    ORDER BY
-        p.create_date DESC
-  </select>
+        SELECT MIN(id)
+        FROM image
+        WHERE is_deleted = 0
+        GROUP BY post_id
+        )
 
-  <!-- postId로 게시물 가져오기 -->
-  <select id="findById" resultType="com.outstagram.outstagram.dto.PostDTO">
-    SELECT id, user_id, contents, likes
-    FROM post
-    WHERE id = #{postId}
-      AND is_deleted = 0
-  </select>
+        ORDER BY
+        post_id DESC
+        LIMIT
+        #{size}
+    </select>
 
-  <update id="updateContentsById">
-    UPDATE post
-    SET contents = #{contents},
-        update_date = NOW()
-    WHERE id = #{postId}
-      AND is_deleted = 0
-  </update>
+    <!-- postId로 게시물 가져오기 -->
+    <select id="findById" resultType="com.outstagram.outstagram.dto.PostDTO">
+        SELECT id, user_id, contents, likes
+        FROM post
+        WHERE id = #{postId}
+          AND is_deleted = 0
+    </select>
 
-  <update id="deleteById">
-    UPDATE post
-    SET is_deleted = 1,
-        update_date = NOW()
-    WHERE id = #{postId}
-  </update>
+    <update id="updateContentsById">
+        UPDATE post
+        SET contents = #{contents},
+            update_date = NOW()
+        WHERE id = #{postId}
+          AND is_deleted = 0
+    </update>
+
+    <update id="deleteById">
+        UPDATE post
+        SET is_deleted = 1,
+            update_date = NOW()
+        WHERE id = #{postId}
+    </update>
 
 
-  <update id="updateLikeCount">
-    UPDATE post
-    SET likes = likes + #{count},
-        update_date = NOW()
-    WHERE id = #{postId}
-        AND is_deleted = 0
-  </update>
+    <update id="updateLikeCount">
+        UPDATE post
+        SET likes = likes + #{count},
+            update_date = NOW()
+        WHERE id = #{postId}
+          AND is_deleted = 0
+    </update>
 
-  <!-- postId list 매개변수로 주어지면 해당 post들의 미리보기 정보 가져오기 -->
-  <select id="findLikePostsWithImageByPostIds" resultMap="postImageDTOMap">
-    SELECT p.id AS post_id,
-           p.contents,
-           p.likes,
-           i.img_path,
-           i.saved_img_name
-    FROM post AS p
-    JOIN image AS i ON p.id = i.post_id
-    WHERE p.id IN
-          <foreach item="postId" collection="likePosts" open="(" separator="," close=")">
+    <!-- postId list 매개변수로 주어지면 해당 post들의 미리보기 정보 가져오기 -->
+    <select id="findLikePostsWithImageByPostIds" resultMap="postImageDTOMap">
+        SELECT p.id AS post_id,
+        p.contents,
+        p.likes,
+        i.img_path,
+        i.saved_img_name
+        FROM post AS p
+        JOIN image AS i ON p.id = i.post_id
+        WHERE p.id IN
+        <foreach item="postId" collection="likePosts" open="(" separator="," close=")">
             #{postId}
-          </foreach>
+        </foreach>
         AND p.is_deleted = 0
         AND i.is_deleted = 0
         AND i.id IN (
-            SELECT MIN(id)
-            FROM image
-            WHERE is_deleted = 0
-            GROUP BY post_id
-          )
-    ORDER BY p.create_date DESC
-  </select>
+        SELECT MIN(id)
+        FROM image
+        WHERE is_deleted = 0
+        GROUP BY post_id
+        )
+        ORDER BY post_id DESC
+    </select>
 
 
 

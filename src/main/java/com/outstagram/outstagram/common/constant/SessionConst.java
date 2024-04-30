@@ -1,4 +1,4 @@
-package com.outstagram.outstagram.common.session;
+package com.outstagram.outstagram.common.constant;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;

@@ -21,7 +21,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import java.time.LocalDateTime;
 
-import static com.outstagram.outstagram.common.session.SessionConst.LOGIN_USER;
+import static com.outstagram.outstagram.common.constant.SessionConst.LOGIN_USER;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
