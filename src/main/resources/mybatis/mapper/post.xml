@@ -35,7 +35,9 @@
         p.user_id = #{userId}
         AND p.is_deleted = 0
         AND i.is_deleted = 0
-        AND post_id &lt; #{lastId}
+        <if test="lastId != null">
+            AND post_id &lt; #{lastId}
+        </if>
         AND i.id IN (
         SELECT MIN(id)
         FROM image
