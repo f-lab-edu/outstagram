@@ -27,3 +27,6 @@ instagram을 모티브로 만든 SNS API 서버 프로젝트
 
 ## 🔨 기능 구현 및 API 시그니처 정의
 - [프로토타입 & 기능 구현 & API 시그니처 정의](https://github.com/f-lab-edu/outstagram/wiki/%ED%94%84%EB%A1%9C%ED%86%A0%ED%83%80%EC%9E%85-&-%EA%B8%B0%EB%8A%A5-%EC%A0%95%EC%9D%98-&-API-%EC%8B%9C%EA%B7%B8%EB%8B%88%EC%B2%98-%EC%A0%95%EC%9D%98)
+
+## ERD 설계
+![drawSQL-image-export-2024-05-04](https://github.com/f-lab-edu/outstagram/assets/123347183/8dc4bdf9-0699-4933-83ab-03bf557853be)
