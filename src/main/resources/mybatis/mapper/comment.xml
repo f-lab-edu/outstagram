@@ -8,6 +8,49 @@
     VALUES (#{userId}, #{postId}, #{parentCommentId}, #{contents}, #{level}, #{isDeleted}, #{createDate}, #{updateDate})
   </insert>
 
+  <resultMap id="CommentsResultMap" type="com.outstagram.outstagram.controller.response.CommentRes">
+    <id column="commentId" property="commentId"/>
+    <result column="userImgUrl" property="userImgUrl"/>
+    <result column="nickname" property="nickname"/>
+    <result column="contents" property="contents"/>
+    <result column="updateDate" property="updateDate"/>
+
+    <!-- Association for nested replies -->
+    <collection property="replyList" ofType="com.outstagram.outstagram.controller.response.ReplyRes">
+      <id column="replyId" property="replyId"/>
+      <result column="replyUserImgUrl" property="userImgUrl"/>
+      <result column="replyNickname" property="nickname"/>
+      <result column="replyContents" property="contents"/>
+      <result column="replyUpdateDate" property="updateDate"/>
+    </collection>
+  </resultMap>
+
+  <select id="findByPostId" resultMap="CommentsResultMap">
+    SELECT
+      c1.id AS commentId,
+      u1.img_url AS userImgUrl,
+      u1.nickname AS nickname,
+      c1.contents,
+      c1.update_date AS updateDate,
+      c2.id AS replyId,
+      u2.img_url AS replyUserImgUrl,
+      u2.nickname AS replyNickname,
+      c2.contents AS replyContents,
+      c2.update_date AS replyUpdateDate
+    FROM
+      comment AS c1
+        JOIN
+      user AS u1 ON c1.user_id = u1.id
+        LEFT JOIN
+      comment AS c2 ON c1.id = c2.parent_comment_id
+        LEFT JOIN
+      user AS u2 ON c2.user_id = u2.id
+    WHERE
+      c1.post_id = #{postId} AND c1.parent_comment_id IS NULL
+    ORDER BY
+      c1.id, c2.id
+  </select>
+
 <!--  <select id="existsUserBookmark" resultType="boolean">-->
 <!--    SELECT CASE WHEN COUNT(*) > 0 THEN true ELSE false END-->
 <!--    FROM bookmark-->

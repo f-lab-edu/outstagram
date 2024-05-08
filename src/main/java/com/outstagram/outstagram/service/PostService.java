@@ -108,7 +108,7 @@ public class PostService {
                 .isLiked(likeService.existsLike(userId, post.getId()))
                 .isBookmarked(bookmarkService.existsBookmark(userId, post.getId()))
                 .isAuthor(isAuthor)
-                .comments(null)
+                .comments(commentService.getComments(post.getId()))
                 .build();
     }
 
@@ -330,8 +330,27 @@ public class PostService {
     /**
      * 대댓글 저장하는 로직
      */
-    public void addReply(Long postId, UserDTO user) {
+    public void addComment(CreateCommentReq commentReq, Long postId, Long commentId, UserDTO user) {
+        // 존재하는 post인지 검증
+        PostDTO findPost = postMapper.findById(postId);
+        if (findPost == null) {
+            throw new ApiException(ErrorCode.POST_NOT_FOUND);
+        }
+
+        // 대댓글 객체 생성하기
+        CommentDTO newComment = CommentDTO.builder()
+            .userId(user.getId())
+            .postId(postId)
+            .parentCommentId(commentId)
+            .contents(commentReq.getContents())
+            .level(true)
+            .isDeleted(false)
+            .createDate(LocalDateTime.now())
+            .updateDate(LocalDateTime.now())
+            .build();
+
         // comment 테이블에 댓글 저장하기
+        commentService.insertComment(newComment);
     }
 
 

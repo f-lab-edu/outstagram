@@ -28,7 +28,7 @@ public class PostRes {
 
     private Boolean isAuthor;        // 현재 로그인한 유저가 해당 게시물 작성했는지 여부
 
-    private List<Object> comments;   // 게시물의 댓글 목록
+    private List<CommentRes> comments;   // 게시물의 댓글 목록
 
 
 }

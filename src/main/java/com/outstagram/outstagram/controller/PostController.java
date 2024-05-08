@@ -146,8 +146,10 @@ public class PostController {
     // 대댓글 등록
     @PostMapping("/{postId}/comments/{commentId}")
     public ResponseEntity<ApiResponse> addReply(@PathVariable("postId") Long postId,
-        @PathVariable("commentId") Long commentId, @Login UserDTO user)
+        @PathVariable("commentId") Long commentId,
+        @RequestBody CreateCommentReq commentReq, @Login UserDTO user)
     {
+        postService.addComment(commentReq, postId, commentId, user);
 
         return ResponseEntity.ok(
             ApiResponse.builder()
