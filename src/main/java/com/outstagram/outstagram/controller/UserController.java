@@ -2,11 +2,13 @@ package com.outstagram.outstagram.controller;
 
 import static com.outstagram.outstagram.common.constant.SessionConst.LOGIN_USER;
 
+import com.outstagram.outstagram.common.annotation.Login;
 import com.outstagram.outstagram.common.api.ApiResponse;
 import com.outstagram.outstagram.controller.request.UserLoginReq;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
+import com.outstagram.outstagram.service.FollowService;
 import com.outstagram.outstagram.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -16,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
     private final UserService userService;
+    private final FollowService followService;
 
     @GetMapping("check-duplicated-email")
     public ResponseEntity<ApiResponse> isDuplicatedEmail(@RequestParam String email) {
@@ -83,6 +87,20 @@ public class UserController {
             .message("로그인 성공").build();
 
         return ResponseEntity.ok().body(response);
+    }
+
+    /* ========================================================================================== */
+    @PostMapping("/{userId}/follow")
+    public ResponseEntity<ApiResponse> following(@PathVariable("userId") Long toId, @Login UserDTO user) {
+        followService.addFollowing(user.getId(), toId);
+
+        return ResponseEntity.ok(
+            ApiResponse.builder()
+                .isSuccess(true)
+                .httpStatus(HttpStatus.OK)
+                .message("팔로우에 성공했습니다.")
+                .build()
+        );
     }
 
 
