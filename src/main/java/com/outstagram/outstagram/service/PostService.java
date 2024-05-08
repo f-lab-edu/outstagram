@@ -26,6 +26,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +44,8 @@ public class PostService {
     private final BookmarkService bookmarkService;
     private final CommentService commentService;
 
+    private final KafkaTemplate<String, Long> kafkaTemplate;
+
     @Transactional
     public void insertPost(CreatePostReq createPostReq, Long userId) {
         PostDTO newPost = PostDTO.builder()
@@ -58,6 +61,9 @@ public class PostService {
         // 로컬 디렉토리에 이미지 저장 후, DB에 이미지 정보 저장
         imageService.saveImages(createPostReq.getImgFiles(),
             newPost.getId());
+
+        // kafka에 메시지 발행
+        kafkaTemplate.send("postCreatedTopic", newPost.getId());
     }
 
     // TODO : post 조회 쿼리, image 조회 쿼리, user 조회 쿼리, like 조회 쿼리 => 총 4개 쿼리 발생
