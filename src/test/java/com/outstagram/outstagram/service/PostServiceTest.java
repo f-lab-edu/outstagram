@@ -1,18 +1,5 @@
 package com.outstagram.outstagram.service;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyList;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditPostReq;
 import com.outstagram.outstagram.controller.response.MyPostsRes;
@@ -24,15 +11,21 @@ import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.PostMapper;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class PostServiceTest {
@@ -144,11 +137,11 @@ class PostServiceTest {
                 .build()
         );
 
-        when(postMapper.findWithImageByUserId(userId)).thenReturn(mockPostImages);
+        when(postMapper.findWithImageByUserId(userId, 9223372036854775807L, PAGE_SIZE)).thenReturn(mockPostImages);
         when(likeService.existsLike(userId, 1L)).thenReturn(true);
         when(likeService.existsLike(userId, 2L)).thenReturn(false);
 
-        List<MyPostsRes> myPosts = postService.getMyPosts(userId);
+        List<MyPostsRes> myPosts = postService.getMyPosts(userId, 9223372036854775807L);
 
         assertNotNull(myPosts);
         assertEquals(mockPostImages.size(), myPosts.size());
@@ -163,7 +156,7 @@ class PostServiceTest {
         assertTrue(myPosts.get(0).getIsLiked());
         assertFalse(myPosts.get(1).getIsLiked());
 
-        verify(postMapper).findWithImageByUserId(userId);
+        verify(postMapper).findWithImageByUserId(userId, anyLong(), PAGE_SIZE);
         verify(likeService).existsLike(userId, 1L);
         verify(likeService).existsLike(userId, 2L);
     }
@@ -226,7 +219,6 @@ class PostServiceTest {
     @Test
     public void testGetLikePosts() {
         Long userId = 1L;
-        List<Long> mockLikePostIds = Arrays.asList(2L, 3L, 4L);
         List<PostImageDTO> mockPostImages = Arrays.asList(
             PostImageDTO.builder()
                 .id(2L)
@@ -254,10 +246,9 @@ class PostServiceTest {
                 .build()
         );
 
-        when(likeService.getLikePosts(userId)).thenReturn(mockLikePostIds);
-        when(postMapper.findLikePostsWithImageByPostIds(mockLikePostIds)).thenReturn(mockPostImages);
+        when(likeService.getLikePosts(userId, null)).thenReturn(mockPostImages);
 
-        List<MyPostsRes> likePosts = postService.getLikePosts(userId);
+        List<MyPostsRes> likePosts = postService.getLikePosts(userId, 4L);
 
         assertNotNull(likePosts);
         assertEquals(
@@ -267,8 +258,7 @@ class PostServiceTest {
         assertTrue(likePosts.get(0).getIsLiked());
         assertEquals(mockPostImages.get(1).getLikes(), likePosts.get(1).getLikes());
 
-        verify(likeService).getLikePosts(userId);
-        verify(postMapper).findLikePostsWithImageByPostIds(mockLikePostIds);
+        verify(likeService).getLikePosts(userId, null);
     }
 
 }

@@ -1,6 +1,8 @@
 package com.outstagram.outstagram.service;
 
+
 import static com.outstagram.outstagram.common.constant.OptimisticLockConst.MAX_RETRIES;
+import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
 
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditPostReq;
@@ -14,7 +16,6 @@ import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.PostMapper;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,39 +37,40 @@ public class PostService {
     private final ImageService imageService;
     private final UserService userService;
     private final LikeService likeService;
+    private final BookmarkService bookmarkService;
 
     @Transactional
     public void insertPost(CreatePostReq createPostReq, Long userId) {
         PostDTO newPost = PostDTO.builder()
-            .contents(createPostReq.getContents())
-            .userId(userId)
-            .createDate(LocalDateTime.now())
-            .updateDate(LocalDateTime.now())
-            .build();
+                .contents(createPostReq.getContents())
+                .userId(userId)
+                .createDate(LocalDateTime.now())
+                .updateDate(LocalDateTime.now())
+                .build();
 
         // 게시물 내용 저장 (insertPost 정상 실행되면, newPost의 id 속성에 id값이 들어 있다)
         postMapper.insertPost(newPost);
 
         // 로컬 디렉토리에 이미지 저장 후, DB에 이미지 정보 저장
         imageService.saveImages(createPostReq.getImgFiles(),
-            newPost.getId());
+                newPost.getId());
     }
 
     // TODO : post 조회 쿼리, image 조회 쿼리, user 조회 쿼리, like 조회 쿼리 => 총 4개 쿼리 발생
-    // TODO : bookmark 개발 후, 해당 내용 채우기
-    public List<MyPostsRes> getMyPosts(Long userId) {
-        // 유저의 게시물과 게시물의 대표이미지 1개 가져오기
-        List<PostImageDTO> postWithImgList = postMapper.findWithImageByUserId(userId);
+    public List<MyPostsRes> getMyPosts(Long userId, Long lastId) {
+        // 유저의 (게시물과 게시물의 대표이미지) 10개씩 가져오기
+        List<PostImageDTO> postWithImgList = postMapper.findWithImageByUserId(userId, lastId, PAGE_SIZE);
 
         return postWithImgList.stream()
-            .map(dto -> MyPostsRes.builder()
-                .contents(dto.getContents())
-                .likes(dto.getLikes())
-                .thumbnailUrl(dto.getImgPath() + "\\" + dto.getSavedImgName())
-                .isLiked(likeService.existsLike(userId, dto.getId()))
-                .isBookmarked(null)
-                .build())
-            .collect(Collectors.toList());
+                .map(dto -> MyPostsRes.builder()
+                        .postId(dto.getId())
+                        .contents(dto.getContents())
+                        .likes(dto.getLikes())
+                        .thumbnailUrl(dto.getImgPath() + "\\" + dto.getSavedImgName())
+                        .isLiked(likeService.existsLike(userId, dto.getId()))
+                        .isBookmarked(bookmarkService.existsBookmark(userId, dto.getId()))
+                        .build())
+                .collect(Collectors.toList());
     }
 
     public PostRes getPost(Long postId, Long userId) {
@@ -93,18 +95,18 @@ public class PostService {
             imageUrlMap.put(img.getId(), img.getImgPath() + "\\" + img.getSavedImgName());
         }
 
-        // TODO : isBookmarked, comments 채우기
+        // TODO : comments 채우기
         return PostRes.builder()
-            .authorName(author.getNickname())
-            .authorImgUrl(author.getImgUrl())
-            .contents(post.getContents())
-            .postImgUrls(imageUrlMap)
-            .likes(post.getLikes())
-            .isLiked(likeService.existsLike(userId, post.getId()))
-            .isBookmarked(null)
-            .isAuthor(isAuthor)
-            .comments(null)
-            .build();
+                .authorName(author.getNickname())
+                .authorImgUrl(author.getImgUrl())
+                .contents(post.getContents())
+                .postImgUrls(imageUrlMap)
+                .likes(post.getLikes())
+                .isLiked(likeService.existsLike(userId, post.getId()))
+                .isBookmarked(bookmarkService.existsBookmark(userId, post.getId()))
+                .isAuthor(isAuthor)
+                .comments(null)
+                .build();
     }
 
     @Transactional
@@ -123,7 +125,7 @@ public class PostService {
         // 추가할 이미지가 있다면 추가하기
         if (editPostReq.getImgFiles() != null && !editPostReq.getImgFiles().isEmpty()) {
             imageService.saveImages(editPostReq.getImgFiles(),
-                post.getId());
+                    post.getId());
         }
 
         // 수정할 내용이 있다면 수정하기
@@ -242,29 +244,53 @@ public class PostService {
     /**
      * 로그인한 유저가 좋아요 누른 모든 게시물 가져오기
      */
-    // TODO : isBookmarked 채우기
-    public List<MyPostsRes> getLikePosts(Long userId) {
-        // 유저가 좋아요 누른 게시물 Id 가져오기
-        List<Long> likePosts = likeService.getLikePosts(userId);
+    public List<MyPostsRes> getLikePosts(Long userId, Long lastId) {
+        List<PostImageDTO> likePosts = likeService.getLikePosts(userId, lastId);
 
-        // 좋아요 누른 게시물 없으면 빈 list 반환
-        if (likePosts.isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        // 좋아요 누른 게시물들 가져오기
-        List<PostImageDTO> likedPostImageList = postMapper.findLikePostsWithImageByPostIds(
-            likePosts);
-
-        return likedPostImageList.stream()
+        return likePosts.stream()
             .map(dto -> MyPostsRes.builder()
+                .postId(dto.getId())
                 .contents(dto.getContents())
                 .likes(dto.getLikes())
                 .thumbnailUrl(dto.getImgPath() + "\\" + dto.getSavedImgName())
                 .isLiked(true)  // 애초에 좋아요 누른 게시물의 정보를 가져온거임 그래서 무조건 true
-                .isBookmarked(null)
+                .isBookmarked(bookmarkService.existsBookmark(userId, dto.getId()))
                 .build())
             .collect(Collectors.toList());
+    }
+
+    /**
+     * 로그인한 유저가 북마크한 모든 게시물 가져오기
+     */
+    public List<MyPostsRes> getBookmarkedPosts(Long userId, Long lastId) {
+        List<PostImageDTO> bookmarkPosts = bookmarkService.getBookmarkedPosts(userId, lastId);
+
+        return bookmarkPosts.stream()
+            .map(dto -> MyPostsRes.builder()
+                .postId(dto.getId())
+                .contents(dto.getContents())
+                .likes(dto.getLikes())
+                .thumbnailUrl(dto.getImgPath() + "\\" + dto.getSavedImgName())
+                .isLiked(likeService.existsLike(userId, dto.getId()))
+                .isBookmarked(true) // 애초에 북마크한 게시물의 정보를 가져온거임 그래서 무조건 true
+                .build())
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * 북마크 저장 메서드
+     */
+    @Transactional
+    public void addBookmark(Long postId, Long userId) {
+        bookmarkService.insertBookmark(userId, postId);
+    }
+
+    /**
+     * 북마크 취소 메서드
+     */
+    @Transactional
+    public void deleteBookmark(Long postId, Long userId) {
+        bookmarkService.deleteBookmark(userId, postId);
     }
 
 

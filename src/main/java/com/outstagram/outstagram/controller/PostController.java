@@ -14,14 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
@@ -41,9 +34,11 @@ public class PostController {
                 .build());
     }
 
-    @GetMapping("/")
-    public ResponseEntity<List<MyPostsRes>> getMyPosts(@Login UserDTO user) {
-        List<MyPostsRes> myPosts = postService.getMyPosts(user.getId());
+    @GetMapping
+    public ResponseEntity<List<MyPostsRes>> getMyPosts(@RequestParam(required = false) Long lastId, @Login UserDTO user) {
+        // 첫 요청일 때는 lastId는 null로 옴 -> Long의 최댓값 대입
+        Long lastID = (lastId == null) ? Long.MAX_VALUE : lastId;
+        List<MyPostsRes> myPosts = postService.getMyPosts(user.getId(), lastID);
 
         return ResponseEntity.ok(myPosts);
     }
@@ -73,8 +68,8 @@ public class PostController {
     }
 
     @GetMapping("/likes")
-    public ResponseEntity<List<MyPostsRes>> getLikePosts(@Login UserDTO user) {
-        List<MyPostsRes> myLikePosts =  postService.getLikePosts(user.getId());
+    public ResponseEntity<List<MyPostsRes>> getLikePosts(@RequestParam(required = false) Long lastId, @Login UserDTO user) {
+        List<MyPostsRes> myLikePosts =  postService.getLikePosts(user.getId(), lastId);
 
         return ResponseEntity.ok(myLikePosts);
     }
@@ -94,6 +89,31 @@ public class PostController {
         return ResponseEntity.ok(ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
             .message("게시물 좋아요를 취소했습니다.").build());
     }
+
+    @GetMapping("/bookmarks")
+    public ResponseEntity<List<MyPostsRes>> getBookmarkedPosts(@RequestParam(required = false) Long lastId, @Login UserDTO user) {
+        List<MyPostsRes> myLikePosts =  postService.getBookmarkedPosts(user.getId(), lastId);
+
+        return ResponseEntity.ok(myLikePosts);
+    }
+
+    @PostMapping("/{postId}/bookmark")
+    public ResponseEntity<ApiResponse> addBookmark(@PathVariable Long postId, @Login UserDTO user) {
+        postService.addBookmark(postId, user.getId());
+
+        return ResponseEntity.ok(ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
+            .message("게시물 북마크에 성공했습니다.").build());
+    }
+
+    @DeleteMapping("/{postId}/bookmark")
+    public ResponseEntity<ApiResponse> removeBookmark(@PathVariable Long postId, @Login UserDTO user) {
+        postService.deleteBookmark(postId, user.getId());
+
+        return ResponseEntity.ok(ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
+            .message("게시물 북마크를 취소했습니다.").build());
+    }
+
+
 }
 
 
