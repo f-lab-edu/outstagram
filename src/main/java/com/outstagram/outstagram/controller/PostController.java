@@ -2,6 +2,7 @@ package com.outstagram.outstagram.controller;
 
 import com.outstagram.outstagram.common.annotation.Login;
 import com.outstagram.outstagram.common.api.ApiResponse;
+import com.outstagram.outstagram.controller.request.CreateCommentReq;
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditPostReq;
 import com.outstagram.outstagram.controller.response.MyPostsRes;
@@ -14,7 +15,16 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
 @RestController
@@ -101,8 +111,13 @@ public class PostController {
     public ResponseEntity<ApiResponse> addBookmark(@PathVariable Long postId, @Login UserDTO user) {
         postService.addBookmark(postId, user.getId());
 
-        return ResponseEntity.ok(ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
-            .message("게시물 북마크에 성공했습니다.").build());
+        return ResponseEntity.ok(
+            ApiResponse.builder()
+                .isSuccess(true)
+                .httpStatus(HttpStatus.OK)
+                .message("게시물 북마크에 성공했습니다.")
+                .build()
+        );
     }
 
     @DeleteMapping("/{postId}/bookmark")
@@ -111,6 +126,36 @@ public class PostController {
 
         return ResponseEntity.ok(ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
             .message("게시물 북마크를 취소했습니다.").build());
+    }
+
+    // 댓글 등록
+    @PostMapping("/{postId}/comment")
+    public ResponseEntity<ApiResponse> addComment(@PathVariable Long postId, @Login UserDTO user,
+        @RequestBody CreateCommentReq commentReq) {
+        postService.addComment(commentReq, postId, user);
+
+        return ResponseEntity.ok(
+            ApiResponse.builder()
+                .isSuccess(true)
+                .httpStatus(HttpStatus.OK)
+                .message("댓글 등록에 성공했습니다.")
+                .build()
+        );
+    }
+
+    // 대댓글 등록
+    @PostMapping("/{postId}/comments/{commentId}")
+    public ResponseEntity<ApiResponse> addReply(@PathVariable("postId") Long postId,
+        @PathVariable("commentId") Long commentId, @Login UserDTO user)
+    {
+
+        return ResponseEntity.ok(
+            ApiResponse.builder()
+                .isSuccess(true)
+                .httpStatus(HttpStatus.OK)
+                .message("대댓글 등록에 성공했습니다.")
+                .build()
+        );
     }
 
 

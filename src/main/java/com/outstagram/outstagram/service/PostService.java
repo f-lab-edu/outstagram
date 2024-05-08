@@ -4,10 +4,12 @@ package com.outstagram.outstagram.service;
 import static com.outstagram.outstagram.common.constant.OptimisticLockConst.MAX_RETRIES;
 import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
 
+import com.outstagram.outstagram.controller.request.CreateCommentReq;
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditPostReq;
 import com.outstagram.outstagram.controller.response.MyPostsRes;
 import com.outstagram.outstagram.controller.response.PostRes;
+import com.outstagram.outstagram.dto.CommentDTO;
 import com.outstagram.outstagram.dto.ImageDTO;
 import com.outstagram.outstagram.dto.PostDTO;
 import com.outstagram.outstagram.dto.PostImageDTO;
@@ -38,6 +40,7 @@ public class PostService {
     private final UserService userService;
     private final LikeService likeService;
     private final BookmarkService bookmarkService;
+    private final CommentService commentService;
 
     @Transactional
     public void insertPost(CreatePostReq createPostReq, Long userId) {
@@ -156,6 +159,7 @@ public class PostService {
         }
     }
 
+    /* ========================================================================================== */
 
     /**
      * 좋아요 증가 메서드 - 게시물의 좋아요 개수 증가 - like table에 row 추가하기
@@ -259,6 +263,8 @@ public class PostService {
             .collect(Collectors.toList());
     }
 
+    /* ========================================================================================== */
+
     /**
      * 로그인한 유저가 북마크한 모든 게시물 가져오기
      */
@@ -293,6 +299,45 @@ public class PostService {
         bookmarkService.deleteBookmark(userId, postId);
     }
 
+    /* ========================================================================================== */
+
+    /**
+     * 댓글 저장하는 로직
+     */
+    public void addComment(CreateCommentReq commentReq, Long postId, UserDTO user) {
+        // 존재하는 post인지 검증
+        PostDTO findPost = postMapper.findById(postId);
+        if (findPost == null) {
+            throw new ApiException(ErrorCode.POST_NOT_FOUND);
+        }
+
+        // 댓글 객체 생성하기
+        CommentDTO newComment = CommentDTO.builder()
+            .userId(user.getId())
+            .postId(postId)
+            .parentCommentId(null)
+            .contents(commentReq.getContents())
+            .level(false)
+            .isDeleted(false)
+            .createDate(LocalDateTime.now())
+            .updateDate(LocalDateTime.now())
+            .build();
+
+        // comment 테이블에 댓글 저장하기
+        commentService.insertComment(newComment);
+    }
+
+    /**
+     * 대댓글 저장하는 로직
+     */
+    public void addReply(Long postId, UserDTO user) {
+        // comment 테이블에 댓글 저장하기
+    }
+
+
+
+
+    /* ========================================================================================== */
 
     /**
      * 게시물 작성자인지 검증 -> 수정, 삭제 시 확인 필요
@@ -307,4 +352,6 @@ public class PostService {
             throw new ApiException(ErrorCode.UNAUTHORIZED_ACCESS, "게시물에 대한 권한이 없습니다.");
         }
     }
+
+
 }

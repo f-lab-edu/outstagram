@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface BookmarkMapper {
 
-    void insertBookmark(BookmarkDTO like);
+    void insertBookmark(BookmarkDTO bookmark);
 
     boolean existsUserBookmark(Long userId, Long postId);
 
