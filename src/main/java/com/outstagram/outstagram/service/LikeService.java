@@ -1,6 +1,9 @@
 package com.outstagram.outstagram.service;
 
+import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
+
 import com.outstagram.outstagram.dto.LikeDTO;
+import com.outstagram.outstagram.dto.PostImageDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.LikeMapper;
@@ -36,7 +39,7 @@ public class LikeService {
         }
     }
 
-    public List<Long> getLikePosts(Long userId) {
-        return likeMapper.findPostIdsByUserId(userId);
+    public List<PostImageDTO> getLikePosts(Long userId, Long lastId) {
+        return likeMapper.findWithPostsAndImageByUserId(userId, lastId, PAGE_SIZE);
     }
 }

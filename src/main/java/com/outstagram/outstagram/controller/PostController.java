@@ -68,8 +68,8 @@ public class PostController {
     }
 
     @GetMapping("/likes")
-    public ResponseEntity<List<MyPostsRes>> getLikePosts(@Login UserDTO user) {
-        List<MyPostsRes> myLikePosts =  postService.getLikePosts(user.getId());
+    public ResponseEntity<List<MyPostsRes>> getLikePosts(@RequestParam(required = false) Long lastId, @Login UserDTO user) {
+        List<MyPostsRes> myLikePosts =  postService.getLikePosts(user.getId(), lastId);
 
         return ResponseEntity.ok(myLikePosts);
     }
@@ -89,6 +89,31 @@ public class PostController {
         return ResponseEntity.ok(ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
             .message("게시물 좋아요를 취소했습니다.").build());
     }
+
+    @GetMapping("/bookmarks")
+    public ResponseEntity<List<MyPostsRes>> getBookmarkedPosts(@RequestParam(required = false) Long lastId, @Login UserDTO user) {
+        List<MyPostsRes> myLikePosts =  postService.getBookmarkedPosts(user.getId(), lastId);
+
+        return ResponseEntity.ok(myLikePosts);
+    }
+
+    @PostMapping("/{postId}/bookmark")
+    public ResponseEntity<ApiResponse> addBookmark(@PathVariable Long postId, @Login UserDTO user) {
+        postService.addBookmark(postId, user.getId());
+
+        return ResponseEntity.ok(ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
+            .message("게시물 북마크에 성공했습니다.").build());
+    }
+
+    @DeleteMapping("/{postId}/bookmark")
+    public ResponseEntity<ApiResponse> removeBookmark(@PathVariable Long postId, @Login UserDTO user) {
+        postService.deleteBookmark(postId, user.getId());
+
+        return ResponseEntity.ok(ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
+            .message("게시물 북마크를 취소했습니다.").build());
+    }
+
+
 }
 
 
