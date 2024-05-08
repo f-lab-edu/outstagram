@@ -33,4 +33,11 @@ public class CommentService {
             throw new ApiException(ErrorCode.UPDATE_ERROR);
         }
     }
+
+    public void deleteComment(Long commentId) {
+        int result = commentMapper.deleteComment(commentId);
+        if (result == 0) {
+            throw new ApiException(ErrorCode.DELETE_ERROR);
+        }
+    }
 }

@@ -15,4 +15,6 @@ public interface CommentMapper {
     CommentDTO findById(Long commentId);
 
     int updateContentsById(Long commentId, String contents);
+
+    int deleteComment(Long commentId);
 }

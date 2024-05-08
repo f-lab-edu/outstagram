@@ -168,13 +168,30 @@ public class PostController {
     public ResponseEntity<ApiResponse> editComment(@PathVariable("postId") Long postId,
         @PathVariable("commentId") Long commentId, @RequestBody EditCommentReq editCommentReq,
         @Login UserDTO user) {
-        postService.editComment(editCommentReq, postId, commentId, user);
+        postService.editComment(editCommentReq, postId, commentId, user.getId());
 
         return ResponseEntity.ok(
             ApiResponse.builder()
                 .isSuccess(true)
                 .httpStatus(HttpStatus.OK)
                 .message("댓글 수정에 성공했습니다.")
+                .build()
+        );
+    }
+
+    /**
+     * (대)댓글 수정
+     */
+    @DeleteMapping("/{postId}/comments/{commentId}")
+    public ResponseEntity<ApiResponse> deleteComment(@PathVariable("postId") Long postId,
+        @PathVariable("commentId") Long commentId, @Login UserDTO user) {
+        postService.deleteComment(postId, commentId, user.getId());
+
+        return ResponseEntity.ok(
+            ApiResponse.builder()
+                .isSuccess(true)
+                .httpStatus(HttpStatus.OK)
+                .message("댓글 삭제에 성공했습니다.")
                 .build()
         );
     }

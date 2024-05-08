@@ -359,12 +359,17 @@ public class PostService {
      * (대)댓글 수정
      */
     public void editComment(EditCommentReq editCommentReq, Long postId, Long commentId,
-        UserDTO user) {
+        Long userId) {
         // 게시물&댓글 존재 여부 검증, 작성자인지 검증하기
-        validatePostCommentAndOwnership(postId, commentId, user.getId());
+        validatePostCommentAndOwnership(postId, commentId, userId);
 
         commentService.updateContents(commentId, editCommentReq.getContents());
+    }
 
+    public void deleteComment(Long postId, Long commentId, Long userId) {
+        validatePostCommentAndOwnership(postId, commentId, userId);
+
+        commentService.deleteComment(commentId);
 
     }
 
@@ -387,8 +392,7 @@ public class PostService {
     }
 
     /**
-     * 게시물, 댓글 존재 여부 검증
-     * 댓글 작성자인지 검증
+     * 게시물, 댓글 존재 여부 검증 댓글 작성자인지 검증
      */
     private void validatePostCommentAndOwnership(Long postId, Long commentId, Long userId) {
         // 게시물 존재 여부 검증
@@ -409,5 +413,4 @@ public class PostService {
         }
 
     }
-
 }

@@ -28,31 +28,28 @@
   </resultMap>
 
   <select id="findByPostId" resultMap="CommentsResultMap">
-    SELECT
-      c1.id AS commentId,
-      u1.id AS userId,
-      u1.img_url AS userImgUrl,
-      u1.nickname AS nickname,
-      c1.contents,
-      c1.update_date AS updateDate,
-      c2.id AS replyId,
-      u2.id AS replyUserId,
-      u2.img_url AS replyUserImgUrl,
-      u2.nickname AS replyNickname,
-      c2.contents AS replyContents,
-      c2.update_date AS replyUpdateDate
-    FROM
-      comment AS c1
-        JOIN
-      user AS u1 ON c1.user_id = u1.id
-        LEFT JOIN
-      comment AS c2 ON c1.id = c2.parent_comment_id
-        LEFT JOIN
-      user AS u2 ON c2.user_id = u2.id
-    WHERE
-      c1.post_id = #{postId} AND c1.parent_comment_id IS NULL
-    ORDER BY
-      c1.id, c2.id
+    SELECT c1.id                                            AS commentId,
+           u1.id                                            AS userId,
+           u1.img_url                                       AS userImgUrl,
+           u1.nickname                                      AS nickname,
+           IF(c1.is_deleted = 1, '삭제된 댓글입니다.', c1.contents) AS contents,
+           c1.update_date                                   AS updateDate,
+           c2.id                                            AS replyId,
+           u2.id                                            AS replyUserId,
+           u2.img_url                                       AS replyUserImgUrl,
+           u2.nickname                                      AS replyNickname,
+           IF(c2.is_deleted = 1, '삭제된 대댓글입니다.', c2.contents) AS replyContents,
+           c2.update_date                                   AS replyUpdateDate
+    FROM comment AS c1
+           JOIN
+         user AS u1 ON c1.user_id = u1.id
+           LEFT JOIN
+         comment AS c2 ON c1.id = c2.parent_comment_id
+           LEFT JOIN
+         user AS u2 ON c2.user_id = u2.id
+    WHERE c1.post_id = #{postId}
+      AND c1.parent_comment_id IS NULL
+    ORDER BY c1.id, c2.id
   </select>
 
   <select id="findById" resultType="com.outstagram.outstagram.dto.CommentDTO">
@@ -69,6 +66,13 @@
         update_date = NOW()
     WHERE id = #{commentId} AND is_deleted = 0
   </update>
+
+  <delete id="deleteComment">
+    UPDATE comment
+    SET is_deleted = 1,
+        update_date = NOW()
+    WHERE id = #{commentId} AND is_deleted = 0
+  </delete>
 
 <!--  <select id="existsUserBookmark" resultType="boolean">-->
 <!--    SELECT CASE WHEN COUNT(*) > 0 THEN true ELSE false END-->
