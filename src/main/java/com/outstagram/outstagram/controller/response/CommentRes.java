@@ -14,6 +14,8 @@ import lombok.NoArgsConstructor;
 public class CommentRes {
     private Long commentId;
 
+    private Long userId;
+
     private String userImgUrl;
 
     private String nickname;

@@ -14,6 +14,8 @@ public class ReplyRes {
 
     private Long replyId; // comment 테이블의 id
 
+    private Long userId;
+
     private String userImgUrl;
 
     private String nickname;

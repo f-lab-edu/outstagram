@@ -10,6 +10,7 @@
 
   <resultMap id="CommentsResultMap" type="com.outstagram.outstagram.controller.response.CommentRes">
     <id column="commentId" property="commentId"/>
+    <result column="userId" property="userId"/>
     <result column="userImgUrl" property="userImgUrl"/>
     <result column="nickname" property="nickname"/>
     <result column="contents" property="contents"/>
@@ -18,6 +19,7 @@
     <!-- Association for nested replies -->
     <collection property="replyList" ofType="com.outstagram.outstagram.controller.response.ReplyRes">
       <id column="replyId" property="replyId"/>
+      <result column="replyUserId" property="userId"/>
       <result column="replyUserImgUrl" property="userImgUrl"/>
       <result column="replyNickname" property="nickname"/>
       <result column="replyContents" property="contents"/>
@@ -28,11 +30,13 @@
   <select id="findByPostId" resultMap="CommentsResultMap">
     SELECT
       c1.id AS commentId,
+      u1.id AS userId,
       u1.img_url AS userImgUrl,
       u1.nickname AS nickname,
       c1.contents,
       c1.update_date AS updateDate,
       c2.id AS replyId,
+      u2.id AS replyUserId,
       u2.img_url AS replyUserImgUrl,
       u2.nickname AS replyNickname,
       c2.contents AS replyContents,
