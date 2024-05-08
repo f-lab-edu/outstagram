@@ -6,6 +6,7 @@ import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
 
 import com.outstagram.outstagram.controller.request.CreateCommentReq;
 import com.outstagram.outstagram.controller.request.CreatePostReq;
+import com.outstagram.outstagram.controller.request.EditCommentReq;
 import com.outstagram.outstagram.controller.request.EditPostReq;
 import com.outstagram.outstagram.controller.response.MyPostsRes;
 import com.outstagram.outstagram.controller.response.PostRes;
@@ -45,35 +46,36 @@ public class PostService {
     @Transactional
     public void insertPost(CreatePostReq createPostReq, Long userId) {
         PostDTO newPost = PostDTO.builder()
-                .contents(createPostReq.getContents())
-                .userId(userId)
-                .createDate(LocalDateTime.now())
-                .updateDate(LocalDateTime.now())
-                .build();
+            .contents(createPostReq.getContents())
+            .userId(userId)
+            .createDate(LocalDateTime.now())
+            .updateDate(LocalDateTime.now())
+            .build();
 
         // 게시물 내용 저장 (insertPost 정상 실행되면, newPost의 id 속성에 id값이 들어 있다)
         postMapper.insertPost(newPost);
 
         // 로컬 디렉토리에 이미지 저장 후, DB에 이미지 정보 저장
         imageService.saveImages(createPostReq.getImgFiles(),
-                newPost.getId());
+            newPost.getId());
     }
 
     // TODO : post 조회 쿼리, image 조회 쿼리, user 조회 쿼리, like 조회 쿼리 => 총 4개 쿼리 발생
     public List<MyPostsRes> getMyPosts(Long userId, Long lastId) {
         // 유저의 (게시물과 게시물의 대표이미지) 10개씩 가져오기
-        List<PostImageDTO> postWithImgList = postMapper.findWithImageByUserId(userId, lastId, PAGE_SIZE);
+        List<PostImageDTO> postWithImgList = postMapper.findWithImageByUserId(userId, lastId,
+            PAGE_SIZE);
 
         return postWithImgList.stream()
-                .map(dto -> MyPostsRes.builder()
-                        .postId(dto.getId())
-                        .contents(dto.getContents())
-                        .likes(dto.getLikes())
-                        .thumbnailUrl(dto.getImgPath() + "\\" + dto.getSavedImgName())
-                        .isLiked(likeService.existsLike(userId, dto.getId()))
-                        .isBookmarked(bookmarkService.existsBookmark(userId, dto.getId()))
-                        .build())
-                .collect(Collectors.toList());
+            .map(dto -> MyPostsRes.builder()
+                .postId(dto.getId())
+                .contents(dto.getContents())
+                .likes(dto.getLikes())
+                .thumbnailUrl(dto.getImgPath() + "\\" + dto.getSavedImgName())
+                .isLiked(likeService.existsLike(userId, dto.getId()))
+                .isBookmarked(bookmarkService.existsBookmark(userId, dto.getId()))
+                .build())
+            .collect(Collectors.toList());
     }
 
     public PostRes getPost(Long postId, Long userId) {
@@ -100,16 +102,16 @@ public class PostService {
 
         // TODO : comments 채우기
         return PostRes.builder()
-                .authorName(author.getNickname())
-                .authorImgUrl(author.getImgUrl())
-                .contents(post.getContents())
-                .postImgUrls(imageUrlMap)
-                .likes(post.getLikes())
-                .isLiked(likeService.existsLike(userId, post.getId()))
-                .isBookmarked(bookmarkService.existsBookmark(userId, post.getId()))
-                .isAuthor(isAuthor)
-                .comments(commentService.getComments(post.getId()))
-                .build();
+            .authorName(author.getNickname())
+            .authorImgUrl(author.getImgUrl())
+            .contents(post.getContents())
+            .postImgUrls(imageUrlMap)
+            .likes(post.getLikes())
+            .isLiked(likeService.existsLike(userId, post.getId()))
+            .isBookmarked(bookmarkService.existsBookmark(userId, post.getId()))
+            .isAuthor(isAuthor)
+            .comments(commentService.getComments(post.getId()))
+            .build();
     }
 
     @Transactional
@@ -128,7 +130,7 @@ public class PostService {
         // 추가할 이미지가 있다면 추가하기
         if (editPostReq.getImgFiles() != null && !editPostReq.getImgFiles().isEmpty()) {
             imageService.saveImages(editPostReq.getImgFiles(),
-                    post.getId());
+                post.getId());
         }
 
         // 수정할 내용이 있다면 수정하기
@@ -353,6 +355,18 @@ public class PostService {
         commentService.insertComment(newComment);
     }
 
+    /**
+     * (대)댓글 수정
+     */
+    public void editComment(EditCommentReq editCommentReq, Long postId, Long commentId,
+        UserDTO user) {
+        // 게시물&댓글 존재 여부 검증, 작성자인지 검증하기
+        validatePostCommentAndOwnership(postId, commentId, user.getId());
+
+        commentService.updateContents(commentId, editCommentReq.getContents());
+
+
+    }
 
 
 
@@ -363,7 +377,7 @@ public class PostService {
      */
     private void validatePostOwner(PostDTO post, Long userId) {
         if (post == null) {
-            throw new ApiException(ErrorCode.POST_NOT_FOUND, "해당 게시물은 존재하지 않습니다.");
+            throw new ApiException(ErrorCode.POST_NOT_FOUND);
         }
 
         // 게시물 작성자인지 확인
@@ -372,5 +386,28 @@ public class PostService {
         }
     }
 
+    /**
+     * 게시물, 댓글 존재 여부 검증
+     * 댓글 작성자인지 검증
+     */
+    private void validatePostCommentAndOwnership(Long postId, Long commentId, Long userId) {
+        // 게시물 존재 여부 검증
+        PostDTO post = postMapper.findById(postId);
+        if (post == null) {
+            throw new ApiException(ErrorCode.POST_NOT_FOUND);
+        }
+
+        // 댓글 존재 여부 검증
+        CommentDTO comment = commentService.findById(commentId);
+        if (comment == null) {
+            throw new ApiException(ErrorCode.COMMENT_NOT_FOUND);
+        }
+
+        // 댓글 작성자인지 검증
+        if (!userId.equals(comment.getUserId())) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED_ACCESS, "댓글에 대한 권한이 없습니다.");
+        }
+
+    }
 
 }

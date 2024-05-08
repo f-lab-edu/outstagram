@@ -2,6 +2,8 @@ package com.outstagram.outstagram.service;
 
 import com.outstagram.outstagram.controller.response.CommentRes;
 import com.outstagram.outstagram.dto.CommentDTO;
+import com.outstagram.outstagram.exception.ApiException;
+import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.CommentMapper;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -21,4 +23,14 @@ public class CommentService {
         return commentMapper.findByPostId(postId);
     }
 
+    public CommentDTO findById(Long commentId) {
+        return commentMapper.findById(commentId);
+    }
+
+    public void updateContents(Long commentId, String contents) {
+        int result = commentMapper.updateContentsById(commentId, contents);
+        if (result == 0) {
+            throw new ApiException(ErrorCode.UPDATE_ERROR);
+        }
+    }
 }

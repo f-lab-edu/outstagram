@@ -33,6 +33,9 @@ public enum ErrorCode {
     // lock 관련 에러 코드
     RETRY_EXCEEDED(HttpStatus.INTERNAL_SERVER_ERROR, "업데이트 재시도 횟수를 초과했습니다."),
 
+    // comment 관련 에러 코드
+    COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 댓글은 존재하지 않습니다."),
+
     ;
 
 

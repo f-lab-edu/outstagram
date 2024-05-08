@@ -4,6 +4,7 @@ import com.outstagram.outstagram.common.annotation.Login;
 import com.outstagram.outstagram.common.api.ApiResponse;
 import com.outstagram.outstagram.controller.request.CreateCommentReq;
 import com.outstagram.outstagram.controller.request.CreatePostReq;
+import com.outstagram.outstagram.controller.request.EditCommentReq;
 import com.outstagram.outstagram.controller.request.EditPostReq;
 import com.outstagram.outstagram.controller.response.MyPostsRes;
 import com.outstagram.outstagram.controller.response.PostRes;
@@ -156,6 +157,24 @@ public class PostController {
                 .isSuccess(true)
                 .httpStatus(HttpStatus.OK)
                 .message("대댓글 등록에 성공했습니다.")
+                .build()
+        );
+    }
+
+    /**
+     * (대)댓글 수정
+     */
+    @PatchMapping("/{postId}/comments/{commentId}")
+    public ResponseEntity<ApiResponse> editComment(@PathVariable("postId") Long postId,
+        @PathVariable("commentId") Long commentId, @RequestBody EditCommentReq editCommentReq,
+        @Login UserDTO user) {
+        postService.editComment(editCommentReq, postId, commentId, user);
+
+        return ResponseEntity.ok(
+            ApiResponse.builder()
+                .isSuccess(true)
+                .httpStatus(HttpStatus.OK)
+                .message("댓글 수정에 성공했습니다.")
                 .build()
         );
     }

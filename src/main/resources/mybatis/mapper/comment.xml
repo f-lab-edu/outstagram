@@ -55,6 +55,21 @@
       c1.id, c2.id
   </select>
 
+  <select id="findById" resultType="com.outstagram.outstagram.dto.CommentDTO">
+    SELECT id, user_id
+    FROM comment
+    where id = #{commentId}
+      AND is_deleted = 0
+
+  </select>
+
+  <update id="updateContentsById">
+    UPDATE comment
+    SET contents = #{contents},
+        update_date = NOW()
+    WHERE id = #{commentId} AND is_deleted = 0
+  </update>
+
 <!--  <select id="existsUserBookmark" resultType="boolean">-->
 <!--    SELECT CASE WHEN COUNT(*) > 0 THEN true ELSE false END-->
 <!--    FROM bookmark-->
