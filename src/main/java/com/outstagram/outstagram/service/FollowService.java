@@ -50,19 +50,22 @@ public class FollowService {
             return new ArrayList<>();
         }
 
-        // id 목록으로 Redis에서 유저 정보 가져와 List<FollowRes>로 변환하기
-        return memberId.stream()
-            .map(id -> {
-                Map<Object, Object> userInfo = redisTemplate.opsForHash().entries("user:" + id);
-                log.info("==== userInfo : {}" ,userInfo);
-                return FollowRes.builder()
-                    .id(Long.valueOf(id))
-                    .nickname(String.valueOf(userInfo.get("nickname")))
-                    .email(String.valueOf(userInfo.get("email")))
-                    .imgUrl(String.valueOf(userInfo.get("img_url")))
-                    .build();
-            }).toList();
 
+        return getFollowResList(memberId);
+
+    }
+
+    /**
+     * 로그인한 유저의 팔로워 목록 가져오기(Redis에서)
+     */
+    public List<FollowRes> getFollowerList(Long userId) {
+        // 유저의 follower id 목록 가져오기
+        Set<String> memberId = redisTemplate.opsForSet().members(makeFollowerKey(userId));
+        if (memberId == null) {
+            return new ArrayList<>();
+        }
+
+        return getFollowResList(memberId);
     }
 
     public void deleteFollowing(Long fromId, Long toId) {
@@ -86,5 +89,22 @@ public class FollowService {
 
     private String makeFollowerKey(Long id) {
         return FOLLOWER + id;
+    }
+
+    /**
+     * id 목록으로 Redis에서 유저 정보 가져와 List<FollowRes>로 변환하기
+     */
+    private List<FollowRes> getFollowResList(Set<String> memberId) {
+        return memberId.stream()
+            .map(id -> {
+                Map<Object, Object> userInfo = redisTemplate.opsForHash().entries("user:" + id);
+                log.info("==== userInfo : {}", userInfo);
+                return FollowRes.builder()
+                    .id(Long.valueOf(id))
+                    .nickname(String.valueOf(userInfo.get("nickname")))
+                    .email(String.valueOf(userInfo.get("email")))
+                    .imgUrl(String.valueOf(userInfo.get("img_url")))
+                    .build();
+            }).toList();
     }
 }

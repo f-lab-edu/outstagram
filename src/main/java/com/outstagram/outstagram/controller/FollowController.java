@@ -44,6 +44,13 @@ public class FollowController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/follower")
+    public ResponseEntity<List<FollowRes>> getFollowerList(@Login UserDTO user) {
+        List<FollowRes> response = followService.getFollowerList(user.getId());
+
+        return ResponseEntity.ok(response);
+    }
+
     @DeleteMapping("/{userId}")
     public ResponseEntity<ApiResponse> deleteFollowing(@PathVariable("userId") Long toId, @Login UserDTO user) {
         followService.deleteFollowing(user.getId(), toId);
