@@ -10,7 +10,7 @@
         SELECT COUNT(*) FROM user WHERE nickname = #{nickname}
     </select>
 
-    <insert id="insertUser" parameterType="com.outstagram.outstagram.dto.UserDTO">
+    <insert id="insertUser" parameterType="com.outstagram.outstagram.dto.UserDTO" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO USER(email, password, nickname, create_date, update_date)
         VALUES(#{email}, #{password}, #{nickname}, #{createDate}, #{updateDate})
     </insert>
