@@ -2,11 +2,14 @@ package com.outstagram.outstagram.service;
 
 import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
 
+import com.outstagram.outstagram.controller.response.SearchUserInfoRes;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.UserMapper;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.HashOperations;
@@ -101,4 +104,14 @@ public class UserService {
         hashOps.put(userKey, "profileImage", userInfo.getImgUrl());
     }
 
+    public List<SearchUserInfoRes> searchByNickname(String search) {
+        List<UserDTO> resultList = userMapper.findByNicknameContaining(search);
+
+        return resultList.stream()
+            .map(userDTO -> SearchUserInfoRes.builder()
+                .userId(userDTO.getId())
+                .nickname(userDTO.getNickname())
+                .build())
+            .collect(Collectors.toList());
+    }
 }

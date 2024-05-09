@@ -30,4 +30,10 @@
         AND is_deleted = 0
     </select>
 
+    <select id="findByNicknameContaining" resultType="com.outstagram.outstagram.dto.UserDTO">
+        SELECT id, nickname
+        FROM user
+        where lower(nickname) like concat('%', lower(#{search}), '%')
+    </select>
+
 </mapper>
