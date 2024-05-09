@@ -6,4 +6,6 @@ import org.springframework.stereotype.Repository;
 public interface FollowMapper {
 
     void insertFollow(Long fromId, Long toId);
+
+    int deleteFollow(Long fromId, Long toId);
 }

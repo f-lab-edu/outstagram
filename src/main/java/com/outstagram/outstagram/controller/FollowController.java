@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -41,6 +42,19 @@ public class FollowController {
         List<FollowRes> response = followService.getFollowingList(user.getId());
 
         return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{userId}")
+    public ResponseEntity<ApiResponse> deleteFollowing(@PathVariable("userId") Long toId, @Login UserDTO user) {
+        followService.deleteFollowing(user.getId(), toId);
+
+        return ResponseEntity.ok(
+            ApiResponse.builder()
+                .isSuccess(true)
+                .httpStatus(HttpStatus.OK)
+                .message("팔로우 취소에 성공했습니다.")
+                .build()
+        );
     }
 
 

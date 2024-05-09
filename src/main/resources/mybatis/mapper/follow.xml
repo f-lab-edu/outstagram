@@ -8,5 +8,11 @@
     VALUES (#{fromId}, #{toId}, NOW())
   </insert>
 
+  <delete id="deleteFollow">
+    DELETE FROM follow
+    WHERE from_id = #{fromId}
+      AND to_id = #{toId}
+  </delete>
+
 
 </mapper>
