@@ -58,12 +58,16 @@ public class PostService {
         // 게시물 내용 저장 (insertPost 정상 실행되면, newPost의 id 속성에 id값이 들어 있다)
         postMapper.insertPost(newPost);
 
+        Long newPostId = newPost.getId();
+
         // 로컬 디렉토리에 이미지 저장 후, DB에 이미지 정보 저장
         imageService.saveImages(createPostReq.getImgFiles(),
-            newPost.getId());
+            newPostId);
+
+        // TODO : redis에 post 정보 캐싱하기 (자료구조는 hash table, newPost 객체를 바로 저장할 수 있는 방법 찾아보기)
 
         // kafka에 메시지 발행 : 팔로워들의 피드목록에 내가 작성한 게시물 ID 넣기
-        feedUpdateProducer.send("feed", userId, newPost.getId());
+        feedUpdateProducer.send("feed", userId, newPostId);
     }
 
     // TODO : post 조회 쿼리, image 조회 쿼리, user 조회 쿼리, like 조회 쿼리 => 총 4개 쿼리 발생
@@ -106,7 +110,6 @@ public class PostService {
             imageUrlMap.put(img.getId(), img.getImgPath() + "\\" + img.getSavedImgName());
         }
 
-        // TODO : comments 채우기
         return PostRes.builder()
             .authorName(author.getNickname())
             .authorImgUrl(author.getImgUrl())
