@@ -62,8 +62,8 @@ public class PostService {
         imageService.saveImages(createPostReq.getImgFiles(),
             newPost.getId());
 
-        // kafka에 메시지 발행
-        kafkaTemplate.send("postCreatedTopic", newPost.getId());
+        // kafka에 메시지 발행 : 팔로워들의 피드목록에 내가 작성한 게시물 ID 넣기
+        kafkaTemplate.send("feed", newPost.getId());
     }
 
     // TODO : post 조회 쿼리, image 조회 쿼리, user 조회 쿼리, like 조회 쿼리 => 총 4개 쿼리 발생

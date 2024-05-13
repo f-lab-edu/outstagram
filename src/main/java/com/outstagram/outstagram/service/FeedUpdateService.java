@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 public class FeedUpdateService {
     private final RedisTemplate<String, String> redisTemplate;
 
-    @KafkaListener(topics = "postCreatedTopic", groupId = "sns-feed")
+    @KafkaListener(topics = "feed", groupId = "sns-feed")
     public void updateFeed(String postId) {
 
     }
