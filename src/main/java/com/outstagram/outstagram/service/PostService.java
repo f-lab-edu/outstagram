@@ -17,6 +17,7 @@ import com.outstagram.outstagram.dto.PostImageDTO;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
+import com.outstagram.outstagram.kafka.producer.FeedUpdateProducer;
 import com.outstagram.outstagram.mapper.PostMapper;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -26,7 +27,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,7 +44,7 @@ public class PostService {
     private final BookmarkService bookmarkService;
     private final CommentService commentService;
 
-    private final KafkaTemplate<String, Long> kafkaTemplate;
+    private final FeedUpdateProducer feedUpdateProducer;
 
     @Transactional
     public void insertPost(CreatePostReq createPostReq, Long userId) {
@@ -63,7 +63,7 @@ public class PostService {
             newPost.getId());
 
         // kafka에 메시지 발행 : 팔로워들의 피드목록에 내가 작성한 게시물 ID 넣기
-        kafkaTemplate.send("feed", newPost.getId());
+        feedUpdateProducer.send("feed", userId, newPost.getId());
     }
 
     // TODO : post 조회 쿼리, image 조회 쿼리, user 조회 쿼리, like 조회 쿼리 => 총 4개 쿼리 발생

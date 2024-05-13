@@ -1,4 +1,4 @@
-package com.outstagram.outstagram.producer;
+package com.outstagram.outstagram.kafka.producer;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,8 +11,8 @@ import org.springframework.stereotype.Component;
 public class FeedUpdateProducer {
     private final KafkaTemplate<String, Long> kafkaTemplate;
 
-    public void send(String topic, Long postId) {
+    public void send(String topic, Long userId, Long postId) {
         log.info("sending postId = {} to topic = {}", postId, topic);
-        kafkaTemplate.send(topic, postId);
+        kafkaTemplate.send(topic, userId.toString(), postId);
     }
 }
