@@ -36,6 +36,10 @@ public enum ErrorCode {
     // comment 관련 에러 코드
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 댓글은 존재하지 않습니다."),
 
+    // snowflake 관련 에러 코드
+    NODEID_INVALID_RANGE(HttpStatus.BAD_REQUEST, "NodeId 범위를 벗어났습니다."),
+    TIMESTAMP_INVALID(HttpStatus.INTERNAL_SERVER_ERROR, "시스템의 timestamp 기능에 문제가 발생했습니다."),
+
     ;
 
 
