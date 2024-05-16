@@ -2,11 +2,12 @@ package com.outstagram.outstagram.util;
 
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
+import lombok.Data;
+
 import java.net.NetworkInterface;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Enumeration;
-import lombok.Data;
 
 @Data
 public class Snowflake {
@@ -17,17 +18,21 @@ public class Snowflake {
     private static final int SEQUENCE_BITS = 12;    // 동일 밀리초에서 동시에 ID 생성할 수 있도록 기계별 시퀀스 번호
 
     private static final long maxNodeId = (1L << NODE_ID_BITS) - 1;     // 장비 고유 번호 최댓값은 2^10 - 1
-    private static final long maxSequence =
-        (1L << SEQUENCE_BITS) - 1;  // 시퀀스 번호 최댓값은 2^12 - 1 (동일 밀리초에서 동시에 최대 4095개 id 생성 가능)
+    // 시퀀스 번호 최댓값은 2^12 - 1 (동일 밀리초에서 동시에 최대 4095개 id 생성 가능)
+    private static final long maxSequence = (1L << SEQUENCE_BITS) - 1;
 
     // 기준 타임스탬프 : 2010년 11월 4일 10시 42분 54초
     private static final long DEFAULT_CUSTOM_EPOCH = 1288834974657L;    // BASE_TIMESTAMP로 변수명 수정하기
 
+    private static final Object lock = new Object();
+    private static volatile Snowflake instance;
+
     private final long nodeId;
     private final long customEpoch;
+    //private AtomicLong sequence = new AtomicLong(0L);
 
     private volatile long lastTimestamp = -1L;
-    private volatile long sequence = 0L;
+    private volatile long sequence = 0L;    // 가시성 보장, 동시성 보장X
 
     public Snowflake(long nodeId, long customEpoch) {
         if (nodeId < 0 || nodeId > maxNodeId) {
@@ -44,6 +49,24 @@ public class Snowflake {
     public Snowflake() {
         this.nodeId = createNodeId();
         this.customEpoch = DEFAULT_CUSTOM_EPOCH;
+    }
+
+    /**
+     * Double-Checking Lock Pattern 도입을 통해 확실한 싱글톤 보장
+     */
+    public static Snowflake getInstance(long nodeId) {
+        Snowflake localInstance = instance;
+
+        if (localInstance == null) {
+            synchronized (lock) {
+                localInstance = instance;
+                if (localInstance == null) {
+                    instance = localInstance = new Snowflake(nodeId);
+                }
+            }
+        }
+
+        return localInstance;
     }
 
     public synchronized long nextId() {
@@ -69,9 +92,9 @@ public class Snowflake {
         lastTimestamp = curTimestamp;
 
         // ID 생성
-        return curTimestamp << (NODE_ID_BITS + SEQUENCE_BITS)
-            | nodeId << NODE_ID_BITS
-            | sequence;
+        return (curTimestamp << (NODE_ID_BITS + SEQUENCE_BITS))
+                | (nodeId << SEQUENCE_BITS)
+                | sequence;
     }
 
     private long timestamp() {
@@ -79,11 +102,12 @@ public class Snowflake {
     }
 
     private long waitNextMills(long curTimestamp) {
-        while (curTimestamp == lastTimestamp) {
-            curTimestamp = timestamp();
+        long newTimestamp = timestamp();
+        while (newTimestamp <= curTimestamp) {
+            newTimestamp = timestamp();
         }
 
-        return curTimestamp;
+        return newTimestamp;
     }
 
 
@@ -97,7 +121,7 @@ public class Snowflake {
                 NetworkInterface networkInterface = networkInterfaces.nextElement();
                 byte[] mac = networkInterface.getHardwareAddress();
                 if (mac != null) {
-                    for(byte macPort: mac) {
+                    for (byte macPort : mac) {
                         // MAC 주소의 각 바이트를 2자리 16진수 문자열로 포맷팅하기
                         sb.append(String.format("%02X", macPort));
                     }
@@ -113,6 +137,32 @@ public class Snowflake {
         // nodeId 범위 제한
         nodeId = nodeId & maxNodeId;
         return nodeId;
+    }
+
+    public String[] parseString(long id) {
+        long maskNodeId = ((1L << NODE_ID_BITS) - 1) << SEQUENCE_BITS;
+        long maskSequence = (1L << SEQUENCE_BITS) - 1;
+
+        long timestamp = (id >> (NODE_ID_BITS + SEQUENCE_BITS)) + customEpoch;
+        long nodeId = (id & maskNodeId) >> SEQUENCE_BITS;
+        long sequence = id & maskSequence;
+
+        String binaryTimestamp = Long.toBinaryString(timestamp);
+        String binaryNodeId = Long.toBinaryString(nodeId);
+        String binarySequence = Long.toBinaryString(sequence);
+
+        return new String[]{binaryTimestamp, binaryNodeId, binarySequence};
+    }
+
+    public long[] parse(long id) {
+        long maskNodeId = ((1L << NODE_ID_BITS) - 1) << SEQUENCE_BITS;
+        long maskSequence = (1L << SEQUENCE_BITS) - 1;
+
+        long timestamp = (id >> (NODE_ID_BITS + SEQUENCE_BITS));
+        long nodeId = (id & maskNodeId) >> SEQUENCE_BITS;
+        long sequence = id & maskSequence;
+
+        return new long[]{timestamp, nodeId, sequence};
     }
 
 }

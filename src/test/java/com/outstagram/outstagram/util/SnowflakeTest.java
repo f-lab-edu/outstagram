@@ -3,6 +3,8 @@ package com.outstagram.outstagram.util;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.outstagram.outstagram.config.SnowflakeConfig;
+
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -19,11 +21,13 @@ class SnowflakeTest {
     @DisplayName("단일 스레드에서 id 1000개 생성하고 모두 고유한지 확인")
     @Test
     public void testSingleThreadedSnowflake() {
-        Snowflake snowflake = new Snowflake(1);
+        Snowflake snowflake = Snowflake.getInstance(1);
         Set<Long> ids = new HashSet<>();
 
         for (int i = 0; i < 1000; i++) {
             long id = snowflake.nextId();
+            System.out.println(snowflake.getNodeId() + "    " + snowflake.getSequence());
+            System.out.println(Arrays.toString(snowflake.parse(id)));
             assertTrue(ids.add(id), "ID는 고유해야 합니다.");
         }
     }
@@ -37,7 +41,8 @@ class SnowflakeTest {
         AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(
             SnowflakeConfig.class);
         Snowflake snowflake = context.getBean(Snowflake.class); // 싱글톤 인스턴스 사용
-
+        System.out.println(snowflake.getNodeId());
+        System.out.println(snowflake.getSequence());
 
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
         Set<Long> ids = new HashSet<>();
@@ -49,6 +54,7 @@ class SnowflakeTest {
                 long id = snowflake.nextId();
                 localIds.add(id);
             }
+
             return localIds;
         };
 
@@ -57,7 +63,9 @@ class SnowflakeTest {
         }
 
         for (Future<Set<Long>> future : futures) {
-            ids.addAll(future.get());
+            Set<Long> result = future.get();
+            System.out.println(result);
+            ids.addAll(result);
         }
 
         executor.shutdown();
@@ -70,7 +78,7 @@ class SnowflakeTest {
     @Test
     public void testDistributedSnowflake() throws Exception {
         final int nodeCount = 5;
-        final int threadCount = 1;
+        final int threadCount = 2;
         final int idCount = 1000;
         Set<Long> ids = new HashSet<>();
         Set<Future<Set<Long>>> futures = new HashSet<>();
@@ -84,6 +92,7 @@ class SnowflakeTest {
                 for (int i = 0; i < idCount; i++) {
                     long id = snowflake.nextId();
                     localIds.add(id);
+//                    Thread.sleep(2);
                 }
                 return localIds;
             };
@@ -94,7 +103,10 @@ class SnowflakeTest {
         }
 
         for (Future<Set<Long>> future : futures) {
-            ids.addAll(future.get());
+            Set<Long> result = future.get();
+            System.out.println(result.size());
+            ids.addAll(result);
+            System.out.println("after add: " + ids.size());
         }
 
         executor.shutdown();
@@ -102,6 +114,5 @@ class SnowflakeTest {
         // Check that all IDs are unique
         assertEquals(nodeCount * threadCount * idCount, ids.size(), "All generated IDs should be unique");
     }
-
 
 }

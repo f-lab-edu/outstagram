@@ -9,7 +9,7 @@ public class SnowflakeConfig {
 
     @Bean
     public Snowflake snowflake() {
-        return new Snowflake(1);
+        return Snowflake.getInstance(2);
     }
 
 }
