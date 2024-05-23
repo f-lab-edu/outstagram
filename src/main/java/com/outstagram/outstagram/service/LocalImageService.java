@@ -91,12 +91,37 @@ public class LocalImageService implements ImageService {
         return imageMapper.findImagesByPostId(postId);
     }
 
+    @Override
+    public List<ImageDTO> getDeletedImages() {
+        return imageMapper.findDeletedImages();
+    }
+
     @Transactional
     @Override
     public void deleteByIds(List<Long> deleteImgIds) {
         int result = imageMapper.deleteByIds(deleteImgIds);
         if (result == 0) {
             throw new ApiException(ErrorCode.DELETE_ERROR, "이미지 삭제에 실패했습니다.");
+        }
+    }
+
+    @Override
+    public void hardDeleteImages(List<ImageDTO> deletedImages) {
+        if (deletedImages.isEmpty()) return;
+        for (ImageDTO image : deletedImages) {
+            String filePath = image.getImgPath();
+            String fileName = image.getSavedImgName();
+            File file = new File(filePath, fileName);
+
+            if (file.exists()) {
+                if (file.delete()) {
+                    log.info("============Deleted file : " + file.getAbsolutePath());
+                } else {
+                    log.error("============Failed to delete file : " + file.getAbsolutePath());
+                }
+            } else {
+                log.error("============File not found : " + file.getAbsolutePath());
+            }
         }
     }
 

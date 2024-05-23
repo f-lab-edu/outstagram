@@ -10,5 +10,15 @@ public interface ImageService {
 
     List<ImageDTO> getImages(Long postId);
 
+    List<ImageDTO> getDeletedImages();
+
+    /**
+     * DB의 image 테이블에서 해당 레코드의 is_delete = 1로 수정(soft delete)
+     */
     void deleteByIds(List<Long> deleteImgIds);
+
+    /**
+     * 실제 이미지 파일 삭제(hard delete)
+     */
+    void hardDeleteImages(List<ImageDTO> deletedImages);
 }

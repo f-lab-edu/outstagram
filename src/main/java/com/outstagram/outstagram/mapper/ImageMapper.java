@@ -11,6 +11,8 @@ public interface ImageMapper {
 
     List<ImageDTO> findImagesByPostId(Long postId);
 
+    List<ImageDTO> findDeletedImages();
+
     /**
      * soft delete 방식으로, is_deleted = 1로 업데이트함으로써, 삭제됨을 표현
      */
