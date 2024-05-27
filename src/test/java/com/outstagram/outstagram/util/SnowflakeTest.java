@@ -64,7 +64,7 @@ class SnowflakeTest {
 
         for (Future<Set<Long>> future : futures) {
             Set<Long> result = future.get();
-            System.out.println(result);
+//            System.out.println(result);
             ids.addAll(result);
         }
 
