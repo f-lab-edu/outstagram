@@ -19,4 +19,6 @@ public interface ImageMapper {
     int deleteByIds(List<Long> deleteImgIds);
 
     int deleteByPostId(Long postId);
+
+    int hardDeleteByIds(List<Long> deleteImgIds);
 }

@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -106,7 +107,7 @@ public class LocalImageService implements ImageService {
     }
 
     @Override
-    public void hardDeleteImages(List<ImageDTO> deletedImages) {
+    public void deleteLocalImages(List<ImageDTO> deletedImages) {
         if (deletedImages.isEmpty()) return;
         for (ImageDTO image : deletedImages) {
             String filePath = image.getImgPath();
@@ -122,6 +123,18 @@ public class LocalImageService implements ImageService {
             } else {
                 log.error("============File not found : " + file.getAbsolutePath());
             }
+        }
+    }
+
+    @Override
+    public void hardDeleteByIds(List<ImageDTO> deletedImages) {
+        List<Long> deletedImageIds = deletedImages.stream()
+            .map(ImageDTO::getId)
+            .collect(Collectors.toList());
+
+        int result = imageMapper.hardDeleteByIds(deletedImageIds);
+        if (result == 0) {
+            throw new ApiException(ErrorCode.DELETE_ERROR, "image hard delete 하다가 에러 발생!");
         }
     }
 

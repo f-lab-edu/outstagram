@@ -20,5 +20,7 @@ public interface ImageService {
     /**
      * 실제 이미지 파일 삭제(hard delete)
      */
-    void hardDeleteImages(List<ImageDTO> deletedImages);
+    void deleteLocalImages(List<ImageDTO> deletedImages);
+
+    void hardDeleteByIds(List<ImageDTO> deletedImages);
 }
