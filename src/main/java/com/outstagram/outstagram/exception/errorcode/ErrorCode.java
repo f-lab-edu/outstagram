@@ -36,6 +36,9 @@ public enum ErrorCode {
     // comment 관련 에러 코드
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 댓글은 존재하지 않습니다."),
 
+    // image 관련 에러 코드
+
+
     ;
 
 

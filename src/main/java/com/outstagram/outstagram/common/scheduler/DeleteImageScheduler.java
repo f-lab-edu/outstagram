@@ -1,6 +1,8 @@
 package com.outstagram.outstagram.common.scheduler;
 
 import com.outstagram.outstagram.dto.ImageDTO;
+import com.outstagram.outstagram.exception.ApiException;
+import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.service.ImageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +23,9 @@ public class DeleteImageScheduler {
         log.info("================== 이미지 삭제 스케쥴링 시작!!");
         // image table에서 is_deleted = 1인 데이터 찾기
         List<ImageDTO> deletedImages = imageService.getDeletedImages();
-
+        if (deletedImages == null) {
+            throw new ApiException(ErrorCode.)
+        }
         if (deletedImages.isEmpty()) {
             log.info("================== 삭제할 이미지가 없습니다!!!");
         }
