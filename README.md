@@ -20,6 +20,7 @@ instagram을 모티브로 만든 SNS API 서버 프로젝트
 2. [동시성 문제 고민 및 해결방안](https://velog.io/@nick9999/Outstagram-%EC%A2%8B%EC%95%84%EC%9A%94-%EB%8F%99%EC%8B%9C%EC%84%B1-%EB%AC%B8%EC%A0%9C-%ED%95%B4%EA%B2%B0)
 3. [이미지 처리 추상화](https://velog.io/@nick9999/Outstagram-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EC%B2%98%EB%A6%AC-%EC%B6%94%EC%83%81%ED%99%94)
 4. [간단한 DB 쿼리 리팩토링](https://velog.io/@nick9999/Outstagram-DB-%EC%BF%BC%EB%A6%AC-%EC%B5%9C%EC%A0%81%ED%99%94)
+5. [무한 스크롤 도입 ~ Snowflake 도입까지 과정](https://velog.io/@nick9999/Outstagram-%EB%AC%B4%ED%95%9C-%EC%8A%A4%ED%81%AC%EB%A1%A4-%EA%B5%AC%ED%98%84%ED%95%98%EB%A0%A4%EB%8B%A4-Snowflake-ID-%EB%8F%84%EC%9E%85%ED%95%9C-%EC%9D%B4%EC%95%BC%EA%B8%B0)
 
 ## 🖥 프로토타입 
 - 카카오 오븐을 활용해 간단한 프로토타입 제작
