@@ -29,7 +29,9 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -127,6 +129,7 @@ public class PostService {
     }
 
     @Transactional
+    @Caching(evict = @CacheEvict(value = CacheNames.POST, key = "#postId"))
     public void editPost(Long postId, EditPostReq editPostReq, Long userId) {
         // 수정할 게시물 가져오기
         PostDTO post = postMapper.findById(postId);
@@ -159,6 +162,7 @@ public class PostService {
      * 게시물 삭제 비동기 처리
      */
     @Transactional
+    @Caching(evict = @CacheEvict(value = CacheNames.POST, key = "#postId"))
     public void deletePost(Long postId, Long userId) {
 
         // 게시물이 존재하는지 & 삭제 권한 있는지 검증
