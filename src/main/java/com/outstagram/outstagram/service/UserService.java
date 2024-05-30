@@ -2,7 +2,9 @@ package com.outstagram.outstagram.service;
 
 import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
 
+import com.outstagram.outstagram.common.constant.CacheNames;
 import com.outstagram.outstagram.controller.response.SearchUserInfoRes;
+import com.outstagram.outstagram.controller.response.UserInfoRes;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
@@ -12,6 +14,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -23,7 +26,7 @@ public class UserService {
 
     private final UserMapper userMapper;
 
-    private final RedisTemplate<String, String> redisTemplate;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     /**
      * 유저 회원가입 메서드 비밀번호는 sha256으로 암호화해 저장
@@ -39,7 +42,6 @@ public class UserService {
         userInfo.setPassword(encryptedPassword(userInfo.getPassword()));
 
         userMapper.insertUser(userInfo);
-        saveUserToRedis(userInfo);
     }
 
 
@@ -93,17 +95,6 @@ public class UserService {
         validateDuplicatedNickname(userInfo.getNickname());
     }
 
-    /**
-     * redis에 유저 정보 캐싱해놓기
-     */
-    private void saveUserToRedis(UserDTO userInfo) {
-        // Redis의 Hash 구조를 사용하여 유저 정보 저장
-        String userKey = "user:" + userInfo.getId();  // Redis에서 사용할 키
-        HashOperations<String, Object, Object> hashOps = redisTemplate.opsForHash();
-        hashOps.put(userKey, "nickname", userInfo.getNickname());
-        hashOps.put(userKey, "profileImage", userInfo.getImgUrl());
-    }
-
     public List<SearchUserInfoRes> searchByNickname(String search) {
         List<UserDTO> resultList = userMapper.findByNicknameContaining(search);
 
@@ -113,5 +104,17 @@ public class UserService {
                 .nickname(userDTO.getNickname())
                 .build())
             .collect(Collectors.toList());
+    }
+
+    @Cacheable(value = CacheNames.USER, key = "#userId")
+    public UserInfoRes getUser(Long userId) {
+        UserDTO user = userMapper.findById(userId);
+
+        return UserInfoRes.builder()
+                .userId(user.getId())
+                .nickname(user.getNickname())
+                .email(user.getEmail())
+                .imgUrl(user.getImgUrl())
+                .build();
     }
 }
