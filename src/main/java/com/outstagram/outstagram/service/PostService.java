@@ -4,6 +4,7 @@ package com.outstagram.outstagram.service;
 import static com.outstagram.outstagram.common.constant.OptimisticLockConst.MAX_RETRIES;
 import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
 
+import com.outstagram.outstagram.common.constant.CacheNames;
 import com.outstagram.outstagram.controller.request.CreateCommentReq;
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditCommentReq;
@@ -28,6 +29,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,8 +68,6 @@ public class PostService {
         imageService.saveImages(createPostReq.getImgFiles(),
             newPostId);
 
-        // TODO : redis에 post 정보 캐싱하기 (자료구조는 hash table, newPost 객체를 바로 저장할 수 있는 방법 찾아보기)
-
         // kafka에 메시지 발행 : 팔로워들의 피드목록에 내가 작성한 게시물 ID 넣기
         feedUpdateProducer.send("feed", userId, newPostId);
     }
@@ -90,6 +90,7 @@ public class PostService {
             .collect(Collectors.toList());
     }
 
+    @Cacheable(value = CacheNames.POST, key = "#postId")
     public PostRes getPost(Long postId, Long userId) {
         // 1. Post 가져오기
         PostDTO post = postMapper.findById(postId);
