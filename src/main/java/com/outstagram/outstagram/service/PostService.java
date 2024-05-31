@@ -1,32 +1,24 @@
 package com.outstagram.outstagram.service;
 
 
-import static com.outstagram.outstagram.common.constant.OptimisticLockConst.MAX_RETRIES;
-import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
-
 import com.outstagram.outstagram.common.constant.CacheNames;
 import com.outstagram.outstagram.controller.request.CreateCommentReq;
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditCommentReq;
 import com.outstagram.outstagram.controller.request.EditPostReq;
+import com.outstagram.outstagram.controller.response.FeedPost;
 import com.outstagram.outstagram.controller.response.FeedRes;
 import com.outstagram.outstagram.controller.response.MyPostsRes;
 import com.outstagram.outstagram.controller.response.PostRes;
-import com.outstagram.outstagram.dto.CommentDTO;
-import com.outstagram.outstagram.dto.ImageDTO;
-import com.outstagram.outstagram.dto.PostDTO;
-import com.outstagram.outstagram.dto.PostImageDTO;
-import com.outstagram.outstagram.dto.UserDTO;
+import com.outstagram.outstagram.dto.*;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.kafka.producer.FeedUpdateProducer;
 import com.outstagram.outstagram.kafka.producer.PostDeleteProducer;
 import com.outstagram.outstagram.mapper.PostMapper;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.aop.framework.AopContext;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
@@ -34,7 +26,13 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.aop.framework.AopContext;
+
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.outstagram.outstagram.common.constant.OptimisticLockConst.MAX_RETRIES;
+import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
 
 @Slf4j
 @Service
@@ -136,13 +134,17 @@ public class PostService {
     /**
      * 피드 가져오기
      */
-//    @Cacheable(value = CacheNames.USER_FEED, key = "#userId")
-    public List<FeedRes> getFeed(Long lastId, Long userId) {
+    public FeedRes getFeed(Long lastId, Long userId) {
         // redis에서 userId의 피드 목록 가져오기
         if (lastId == null) lastId = Long.MAX_VALUE;
         List<Object> feedList = redisTemplate.opsForList().range("feed:" + userId, 0, -1);
 
-        if (feedList == null) return Collections.emptyList();
+        if (feedList == null) {
+            return FeedRes.builder()
+                    .feedPostList(Collections.emptyList())
+                    .hasNext(false)
+                    .build();
+        }
 
         // 피드 목록의 postId로 postService.getPost(postId)로 각 게시물 정보 가져오기
         // 이렇게 가져오는 이유 : getPost가 캐싱되어 있으면 redis에서 없으면 mysql에서 가져옴
@@ -156,15 +158,17 @@ public class PostService {
                     }
                 })
                 .filter(postId -> postId < finalLastId)
-                .limit(PAGE_SIZE)
+                .limit(PAGE_SIZE+1L)        // 다음 페이지 있는지 확인하기 위해 1개 더 가져옴
                 .toList();
 
+        // 아래 stream에서 getPost 가져올 때 @Cacheable 적용하기 위해서 필요
         PostService proxy = (PostService) AopContext.currentProxy();
 
-        return postIds.stream()
+        List<FeedPost> feedPostList = postIds.stream()
+                .limit(PAGE_SIZE)
                 .map(postId -> {
                     PostRes post = proxy.getPost(postId, userId);
-                    return FeedRes.builder()
+                    return FeedPost.builder()
                             .postId(post.getPostId())
                             .postImgUrls(post.getPostImgUrls())
                             .contents(post.getContents())
@@ -180,6 +184,14 @@ public class PostService {
                             .build();
                 })
                 .toList();
+
+        Boolean hasNext = postIds.size() > PAGE_SIZE;
+        return FeedRes
+                .builder()
+                .feedPostList(feedPostList)
+                .hasNext(hasNext)
+                .build();
+
     }
 
 
