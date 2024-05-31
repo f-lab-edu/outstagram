@@ -21,6 +21,12 @@
       AND post_id = #{postId}
   </delete>
 
+  <delete id="deleteByPostId">
+    DELETE FROM `like`
+    WHERE post_id = #{postId}
+  </delete>
+
+
   <select id="findPostIdsByUserId" resultType="Long">
     SELECT post_id
     FROM `like`
