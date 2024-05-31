@@ -10,7 +10,6 @@ import com.outstagram.outstagram.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -25,8 +24,6 @@ import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
 public class UserService {
 
     private final UserMapper userMapper;
-
-//    private final RedisTemplate<String, Object> redisTemplate;
 
     /**
      * 유저 회원가입 메서드 비밀번호는 sha256으로 암호화해 저장
@@ -116,6 +113,5 @@ public class UserService {
                 .build())
             .collect(Collectors.toList());
     }
-
 
 }

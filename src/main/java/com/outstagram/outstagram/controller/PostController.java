@@ -6,6 +6,7 @@ import com.outstagram.outstagram.controller.request.CreateCommentReq;
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditCommentReq;
 import com.outstagram.outstagram.controller.request.EditPostReq;
+import com.outstagram.outstagram.controller.response.FeedRes;
 import com.outstagram.outstagram.controller.response.MyPostsRes;
 import com.outstagram.outstagram.controller.response.PostRes;
 import com.outstagram.outstagram.dto.UserDTO;
@@ -194,6 +195,16 @@ public class PostController {
                 .message("댓글 삭제에 성공했습니다.")
                 .build()
         );
+    }
+
+    /**
+     * 피드 불러오기
+     */
+    @GetMapping("/feed")
+    public ResponseEntity<List<FeedRes>> getFeed(@RequestParam(required = false) Long lastId, @Login UserDTO user) {
+        List<FeedRes> response = postService.getFeed(lastId, user.getId());
+
+        return ResponseEntity.ok(response);
     }
 
 

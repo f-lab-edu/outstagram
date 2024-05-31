@@ -9,6 +9,7 @@ import com.outstagram.outstagram.controller.request.CreateCommentReq;
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditCommentReq;
 import com.outstagram.outstagram.controller.request.EditPostReq;
+import com.outstagram.outstagram.controller.response.FeedRes;
 import com.outstagram.outstagram.controller.response.MyPostsRes;
 import com.outstagram.outstagram.controller.response.PostRes;
 import com.outstagram.outstagram.dto.CommentDTO;
@@ -22,19 +23,18 @@ import com.outstagram.outstagram.kafka.producer.FeedUpdateProducer;
 import com.outstagram.outstagram.kafka.producer.PostDeleteProducer;
 import com.outstagram.outstagram.mapper.PostMapper;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.aop.framework.AopContext;
 
 @Slf4j
 @Service
@@ -51,6 +51,8 @@ public class PostService {
 
     private final FeedUpdateProducer feedUpdateProducer;
     private final PostDeleteProducer postDeleteProducer;
+
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Transactional
     public void insertPost(CreatePostReq createPostReq, Long userId) {
@@ -116,17 +118,70 @@ public class PostService {
         }
 
         return PostRes.builder()
-            .authorName(author.getNickname())
-            .authorImgUrl(author.getImgUrl())
-            .contents(post.getContents())
-            .postImgUrls(imageUrlMap)
-            .likes(post.getLikes())
-            .isLiked(likeService.existsLike(userId, post.getId()))
-            .isBookmarked(bookmarkService.existsBookmark(userId, post.getId()))
-            .isAuthor(isAuthor)
-            .comments(commentService.getComments(post.getId()))
-            .build();
+                .postId(postId)
+                .userId(author.getId())
+                .nickname(author.getNickname())
+                .userImgUrl(author.getImgUrl())
+                .contents(post.getContents())
+                .postImgUrls(imageUrlMap)
+                .likes(post.getLikes())
+                .likedByCurrentUser(likeService.existsLike(userId, post.getId()))
+                .bookmarkedByCurrentUser(bookmarkService.existsBookmark(userId, post.getId()))
+                .isCreatedByCurrentUser(isAuthor)
+                .comments(commentService.getComments(post.getId()))
+                .build();
     }
+
+    // 피드 목록은 영구 저장해야 돼
+    /**
+     * 피드 가져오기
+     */
+//    @Cacheable(value = CacheNames.USER_FEED, key = "#userId")
+    public List<FeedRes> getFeed(Long lastId, Long userId) {
+        // redis에서 userId의 피드 목록 가져오기
+        if (lastId == null) lastId = Long.MAX_VALUE;
+        List<Object> feedList = redisTemplate.opsForList().range("feed:" + userId, 0, -1);
+
+        if (feedList == null) return Collections.emptyList();
+
+        // 피드 목록의 postId로 postService.getPost(postId)로 각 게시물 정보 가져오기
+        // 이렇게 가져오는 이유 : getPost가 캐싱되어 있으면 redis에서 없으면 mysql에서 가져옴
+        Long finalLastId = lastId;
+        List<Long> postIds = feedList.stream()
+                .map(postId -> {
+                    if (postId instanceof Integer) {
+                        return ((Integer) postId).longValue();
+                    } else {
+                        return (Long) postId;
+                    }
+                })
+                .filter(postId -> postId < finalLastId)
+                .limit(PAGE_SIZE)
+                .toList();
+
+        PostService proxy = (PostService) AopContext.currentProxy();
+
+        return postIds.stream()
+                .map(postId -> {
+                    PostRes post = proxy.getPost(postId, userId);
+                    return FeedRes.builder()
+                            .postId(post.getPostId())
+                            .postImgUrls(post.getPostImgUrls())
+                            .contents(post.getContents())
+                            .likeCount(post.getLikes())
+                            .commentCount(post.getComments().size())
+                            .likedByCurrentUser(post.getLikedByCurrentUser())
+                            .bookmarkedByCurrentUser(post.getBookmarkedByCurrentUser())
+                            .isCreatedByCurrentUser(post.getIsCreatedByCurrentUser())
+
+                            .userId(post.getUserId())
+                            .nickname(post.getNickname())
+                            .userImgUrl(post.getUserImgUrl())
+                            .build();
+                })
+                .toList();
+    }
+
 
     @Transactional
     @Caching(evict = @CacheEvict(value = CacheNames.POST, key = "#postId"))

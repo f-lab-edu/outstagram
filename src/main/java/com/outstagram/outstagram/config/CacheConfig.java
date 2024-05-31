@@ -48,7 +48,7 @@ public class CacheConfig {
 
         Map<String, RedisCacheConfiguration> redisCacheConfigMap = new HashMap<>();
         redisCacheConfigMap.put(CacheNames.POST, defaultConfig.entryTtl(Duration.ofHours(1)));
-        redisCacheConfigMap.put(CacheNames.USER, defaultConfig.entryTtl(Duration.ofHours(5L)));
+        redisCacheConfigMap.put(CacheNames.USER, defaultConfig.entryTtl(Duration.ofHours(5)));
 
         return RedisCacheManager.builder(connectionFactory)
                 .withInitialCacheConfigurations(redisCacheConfigMap)

@@ -32,14 +32,14 @@ public class FeedUpdateConsumer {
         log.info("=========== followerIds = {}", followerIds);
 
         // 내 피드 목록에도 내가 생성한 postId 넣기
-        redisTemplate.opsForList().leftPush("feed:"+userId, String.valueOf(postId));
+        redisTemplate.opsForList().leftPush("feed:" + userId, postId);
 
         // 각 팔로워의 피드목록에 postId 넣기
         followerIds.forEach(
-            id -> {
-                String feedKey = "feed:" + id;
-                redisTemplate.opsForList().leftPush(feedKey, postId);
-            });
+                id -> {
+                    String feedKey = "feed:" + id;
+                    redisTemplate.opsForList().leftPush(feedKey, postId);
+                });
         log.info("=========== feed push success!");
 
     }

@@ -96,7 +96,7 @@ class PostServiceTest {
         PostRes foundPost = postService.getPost(postId, userId);
 
         assertNotNull(foundPost);
-        assertTrue(foundPost.getIsAuthor());
+        assertTrue(foundPost.getIsCreatedByCurrentUser());
         assertEquals("test post contents", foundPost.getContents());
         assertEquals(imageList.size(), foundPost.getPostImgUrls().size());
     }
