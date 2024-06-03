@@ -1,5 +1,6 @@
 package com.outstagram.outstagram.service;
 
+import com.outstagram.outstagram.dto.ImageDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.ImageMapper;
@@ -9,6 +10,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -54,5 +56,23 @@ public class LocalImageService extends AbstractImageService {
         return uploadPath + savedName;
     }
 
+    @Override
+    public void deleteRealImages(List<ImageDTO> deletedImages) {
+        if (deletedImages.isEmpty()) return;
+        for (ImageDTO image : deletedImages) {
+            String filePath = image.getImgPath();
+            String fileName = image.getSavedImgName();
+            File file = new File(filePath, fileName);
 
+            if (file.exists()) {
+                if (file.delete()) {
+                    log.info("============Deleted file : " + file.getAbsolutePath());
+                } else {
+                    log.error("============Failed to delete file : " + file.getAbsolutePath());
+                }
+            } else {
+                log.error("============File not found : " + file.getAbsolutePath());
+            }
+        }
+    }
 }

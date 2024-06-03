@@ -5,6 +5,7 @@ import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.util.IOUtils;
+import com.outstagram.outstagram.dto.ImageDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.ImageMapper;
@@ -43,6 +44,14 @@ public class S3ImageService extends AbstractImageService{
     @Override
     public String uploadImage(MultipartFile image) {
         return upload(image);
+    }
+
+    @Override
+    public void deleteRealImages(List<ImageDTO> deletedImages) {
+        for (ImageDTO image : deletedImages) {
+            deleteImageFromS3(image.getSavedImgName());
+        }
+
     }
 
 

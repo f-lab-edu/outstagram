@@ -18,6 +18,7 @@ import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.kafka.producer.FeedUpdateProducer;
+import com.outstagram.outstagram.kafka.producer.PostDeleteProducer;
 import com.outstagram.outstagram.mapper.PostMapper;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -45,6 +46,7 @@ public class PostService {
     private final CommentService commentService;
 
     private final FeedUpdateProducer feedUpdateProducer;
+    private final PostDeleteProducer postDeleteProducer;
 
     @Transactional
     public void insertPost(CreatePostReq createPostReq, Long userId) {
@@ -153,21 +155,16 @@ public class PostService {
     }
 
     /**
-     * 게시물 삭제 메서드 실제 레코드를 삭제하지 않고 is_deleted = 1 방식으로 soft_delete
+     * 게시물 삭제 비동기 처리
      */
     @Transactional
     public void deletePost(Long postId, Long userId) {
-        // 삭제할 게시물 가져오기
-        PostDTO post = postMapper.findById(postId);
 
-        // 게시물 작성자인지 검증
-        validatePostOwner(post, userId);
+        // 게시물이 존재하는지 & 삭제 권한 있는지 검증
+        validatePostOwner(postId, userId);
 
-        // 게시물 삭제
-        int result = postMapper.deleteById(postId);
-        if (result == 0) {
-            throw new ApiException(ErrorCode.DELETE_ERROR, "게시물 삭제 오류 발생!!");
-        }
+        // 게시물 삭제 비동기 처리
+        postDeleteProducer.send("post-delete", postId);
     }
 
     /* ========================================================================================== */
@@ -389,6 +386,18 @@ public class PostService {
     /**
      * 게시물 작성자인지 검증 -> 수정, 삭제 시 확인 필요
      */
+    private void validatePostOwner(Long postId, Long userId) {
+        PostDTO post = postMapper.findById(postId);
+        if (post == null) {
+            throw new ApiException(ErrorCode.POST_NOT_FOUND);
+        }
+
+        // 게시물 작성자인지 확인
+        if (!Objects.equals(post.getUserId(), userId)) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED_ACCESS, "게시물에 대한 권한이 없습니다.");
+        }
+    }
+
     private void validatePostOwner(PostDTO post, Long userId) {
         if (post == null) {
             throw new ApiException(ErrorCode.POST_NOT_FOUND);

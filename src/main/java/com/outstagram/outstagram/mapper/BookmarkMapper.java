@@ -14,5 +14,8 @@ public interface BookmarkMapper {
 
     int deleteBookmark(Long userId, Long postId);
 
+    int deleteByPostId(Long postId);
+
+
     List<PostImageDTO> findWithPostsAndImageByUserId(Long userId, Long lastId, int size);
 }
