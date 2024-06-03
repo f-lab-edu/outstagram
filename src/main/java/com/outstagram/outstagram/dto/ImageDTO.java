@@ -20,9 +20,7 @@ public class ImageDTO {
 
     private String originalImgName;
 
-    private String savedImgName;
-
-    private String imgPath;
+    private String imgUrl;
 
     private Boolean isDeleted;
 

@@ -60,9 +60,8 @@ public class LocalImageService extends AbstractImageService {
     public void deleteRealImages(List<ImageDTO> deletedImages) {
         if (deletedImages.isEmpty()) return;
         for (ImageDTO image : deletedImages) {
-            String filePath = image.getImgPath();
-            String fileName = image.getSavedImgName();
-            File file = new File(filePath, fileName);
+            String imageUrl = image.getImgUrl();
+            File file = new File(imageUrl);
 
             if (file.exists()) {
                 if (file.delete()) {

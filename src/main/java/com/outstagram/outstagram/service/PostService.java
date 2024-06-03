@@ -109,7 +109,7 @@ public class PostService {
         // 5. 이미지 url 조합하기
         Map<Long, String> imageUrlMap = new HashMap<>();
         for (ImageDTO img : imageList) {
-            imageUrlMap.put(img.getId(), img.getImgPath() + "\\" + img.getSavedImgName());
+            imageUrlMap.put(img.getId(), img.getImgUrl());
         }
 
         return PostRes.builder()

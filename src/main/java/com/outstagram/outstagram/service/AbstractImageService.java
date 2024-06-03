@@ -33,7 +33,7 @@ public abstract class AbstractImageService implements ImageService{
                     ImageDTO.builder()
                         .postId(postId)
                         .originalImgName(originName)
-                        .savedImgName(savedName)
+                        .imgUrl(savedName)
                         .createDate(LocalDateTime.now())
                         .updateDate(LocalDateTime.now())
                         .build()

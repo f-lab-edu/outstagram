@@ -49,7 +49,7 @@ public class S3ImageService extends AbstractImageService{
     @Override
     public void deleteRealImages(List<ImageDTO> deletedImages) {
         for (ImageDTO image : deletedImages) {
-            deleteImageFromS3(image.getSavedImgName());
+            deleteImageFromS3(image.getImgUrl());
         }
 
     }
