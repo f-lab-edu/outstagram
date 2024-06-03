@@ -26,17 +26,24 @@ import java.util.Map;
 @EnableCaching
 public class CacheConfig {
 
-    @Value("${spring.data.redis.host}")
+    @Value("${spring.redis.host}")
     private String host;
 
-    @Value("${spring.data.redis.port}")
+    @Value("${spring.redis.port}")
     private int port;
 
+    @Value("${spring.redis.username}")
+    private String username;
+
+    @Value("${spring.redis.password}")
+    private String password;
     @Bean(name = "redisCacheConnectionFactory")
     RedisConnectionFactory redisCacheConnectionFactory() {
         RedisStandaloneConfiguration redisStandaloneConfiguration = new RedisStandaloneConfiguration();
         redisStandaloneConfiguration.setHostName(host);
         redisStandaloneConfiguration.setPort(port);
+        redisStandaloneConfiguration.setUsername(username);
+        redisStandaloneConfiguration.setPassword(password);
         return new LettuceConnectionFactory(redisStandaloneConfiguration);
     }
 
