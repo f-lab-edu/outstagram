@@ -5,7 +5,6 @@ import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.util.IOUtils;
-import com.outstagram.outstagram.dto.ImageDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.ImageMapper;
@@ -16,13 +15,10 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -30,47 +26,23 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
-public class S3ImageService implements ImageService{
+public class S3ImageService extends AbstractImageService{
 
     private final AmazonS3 amazonS3;
-    private final ImageMapper imageMapper;
 
     @Value("${cloud.aws.s3.bucketName}")
     private String bucketName;
 
-    private final static String UPLOAD_PATH = "https://outstagram-s3.s3.ap-northeast-2.amazonaws.com/";
-    @Override
-    public void saveImages(List<MultipartFile> imgFiles, Long postId) {
-        List<ImageDTO> imageDTOList = new ArrayList<>();
-        for (MultipartFile img : imgFiles) {
-            String originName = img.getOriginalFilename();
-            String savedName = upload(img);
+    //private final static String UPLOAD_PATH = "https://outstagram-s3.s3.ap-northeast-2.amazonaws.com/";
 
-            imageDTOList.add(
-                ImageDTO.builder()
-                    .postId(postId)
-                    .originalImgName(originName)
-                    .savedImgName(savedName)
-                    .imgPath(UPLOAD_PATH)
-                    .createDate(LocalDateTime.now())
-                    .updateDate(LocalDateTime.now())
-                    .build()
-            );
-        }
-
-        // 이미지 정보들 한꺼번에 DB에 저장
-        imageMapper.insertImages(imageDTOList);
+    public S3ImageService(ImageMapper imageMapper, AmazonS3 amazonS3) {
+        super(imageMapper);
+        this.amazonS3 = amazonS3;
     }
 
     @Override
-    public List<ImageDTO> getImages(Long postId) {
-        return null;
-    }
-
-    @Override
-    public void deleteByIds(List<Long> deleteImgIds) {
-
+    public String uploadImage(MultipartFile image) {
+        return upload(image);
     }
 
 
@@ -78,10 +50,10 @@ public class S3ImageService implements ImageService{
         if (image.isEmpty() || Objects.isNull(image.getOriginalFilename())) {
             throw new ApiException(ErrorCode.EMPTY_FILE_EXCEPTION);
         }
-        return this.uploadImage(image);
+        return this.uploadS3Image(image);
     }
 
-    private String uploadImage(MultipartFile image) {
+    private String uploadS3Image(MultipartFile image) {
         this.validateImageFileExtention(image.getOriginalFilename());
         try {
             return this.uploadImageToS3(image);

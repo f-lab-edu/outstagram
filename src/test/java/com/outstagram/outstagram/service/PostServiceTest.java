@@ -90,7 +90,7 @@ class PostServiceTest {
         List<ImageDTO> imageList = Arrays.asList(ImageDTO.builder().postId(postId).build());
 
         when(postMapper.findById(postId)).thenReturn(post);
-        when(imageService.getImages(postId)).thenReturn(imageList);
+        when(imageService.getImageInfos(postId)).thenReturn(imageList);
         when(userService.findByUserId(userId)).thenReturn(user);
 
         PostRes foundPost = postService.getPost(postId, userId);

@@ -96,7 +96,7 @@ public class PostService {
         }
 
         // 2. Post의 이미지 정보 가져오기
-        List<ImageDTO> imageList = imageService.getImages(post.getId());
+        List<ImageDTO> imageList = imageService.getImageInfos(post.getId());
 
         // 3. 로그인한 유저가 게시물 작성자인지 판단
         boolean isAuthor = post.getUserId().equals(userId);
@@ -133,7 +133,7 @@ public class PostService {
 
         // 삭제할 이미지가 있다면 삭제하기(soft delete)
         if (editPostReq.getDeleteImgIds() != null && !editPostReq.getDeleteImgIds().isEmpty()) {
-            imageService.deleteByIds(editPostReq.getDeleteImgIds());
+            imageService.softDeleteByIds(editPostReq.getDeleteImgIds());
         }
 
         // 추가할 이미지가 있다면 추가하기
