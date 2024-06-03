@@ -2,6 +2,7 @@ package com.outstagram.outstagram.mapper;
 
 
 import com.outstagram.outstagram.dto.UserDTO;
+import java.util.List;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Repository;
 
@@ -19,4 +20,5 @@ public interface UserMapper {
 
     UserDTO findById(Long userId);
 
+    List<UserDTO> findByNicknameContaining(String search);
 }

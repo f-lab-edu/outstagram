@@ -1,15 +1,22 @@
 package com.outstagram.outstagram.service;
 
-import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
-
+import com.outstagram.outstagram.common.constant.CacheNames;
+import com.outstagram.outstagram.controller.response.SearchUserInfoRes;
+import com.outstagram.outstagram.controller.response.UserInfoRes;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.UserMapper;
-import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
 
 @Slf4j
 @Service
@@ -21,7 +28,6 @@ public class UserService {
     /**
      * 유저 회원가입 메서드 비밀번호는 sha256으로 암호화해 저장
      */
-
     public void insertUser(UserDTO userInfo) {
         
         // 이메일, 닉네임 중 중복 체크
@@ -36,6 +42,19 @@ public class UserService {
     }
 
 
+    @Cacheable(value = CacheNames.USER, key = "#userId")
+    public UserInfoRes getUser(Long userId) {
+        UserDTO user = userMapper.findById(userId);
+
+        return UserInfoRes.builder()
+                .userId(user.getId())
+                .nickname(user.getNickname())
+                .email(user.getEmail())
+                .imgUrl(user.getImgUrl())
+                .build();
+    }
+
+
     /**
      * 로그인 메서드
      */
@@ -44,16 +63,10 @@ public class UserService {
         return userMapper.findByEmailAndPassword(email, cryptoPassword);
     }
 
+
+
+
     //==validator method==//
-
-    /**
-     * email, nickname 둘 다 중복되지 않을 경우 -> true
-     */
-    private void validateUserInfo(UserDTO userInfo) {
-        validateDuplicatedEmail(userInfo.getEmail());
-        validateDuplicatedNickname(userInfo.getNickname());
-    }
-
     /**
      * 중복 -> true
      */
@@ -76,6 +89,29 @@ public class UserService {
      */
     public UserDTO findByUserId(Long userId) {
         return userMapper.findById(userId);
+    }
+
+
+
+    /* ========================================================================================== */
+
+    /**
+     * email, nickname 둘 다 중복되지 않을 경우 -> true
+     */
+    private void validateUserInfo(UserDTO userInfo) {
+        validateDuplicatedEmail(userInfo.getEmail());
+        validateDuplicatedNickname(userInfo.getNickname());
+    }
+
+    public List<SearchUserInfoRes> searchByNickname(String search) {
+        List<UserDTO> resultList = userMapper.findByNicknameContaining(search);
+
+        return resultList.stream()
+            .map(userDTO -> SearchUserInfoRes.builder()
+                .userId(userDTO.getId())
+                .nickname(userDTO.getNickname())
+                .build())
+            .collect(Collectors.toList());
     }
 
 }

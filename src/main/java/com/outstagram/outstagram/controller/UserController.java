@@ -1,9 +1,9 @@
 package com.outstagram.outstagram.controller;
 
-import static com.outstagram.outstagram.common.constant.SessionConst.LOGIN_USER;
-
 import com.outstagram.outstagram.common.api.ApiResponse;
 import com.outstagram.outstagram.controller.request.UserLoginReq;
+import com.outstagram.outstagram.controller.response.SearchUserInfoRes;
+import com.outstagram.outstagram.controller.response.UserInfoRes;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
@@ -15,12 +15,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+import static com.outstagram.outstagram.common.constant.SessionConst.LOGIN_USER;
 
 @Slf4j
 @RestController
@@ -36,7 +35,7 @@ public class UserController {
 
         ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
             .message("해당 이메일 사용 가능합니다.").build();
-        return ResponseEntity.ok().body(response);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("check-duplicated-nickname")
@@ -45,7 +44,7 @@ public class UserController {
 
         ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
             .message("해당 닉네임이 사용 가능합니다.").build();
-        return ResponseEntity.ok().body(response);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/signup")
@@ -54,7 +53,7 @@ public class UserController {
 
         ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
             .message("회원가입 성공").build();
-        return ResponseEntity.ok().body(response);
+        return ResponseEntity.ok(response);
     }
 
 
@@ -82,8 +81,26 @@ public class UserController {
         ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
             .message("로그인 성공").build();
 
-        return ResponseEntity.ok().body(response);
+        return ResponseEntity.ok(response);
+
     }
 
+    /**
+     * 닉네임으로 유저 검색
+     */
+    @GetMapping("/nicknames")
+    public ResponseEntity<List<SearchUserInfoRes>> searchNickname(@RequestParam String search) {
+        List<SearchUserInfoRes> response = userService.searchByNickname(search);
+
+        return ResponseEntity.ok(response);
+
+    }
+
+    @GetMapping("{userId}")
+    public ResponseEntity<UserInfoRes> getUser(@PathVariable Long userId) {
+        UserInfoRes response = userService.getUser(userId);
+
+        return ResponseEntity.ok(response);
+    }
 
 }
