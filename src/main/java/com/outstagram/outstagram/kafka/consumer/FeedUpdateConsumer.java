@@ -16,7 +16,7 @@ public class FeedUpdateConsumer {
     private final RedisTemplate<String, String> redisTemplate;
 
     // consumer 설정
-    @KafkaListener(topics = "feed", groupId = "sns-feed")
+    @KafkaListener(topics = "feed", groupId = "sns-feed", containerFactory = "feedKafkaListenerContainerFactory")
     public void receive(ConsumerRecord<String, Long> consumerRecord) {
         Long userId = Long.parseLong(consumerRecord.key());
         Long postId = consumerRecord.value();

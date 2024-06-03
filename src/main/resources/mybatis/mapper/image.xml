@@ -7,7 +7,7 @@
     INSERT INTO image (post_id, original_img_name, img_url, create_date, update_date)
     VALUES
     <foreach collection="list" item="image" separator=",">
-      (#{image.postId}, #{image.originalImgName}, #{imgUrl},
+      (#{image.postId}, #{image.originalImgName}, #{image.imgUrl},
       #{image.createDate}, #{image.updateDate})
     </foreach>
   </insert>
