@@ -19,8 +19,8 @@ public class DeleteImageScheduler {
     private final ImageService imageService;
 
 //    @Scheduled(fixedRate = 10000)
-//    @Scheduled(cron = "0 35 19 * * *")
-    @Scheduled(cron = "0 0 2 * * *")    // 매일 오전 2시 정각에 실행
+    @Scheduled(cron = "0 58 20 * * *")
+//    @Scheduled(cron = "0 0 2 * * *")    // 매일 오전 2시 정각에 실행
     public void deleteImageScheduler() {
         log.info("================== 이미지 삭제 스케쥴링 시작!!");
         // image table에서 is_deleted = 1인 데이터 찾기
@@ -35,7 +35,7 @@ public class DeleteImageScheduler {
         }
         // 해당 데이터의 이미지 경로를 통해서 이미지 삭제하기
         imageService.deleteRealImages(deletedImages);
-        log.info("============================ 로컬 이미지 삭제 완료!");
+        log.info("============================ 실제 이미지 삭제 완료!");
         imageService.hardDeleteByIds(deletedImages);
         log.info("============================ image 테이블에서 해당 레코드들 삭제 완료!");
 
