@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @RequiredArgsConstructor
-public abstract class AbstractImageService implements ImageService{
+public abstract class AbstractBaseImageService implements ImageService{
 
     private final ImageMapper imageMapper;
 

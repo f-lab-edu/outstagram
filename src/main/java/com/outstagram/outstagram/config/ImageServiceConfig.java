@@ -18,11 +18,11 @@ public class ImageServiceConfig {
     private String imageServiceType;
 
     @Autowired
-    @Qualifier("localImageService")
+    @Qualifier("localBaseImageService")
     private ImageService localImageService;
 
     @Autowired
-    @Qualifier("s3ImageService")
+    @Qualifier("s3BaseImageService")
     private ImageService s3ImageService;
 
     @Bean

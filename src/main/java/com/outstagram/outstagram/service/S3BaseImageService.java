@@ -27,7 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Service
-public class S3ImageService extends AbstractImageService{
+public class S3BaseImageService extends AbstractBaseImageService {
 
     private final AmazonS3 amazonS3;
 
@@ -36,7 +36,7 @@ public class S3ImageService extends AbstractImageService{
 
     //private final static String UPLOAD_PATH = "https://outstagram-s3.s3.ap-northeast-2.amazonaws.com/";
 
-    public S3ImageService(ImageMapper imageMapper, AmazonS3 amazonS3) {
+    public S3BaseImageService(ImageMapper imageMapper, AmazonS3 amazonS3) {
         super(imageMapper);
         this.amazonS3 = amazonS3;
     }
