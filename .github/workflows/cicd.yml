@@ -58,7 +58,7 @@ jobs:
           EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USER: ${{ secrets.EC2_USER }}
-
+      
         run: |
           # SSH Key 파일 생성
           echo "$EC2_SSH_PRIVATE_KEY" > ec2_ssh_key
@@ -67,8 +67,9 @@ jobs:
           # 패키지 파일을 EC2 인스턴스로 복사
           scp -i ec2_ssh_key -o StrictHostKeyChecking=no build/libs/outstagram-0.0.1-SNAPSHOT.jar ${EC2_USER}@${EC2_HOST}:/home/${EC2_USER}/outstagram
           
+          # 기존 Java 프로세스 종료
+          ssh -i ec2_ssh_key -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "pgrep -f 'java -jar' | xargs -r kill -9"
+          
           # 인스턴스에서 JAR 파일 실행
-          ssh -i ec2_ssh_key -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "pgrep java | xargs kill -9; nohup java -jar /home/${EC2_USER}/outstagram/outstagram-0.0.1-SNAPSHOT.jar > /home/${EC2_USER}/outstagram/log/app.log 2>&1 &"
-#          java -jar /home/${EC2_USER}/outstagram/outstagram-0.0.1-SNAPSHOT.jar
-#          # EC2 인스턴스에서 배포 스크립트 실행
-#          ssh -i ec2_ssh_key -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "cd /home/${EC2_USER}/outstagram && ./deploy_script.sh"
+          ssh -i ec2_ssh_key -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "nohup java -jar /home/${EC2_USER}/outstagram/outstagram-0.0.1-SNAPSHOT.jar > /home/${EC2_USER}/outstagram/log/app.log 2>&1 &"
+
