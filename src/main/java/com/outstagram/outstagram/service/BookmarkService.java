@@ -10,6 +10,7 @@ import com.outstagram.outstagram.mapper.BookmarkMapper;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -25,7 +26,11 @@ public class BookmarkService {
             .createDate(LocalDateTime.now())
             .build();
 
-        bookmarkMapper.insertBookmark(newBookmark);
+        try {
+            bookmarkMapper.insertBookmark(newBookmark);
+        } catch (DuplicateKeyException e) {
+            throw new ApiException(ErrorCode.DUPLICATED_BOOKMARK);
+        }
     }
 
     public Boolean existsBookmark(Long userId, Long postId) {

@@ -44,10 +44,18 @@ public enum ErrorCode {
     IO_EXCEPTION_ON_IMAGE_UPLOAD(HttpStatus.INTERNAL_SERVER_ERROR, "이미지 업로드 중 에러가 발생했습니다."),
     PUT_OBJECT_EXCEPTION(HttpStatus.INTERNAL_SERVER_ERROR, "S3에 이미지 업로드 중 에러가 발생했습니다."),
     IO_EXCEPTION_ON_IMAGE_DELETE(HttpStatus.INTERNAL_SERVER_ERROR, "이미지 삭제 중 에러가 발생했습니다."),
+    SAVE_IMAGE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "DB에 이미지 정보 저장에 실패했습니다."),
 
+    // follow 관련 에러 코드
+    DUPLICATED_FOLLOW(HttpStatus.CONFLICT, "이미 팔로우한 사용자 입니다."),
 
-    NULL_POINT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "null point error 입니다."),
-    SAVE_IMAGE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "DB에 이미지 정보 저장에 실패했습니다.");
+    // like 관련 에러 코드
+    DUPLICATED_LIKE(HttpStatus.CONFLICT, "이미 좋아요한 게시물입니다."),
+
+    // bookmark 관련 에러 코드
+    DUPLICATED_BOOKMARK(HttpStatus.CONFLICT, "이미 북마크한 게시물입니다."),
+
+    NULL_POINT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "null point error 입니다.");
 
 
 
