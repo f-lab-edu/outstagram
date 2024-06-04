@@ -107,7 +107,7 @@ public class LocalImageService implements ImageService {
     }
 
     @Override
-    public void deleteLocalImages(List<ImageDTO> deletedImages) {
+    public void deleteImageObjects(List<ImageDTO> deletedImages) {
         if (deletedImages.isEmpty()) return;
         for (ImageDTO image : deletedImages) {
             String filePath = image.getImgPath();
@@ -127,7 +127,7 @@ public class LocalImageService implements ImageService {
     }
 
     @Override
-    public void hardDeleteByIds(List<ImageDTO> deletedImages) {
+    public void deleteImageRowsByIds(List<ImageDTO> deletedImages) {
         List<Long> deletedImageIds = deletedImages.stream()
             .map(ImageDTO::getId)
             .collect(Collectors.toList());

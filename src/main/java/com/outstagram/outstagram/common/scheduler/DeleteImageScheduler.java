@@ -34,9 +34,9 @@ public class DeleteImageScheduler {
             return;
         }
         // 해당 데이터의 이미지 경로를 통해서 이미지 삭제하기
-        imageService.deleteLocalImages(deletedImages);
+        imageService.deleteImageObjects(deletedImages);
         log.info("============================ 로컬 이미지 삭제 완료!");
-        imageService.hardDeleteByIds(deletedImages);
+        imageService.deleteImageRowsByIds(deletedImages);
         log.info("============================ image 테이블에서 해당 레코드들 삭제 완료!");
 
         log.info("================== 이미지 삭제 스케쥴링 종료!!");

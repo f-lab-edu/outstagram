@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @RequiredArgsConstructor
@@ -24,6 +25,7 @@ public class PostDeleteConsumer {
     private final CommentMapper commentMapper;
     private final ImageMapper imageMapper;
 
+    @Transactional
     @KafkaListener(topics = "post-delete", groupId = "post", containerFactory = "postDeleteKafkaListenerContainerFactory")
     public void receive(@Payload Long postId) {
         log.info("=========== 게시물 관련 레코드 삭제 시작, postId = {}", postId);
