@@ -451,7 +451,7 @@ public class PostService {
     public void deleteComment(Long postId, Long commentId, Long userId) {
         validatePostCommentAndOwnership(postId, commentId, userId);
 
-        commentService.deleteComment(commentId);
+        commentService.deleteComment(postId, commentId);
 
     }
 
@@ -496,7 +496,7 @@ public class PostService {
         }
 
         // 댓글 존재 여부 검증
-        CommentDTO comment = commentService.findById(commentId);
+        CommentDTO comment = commentService.findById(postId, commentId);
         if (comment == null) {
             throw new ApiException(ErrorCode.COMMENT_NOT_FOUND);
         }

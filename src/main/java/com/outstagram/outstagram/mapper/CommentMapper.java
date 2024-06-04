@@ -12,11 +12,11 @@ public interface CommentMapper {
 
     List<CommentRes> findByPostId(Long postId);
 
-    CommentDTO findById(Long commentId);
+    CommentDTO findById(Long postId, Long commentId);
 
     int updateContentsById(Long commentId, String contents);
 
-    int deleteComment(Long commentId);
+    int deleteComment(Long postId, Long commentId);
 
     int deleteByPostId(Long postId);
 }
