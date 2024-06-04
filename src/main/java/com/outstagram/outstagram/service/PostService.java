@@ -22,6 +22,7 @@ import org.springframework.aop.framework.AopContext;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -273,6 +274,8 @@ public class PostService {
 
                 // 재시도 횟수 증가
                 attempt++;
+            } catch (ApiException e) {
+                throw new ApiException(ErrorCode.DUPLICATED_LIKE);
             } catch (Exception e) {
                 try {
                     Thread.sleep(50);
