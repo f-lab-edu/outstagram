@@ -43,3 +43,19 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+tasks.named('bootBuildImage') {
+	builder = 'paketobuildpacks/builder-jammy-base:latest'
+}
+
+tasks.register('buildZip', Zip) {
+	from compileJava
+	from processResources
+	into('lib') {
+		from configurations.runtimeClasspath
+	}
+}
+
+bootJar {
+	archiveBaseName.set('outstagram')
+}
