@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.outstagram.outstagram.mapper.FollowMapper">
+
+  <insert id="insertFollow" parameterType="com.outstagram.outstagram.dto.FollowDTO">
+    INSERT INTO follow (from_id, to_id, create_date)
+    VALUES (#{fromId}, #{toId}, NOW())
+  </insert>
+
+  <delete id="deleteFollow">
+    DELETE FROM follow
+    WHERE from_id = #{fromId}
+      AND to_id = #{toId}
+  </delete>
+
+
+</mapper>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.outstagram.outstagram.mapper.LikeMapper">
+
+  <insert id="insertLike" parameterType="com.outstagram.outstagram.dto.LikeDTO">
+    INSERT INTO `like`(user_id, post_id, create_date)
+    VALUES (#{userId}, #{postId}, #{createDate})
+  </insert>
+
+  <select id="existsUserLike" resultType="boolean">
+    SELECT CASE WHEN COUNT(*) > 0 THEN true ELSE false END
+    FROM `like`
+    WHERE user_id = #{userId}
+      AND post_id = #{postId}
+  </select>
+
+  <delete id="deleteLike">
+    DELETE FROM `like`
+    WHERE user_id = #{userId}
+      AND post_id = #{postId}
+  </delete>
+
+  <select id="findPostIdsByUserId" resultType="Long">
+    SELECT post_id
+    FROM `like`
+    WHERE user_id = #{userId}
+  </select>
+
+
+  <resultMap id="postImageDTOMap" type="com.outstagram.outstagram.dto.PostImageDTO">
+    <!-- PostDTO의 필드 매핑 -->
+    <id property="id" column="post_id"/>
+    <result property="contents" column="contents"/>
+    <result property="likes" column="likes"/>
+
+    <!-- PostImageDTO의 확장된 필드 매핑 -->
+    <result property="imgPath" column="img_path"/>
+    <result property="savedImgName" column="saved_img_name"/>
+  </resultMap>
+
+
+  <select id="findWithPostsAndImageByUserId" resultMap="postImageDTOMap">
+    SELECT
+        l.post_id AS post_id,
+        p.contents,
+        p.likes,
+        i.img_path,
+        i.saved_img_name
+    FROM
+        `like` AS l
+
+    JOIN (
+        SELECT post_id, MIN(id) AS min_image_id
+        FROM image
+        WHERE is_deleted = 0
+        GROUP BY post_id
+    ) AS min_img ON l.post_id = min_img.post_id
+    JOIN image AS i ON min_img.post_id = i.post_id AND min_img.min_image_id = i.id
+    JOIN post AS p ON l.post_id = p.id
+
+    WHERE
+        l.user_id = #{userId}
+        AND p.is_deleted = 0
+        <if test="lastId != null">
+            AND l.create_date &lt; (
+            SELECT create_date
+            FROM `like`
+            WHERE post_id = #{lastId}
+            LIMIT 1
+          )
+        </if>
+
+    ORDER BY l.create_date DESC
+    LIMIT #{size}
+  </select>
+
+
+
+</mapper>

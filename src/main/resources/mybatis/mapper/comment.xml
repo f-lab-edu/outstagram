@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.outstagram.outstagram.mapper.CommentMapper">
+
+  <insert id="insertComment" parameterType="com.outstagram.outstagram.dto.CommentDTO">
+    INSERT INTO comment (user_id, post_id, parent_comment_id, contents, level, is_deleted, create_date, update_date)
+    VALUES (#{userId}, #{postId}, #{parentCommentId}, #{contents}, #{level}, #{isDeleted}, #{createDate}, #{updateDate})
+  </insert>
+
+  <resultMap id="CommentsResultMap" type="com.outstagram.outstagram.controller.response.CommentRes">
+    <id column="commentId" property="commentId"/>
+    <result column="userId" property="userId"/>
+    <result column="userImgUrl" property="userImgUrl"/>
+    <result column="nickname" property="nickname"/>
+    <result column="contents" property="contents"/>
+    <result column="updateDate" property="updateDate"/>
+
+    <!-- Association for nested replies -->
+    <collection property="replyList" ofType="com.outstagram.outstagram.controller.response.ReplyRes">
+      <id column="replyId" property="replyId"/>
+      <result column="replyUserId" property="userId"/>
+      <result column="replyUserImgUrl" property="userImgUrl"/>
+      <result column="replyNickname" property="nickname"/>
+      <result column="replyContents" property="contents"/>
+      <result column="replyUpdateDate" property="updateDate"/>
+    </collection>
+  </resultMap>
+
+  <select id="findByPostId" resultMap="CommentsResultMap">
+    SELECT c1.id                                            AS commentId,
+           u1.id                                            AS userId,
+           u1.img_url                                       AS userImgUrl,
+           u1.nickname                                      AS nickname,
+           IF(c1.is_deleted = 1, '삭제된 댓글입니다.', c1.contents) AS contents,
+           c1.update_date                                   AS updateDate,
+           c2.id                                            AS replyId,
+           u2.id                                            AS replyUserId,
+           u2.img_url                                       AS replyUserImgUrl,
+           u2.nickname                                      AS replyNickname,
+           IF(c2.is_deleted = 1, '삭제된 대댓글입니다.', c2.contents) AS replyContents,
+           c2.update_date                                   AS replyUpdateDate
+    FROM comment AS c1
+           JOIN
+         user AS u1 ON c1.user_id = u1.id
+           LEFT JOIN
+         comment AS c2 ON c1.id = c2.parent_comment_id
+           LEFT JOIN
+         user AS u2 ON c2.user_id = u2.id
+    WHERE c1.post_id = #{postId}
+      AND c1.parent_comment_id IS NULL
+    ORDER BY c1.id, c2.id
+  </select>
+
+  <select id="findById" resultType="com.outstagram.outstagram.dto.CommentDTO">
+    SELECT id, user_id
+    FROM comment
+    where id = #{commentId}
+      AND is_deleted = 0
+
+  </select>
+
+  <update id="updateContentsById">
+    UPDATE comment
+    SET contents = #{contents},
+        update_date = NOW()
+    WHERE id = #{commentId} AND is_deleted = 0
+  </update>
+
+  <delete id="deleteComment">
+    UPDATE comment
+    SET is_deleted = 1,
+        update_date = NOW()
+    WHERE id = #{commentId} AND is_deleted = 0
+  </delete>
+
+<!--  <select id="existsUserBookmark" resultType="boolean">-->
+<!--    SELECT CASE WHEN COUNT(*) > 0 THEN true ELSE false END-->
+<!--    FROM bookmark-->
+<!--    WHERE user_id = #{userId}-->
+<!--      AND post_id = #{postId}-->
+<!--  </select>-->
+
+<!--  <delete id="deleteBookmark">-->
+<!--    DELETE FROM bookmark-->
+<!--    WHERE user_id = #{userId}-->
+<!--      AND post_id = #{postId}-->
+<!--  </delete>-->
+
+<!--  <select id="findPostIdsByUserId" resultType="Long">-->
+<!--    SELECT post_id-->
+<!--    FROM bookmark-->
+<!--    WHERE user_id = #{userId}-->
+<!--  </select>-->
+
+<!--  <resultMap id="postImageDTOMap" type="com.outstagram.outstagram.dto.PostImageDTO">-->
+<!--    &lt;!&ndash; PostDTO의 필드 매핑 &ndash;&gt;-->
+<!--    <id property="id" column="post_id"/>-->
+<!--    <result property="contents" column="contents"/>-->
+<!--    <result property="likes" column="likes"/>-->
+
+<!--    &lt;!&ndash; PostImageDTO의 확장된 필드 매핑 &ndash;&gt;-->
+<!--    <result property="imgPath" column="img_path"/>-->
+<!--    <result property="savedImgName" column="saved_img_name"/>-->
+<!--  </resultMap>-->
+
+
+<!--  <select id="findWithPostsAndImageByUserId" resultMap="postImageDTOMap">-->
+<!--    SELECT-->
+<!--    b.post_id AS post_id,-->
+<!--    p.contents,-->
+<!--    p.likes,-->
+<!--    i.img_path,-->
+<!--    i.saved_img_name-->
+<!--    FROM-->
+<!--    bookmark AS b-->
+
+<!--    JOIN (-->
+<!--    SELECT post_id, MIN(id) AS min_image_id-->
+<!--    FROM image-->
+<!--    WHERE is_deleted = 0-->
+<!--    GROUP BY post_id-->
+<!--    ) AS min_img ON b.post_id = min_img.post_id-->
+<!--    JOIN image AS i ON min_img.post_id = i.post_id AND min_img.min_image_id = i.id-->
+<!--    JOIN post AS p ON b.post_id = p.id-->
+
+<!--    WHERE-->
+<!--    b.user_id = #{userId}-->
+<!--    AND p.is_deleted = 0-->
+<!--    <if test="lastId != null">-->
+<!--      AND b.create_date &lt; (-->
+<!--      SELECT create_date-->
+<!--      FROM bookmark-->
+<!--      WHERE post_id = #{lastId}-->
+<!--      LIMIT 1-->
+<!--      )-->
+<!--    </if>-->
+
+<!--    ORDER BY b.create_date DESC-->
+<!--    LIMIT #{size}-->
+<!--  </select>-->
+</mapper>
