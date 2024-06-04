@@ -84,9 +84,9 @@ public class FollowService {
         }
 
         // fromId(나)의 팔로잉 목록에서 toId 삭제
-        redisTemplate.opsForSet().remove(makeFollowingKey(fromId), String.valueOf(toId));
+        redisTemplate.opsForSet().remove(makeFollowingKey(fromId), toId);
         // toId의 팔로워 목록에서 fromId 삭제
-        redisTemplate.opsForSet().remove(makeFollowerKey(toId), String.valueOf(fromId));
+        redisTemplate.opsForSet().remove(makeFollowerKey(toId), fromId);
 
 
     }

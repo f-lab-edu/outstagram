@@ -21,7 +21,7 @@ public enum ErrorCode {
 
     // DB 관련 에러 코드
     INSERT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "DB insert 에러!!"),
-    DELETE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "DB delete 에러!!"),
+    DELETE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "이미 삭제했거나, 삭제할 데이터가 없습니다!"),
     UPDATE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "DB update 에러!!"),
 
     // 파일 입출력 관련 에러 코드

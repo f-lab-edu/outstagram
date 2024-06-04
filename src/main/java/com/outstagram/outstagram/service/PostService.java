@@ -319,7 +319,9 @@ public class PostService {
 
                 // 재시도 횟수 증가
                 attempt++;
-            } catch (Exception e) {
+            } catch (ApiException e) {
+                throw new ApiException(ErrorCode.DUPLICATED_LIKE, "이미 좋아요 취소했습니다.");
+            }catch (Exception e) {
                 try {
                     Thread.sleep(50);
                 } catch (InterruptedException ex) {
