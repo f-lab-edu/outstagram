@@ -300,20 +300,18 @@ public class PostService {
             // 삭제 예정인 캐시에도 없으면 DB에서 확인
             if (likeService.existsLike(userId, postId)) {
                 throw new ApiException(ErrorCode.DUPLICATED_LIKE);
+            } else {
+                // 좋아요 증가
+                redisTemplate.opsForValue().increment(key, 1);
+                // 유저 좋아요 기록 캐싱
+                redisTemplate.opsForSet().add(userLikeKey, postId);
             }
+        } else {
+            // 해당 게시물에 대해 좋아요 취소한 기록이 있다면 기록 삭제
+            redisTemplate.opsForSet().remove(userUnlikeKey, postId);
+            // 좋아요 증가
+            redisTemplate.opsForValue().increment(key, 1);
         }
-
-        // Redis & DB 모두 좋아요 기록 없으면 좋아요 실제 증가 로직 수행
-
-        // 좋아요 증가
-        redisTemplate.opsForValue().increment(key, 1);
-
-        // 유저 좋아요 기록 캐싱
-        redisTemplate.opsForSet().add(userLikeKey, postId);
-
-        // 해당 게시물에 대해 좋아요 취소한 기록이 있다면 기록 삭제
-        redisTemplate.opsForSet().remove(userUnlikeKey, postId);
-
     }
 
     /**
