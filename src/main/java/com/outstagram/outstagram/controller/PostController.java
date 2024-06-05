@@ -49,7 +49,7 @@ public class PostController {
 
     @GetMapping("/{postId}")
     public ResponseEntity<PostDetailsDTO> getPost(@PathVariable Long postId, @Login UserDTO user) {
-        PostDetailsDTO postDetailsDTO = postService.getPost(postId, user.getId());
+        PostDetailsDTO postDetailsDTO = postService.getPostDetails(postId, user.getId());
 
         return ResponseEntity.ok(postDetailsDTO);
     }

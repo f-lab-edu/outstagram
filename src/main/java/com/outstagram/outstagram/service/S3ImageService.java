@@ -34,8 +34,6 @@ public class S3ImageService extends AbstractBaseImageService {
     @Value("${cloud.aws.s3.bucketName}")
     private String bucketName;
 
-    //private final static String UPLOAD_PATH = "https://outstagram-s3.s3.ap-northeast-2.amazonaws.com/";
-
     public S3ImageService(ImageMapper imageMapper, AmazonS3 amazonS3) {
         super(imageMapper);
         this.amazonS3 = amazonS3;

@@ -1,6 +1,11 @@
 package com.outstagram.outstagram.service;
 
 
+import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
+import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.LIKE_COUNT_PREFIX;
+import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_LIKE_PREFIX;
+import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_UNLIKE_PREFIX;
+
 import com.outstagram.outstagram.common.constant.CacheNamesConst;
 import com.outstagram.outstagram.controller.request.CreateCommentReq;
 import com.outstagram.outstagram.controller.request.CreatePostReq;
@@ -9,29 +14,34 @@ import com.outstagram.outstagram.controller.request.EditPostReq;
 import com.outstagram.outstagram.controller.response.FeedPost;
 import com.outstagram.outstagram.controller.response.FeedRes;
 import com.outstagram.outstagram.controller.response.MyPostsRes;
+import com.outstagram.outstagram.dto.CommentDTO;
+import com.outstagram.outstagram.dto.ImageDTO;
+import com.outstagram.outstagram.dto.PostDTO;
 import com.outstagram.outstagram.dto.PostDetailsDTO;
-import com.outstagram.outstagram.dto.*;
+import com.outstagram.outstagram.dto.PostImageDTO;
+import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.kafka.producer.FeedUpdateProducer;
 import com.outstagram.outstagram.kafka.producer.PostDeleteProducer;
 import com.outstagram.outstagram.mapper.PostMapper;
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static com.outstagram.outstagram.common.constant.OptimisticLockConst.MAX_RETRIES;
-import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
 
 @Slf4j
 @Service
@@ -90,11 +100,16 @@ public class PostService {
                 .build())
             .collect(Collectors.toList());
     }
+    @Cacheable(value = CacheNamesConst.POST, key = "#postId")
+    public PostDTO getPost(Long postId) {
+        return postMapper.findById(postId);
+    }
 
-    //@Cacheable(value = CacheNames.POST, key = "#postId")
-    public PostDetailsDTO getPost(Long postId, Long userId) {
-        // 1. Post 가져오기
-        PostDTO post = postMapper.findById(postId);
+    public PostDetailsDTO getPostDetails(Long postId, Long userId) {
+        // 1. Post 가져오기(캐시 사용)
+        PostService proxy = (PostService) AopContext.currentProxy();
+        PostDTO post = proxy.getPost(postId);
+
         if (post == null) {
             throw new ApiException(ErrorCode.POST_NOT_FOUND);
         }
@@ -114,6 +129,9 @@ public class PostService {
             imageUrlMap.put(img.getId(), img.getImgUrl());
         }
 
+        // Redis에서 게시물의 좋아요 개수 가져오기
+        int likeCount = loadLikeCountIfAbsent(postId);
+
         return PostDetailsDTO.builder()
                 .postId(postId)
                 .userId(author.getId())
@@ -121,7 +139,7 @@ public class PostService {
                 .userImgUrl(author.getImgUrl())
                 .contents(post.getContents())
                 .postImgUrls(imageUrlMap)
-                .likes(post.getLikes())
+                .likes(likeCount)   // 캐시 사용
                 .likedByCurrentUser(likeService.existsLike(userId, post.getId()))
                 .bookmarkedByCurrentUser(bookmarkService.existsBookmark(userId, post.getId()))
                 .isCreatedByCurrentUser(isAuthor)
@@ -167,7 +185,7 @@ public class PostService {
         List<FeedPost> feedPostList = postIds.stream()
                 .limit(PAGE_SIZE)
                 .map(postId -> {
-                    PostDetailsDTO post = proxy.getPost(postId, userId);
+                    PostDetailsDTO post = proxy.getPostDetails(postId, userId);
                     return FeedPost.builder()
                             .postId(post.getPostId())
                             .postImgUrls(post.getPostImgUrls())
@@ -242,47 +260,59 @@ public class PostService {
     /* ========================================================================================== */
 
     /**
-     * 좋아요 증가 메서드 - 게시물의 좋아요 개수 증가 - like table에 row 추가하기
+     * postId에 대한 좋아요 개수 캐싱되어 있는지 확인
+        * 캐싱 안되어 있으면 DB에서 postId의 좋아요 개수를 Redis로 캐싱
      */
+    public Integer loadLikeCountIfAbsent(Long postId) {
+        String key = LIKE_COUNT_PREFIX + postId;
+        int likeCount = 0;
+        // Redis에 좋아요 개수 존재 여부 확인
+        if (Boolean.FALSE.equals(redisTemplate.hasKey(key))) {
+            PostDTO post = postMapper.findById(postId);
+            if (post == null) {
+                throw new ApiException(ErrorCode.POST_NOT_FOUND);
+            }
+            likeCount = post.getLikes();
+            redisTemplate.opsForValue().set(key, likeCount);
+        }
+
+        return likeCount;
+    }
+
+    // 예전에 좋아요 누른거 취소했다가 다시 좋아요 누를 때 -> "이미 좋아요한 게시물입니다." 에러 발생
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void increaseLike(Long postId, Long userId) {
-        int attempt = 0;
+        // Redis에 게시물에 대한 좋아요 개수 캐싱하기(없으면 DB에서 좋아요 개수 가져와서 캐싱하고 있으면 pass)
+        loadLikeCountIfAbsent(postId);
 
-        while (true) {
-            try {
-                // 버전 가져오기
-                PostDTO post = postMapper.findById(postId);
-                if (post == null) {
-                    throw new ApiException(ErrorCode.POST_NOT_FOUND);
-                }
+        String key = LIKE_COUNT_PREFIX + postId;
+        String userLikeKey = USER_LIKE_PREFIX + userId;
+        String userUnlikeKey = USER_UNLIKE_PREFIX + userId;
 
-                // 게시물 좋아요 1 증가
-                int result = postMapper.updateLikeCount(postId, 1, post.getVersion());
+        // 좋아요 한번 더 누르는거 방지
+        // 캐싱되어 있는 곳에서 확인 -> 있으면 바로 예외
+        if (Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(userLikeKey, postId))) {
+            throw new ApiException(ErrorCode.DUPLICATED_LIKE);
+        }
 
-                // 업데이트 성공 시
-                if (result > 0) {
-                    likeService.insertLike(userId, postId);
-                    break;
-                }
-
-                // 최대 재시도 횟수 초과 시 예외 던짐
-                if (attempt > MAX_RETRIES) {
-                    throw new ApiException(ErrorCode.RETRY_EXCEEDED);
-                }
-
-                // 재시도 횟수 증가
-                attempt++;
-            } catch (ApiException e) {
+        // 삭제 예정인 캐시(userUnlike) 확인 (여기에 있으면 다시 좋아요 누르기 가능)
+        if (Boolean.FALSE.equals(redisTemplate.opsForSet().isMember(userUnlikeKey, postId))) {
+            // 삭제 예정인 캐시에도 없으면 DB에서 확인
+            if (likeService.existsLike(userId, postId)) {
                 throw new ApiException(ErrorCode.DUPLICATED_LIKE);
-            } catch (Exception e) {
-                try {
-                    Thread.sleep(50);
-                } catch (InterruptedException ex) {
-                    throw new RuntimeException(ex);
-                }
             }
         }
 
+        // Redis & DB 모두 좋아요 기록 없으면 좋아요 실제 증가 로직 수행
+
+        // 좋아요 증가
+        redisTemplate.opsForValue().increment(key, 1);
+
+        // 유저 좋아요 기록 캐싱
+        redisTemplate.opsForSet().add(userLikeKey, postId);
+
+        // 해당 게시물에 대해 좋아요 취소한 기록이 있다면 기록 삭제
+        redisTemplate.opsForSet().remove(userUnlikeKey, postId);
 
     }
 
@@ -291,59 +321,59 @@ public class PostService {
      */
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void unlikePost(Long postId, Long userId) {
-        int attempt = 0;
+        loadLikeCountIfAbsent(postId);
 
-        while (true) {
-            try {
-                // 버전 가져오기
-                PostDTO post = postMapper.findById(postId);
-                if (post == null) {
-                    throw new ApiException(ErrorCode.POST_NOT_FOUND);
-                }
+        String key = LIKE_COUNT_PREFIX + postId;
+        String userLikeKey = USER_LIKE_PREFIX + userId;
+        String userUnlikeKey = USER_UNLIKE_PREFIX + userId;
 
-                // 게시물 좋아요 1 감소
-                int result = postMapper.updateLikeCount(postId, -1, post.getVersion());
-
-                // 업데이트 성공 시
-                if (result > 0) {
-                    likeService.deleteLike(userId, postId);
-                    break;
-                }
-
-                // 최대 재시도 횟수 초과 시 예외 던짐
-                if (attempt > MAX_RETRIES) {
-                    throw new ApiException(ErrorCode.RETRY_EXCEEDED);
-                }
-
-                // 재시도 횟수 증가
-                attempt++;
-            } catch (ApiException e) {
-                throw new ApiException(ErrorCode.DUPLICATED_LIKE, "이미 좋아요 취소했습니다.");
-            }catch (Exception e) {
-                try {
-                    Thread.sleep(50);
-                } catch (InterruptedException ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
+        // 이미 좋아요 취소해서 Redis에 취소할 내용 캐시된 상태 -> 5분안에 DB에서 delete 될 예정
+        if (Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(userUnlikeKey, postId))) {
+            throw new ApiException(ErrorCode.NOT_FOUND_LIKE);
         }
+
+        // Redis에 좋아요 기록 없는 경우
+        if (Boolean.FALSE.equals(redisTemplate.opsForSet().isMember(userLikeKey, postId))) {
+            // DB에도 좋아요 기록 없는 경우 -> 예외
+            if (!likeService.existsLike(userId,postId)) {
+                throw new ApiException(ErrorCode.NOT_FOUND_LIKE);
+            }
+
+            // Redis에 좋아요 기록 없고 & DB에는 좋아요 기록 있음 -> 5분마다 DB에 반영
+            redisTemplate.opsForSet().add(userUnlikeKey, postId);
+        }
+
+        // 좋아요 개수 감소
+        redisTemplate.opsForValue().decrement(key, 1);
+
+        // 유저 좋아요 기록 캐시 삭제
+        redisTemplate.opsForSet().remove(userLikeKey, postId);
+
     }
 
     /**
      * 로그인한 유저가 좋아요 누른 모든 게시물 가져오기
      */
     public List<MyPostsRes> getLikePosts(Long userId, Long lastId) {
+        // DB like 테이블에서 좋아요 누른 게시물 ID 목록 가져오기(커서 기반 페이징)
+        // 게시물 ID 목록 순회하면서 getPost(postId) + Redis에서 postId 좋아요 개수 가져오기
+        // 이미지 정보도 캐싱된 이미지 통해서 가져오기
+        // LikePostDTO로 변환
+        // 컨트롤러에서 MyPostRes로 변환 후 반환
         List<PostImageDTO> likePosts = likeService.getLikePosts(userId, lastId);
 
         return likePosts.stream()
-            .map(dto -> MyPostsRes.builder()
-                .postId(dto.getId())
-                .contents(dto.getContents())
-                .likes(dto.getLikes())
-                .thumbnailUrl(dto.getImgPath() + "\\" + dto.getSavedImgName())
-                .isLiked(true)  // 애초에 좋아요 누른 게시물의 정보를 가져온거임 그래서 무조건 true
-                .isBookmarked(bookmarkService.existsBookmark(userId, dto.getId()))
-                .build())
+            .map(dto -> {
+                int likeCount = loadLikeCountIfAbsent(dto.getId());
+                return MyPostsRes.builder()
+                    .postId(dto.getId())
+                    .contents(dto.getContents())
+                    .likes(likeCount)
+                    .thumbnailUrl(dto.getImgPath() + "\\" + dto.getSavedImgName())
+                    .isLiked(true)  // 애초에 좋아요 누른 게시물의 정보를 가져온거임 그래서 무조건 true
+                    .isBookmarked(bookmarkService.existsBookmark(userId, dto.getId()))
+                    .build();
+            })
             .collect(Collectors.toList());
     }
 
