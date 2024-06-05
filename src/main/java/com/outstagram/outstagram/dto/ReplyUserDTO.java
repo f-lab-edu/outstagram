@@ -1,5 +1,6 @@
 package com.outstagram.outstagram.dto;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,7 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ReplyUserDTO {
+public class ReplyUserDTO implements Serializable {
 
     private Long replyId; // comment 테이블의 id
 

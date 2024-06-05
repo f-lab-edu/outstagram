@@ -1,5 +1,6 @@
 package com.outstagram.outstagram.dto;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -11,7 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class CommentUserDTO {
+public class CommentUserDTO implements Serializable {
     private Long id;
 
     private Long userId;

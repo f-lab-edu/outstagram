@@ -2,6 +2,7 @@ package com.outstagram.outstagram.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotBlank;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -17,7 +18,7 @@ import org.springframework.data.annotation.Id;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PostDTO {
+public class PostDTO implements Serializable {
 
     @Id
     private Long id;

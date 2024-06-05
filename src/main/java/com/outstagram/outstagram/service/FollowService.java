@@ -1,19 +1,17 @@
 package com.outstagram.outstagram.service;
 
-import com.outstagram.outstagram.controller.response.FollowRes;
-import com.outstagram.outstagram.controller.response.UserInfoRes;
+import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.FollowMapper;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 
 @Slf4j
 @Service
@@ -52,13 +50,14 @@ public class FollowService {
     /**
      * 로그인 한 유저의 팔로잉 목록 가져오기(Redis에서)
      */
-    public List<FollowRes> getFollowingList(Long userId) {
+    public List<UserDTO> getFollowingList(Long userId) {
         // 유저의 following id 목록 가져오기
         Set<Object> memberId = redisTemplate.opsForSet().members(makeFollowingKey(userId));
         if (memberId == null) {
             return new ArrayList<>();
         }
 
+        // 각 유저 정보 가져와 종합 following list 만들기
         return getFollowResList(memberId);
 
     }
@@ -66,13 +65,14 @@ public class FollowService {
     /**
      * 로그인한 유저의 팔로워 목록 가져오기(Redis에서)
      */
-    public List<FollowRes> getFollowerList(Long userId) {
+    public List<UserDTO> getFollowerList(Long userId) {
         // 유저의 follower id 목록 가져오기
         Set<Object> memberId = redisTemplate.opsForSet().members(makeFollowerKey(userId));
         if (memberId == null) {
             return new ArrayList<>();
         }
 
+        // 각 유저 정보 가져와 종합 follower list 만들기
         return getFollowResList(memberId);
     }
 
@@ -100,9 +100,9 @@ public class FollowService {
     }
 
     /**
-     * id 목록으로 Redis에서 유저 정보 가져와 List<FollowRes>로 변환하기
+     * id 목록으로 Redis에서 유저 정보 가져와 List<UserDTO>로 변환하기
      */
-    private List<FollowRes> getFollowResList(Set<Object> memberId) {
+    private List<UserDTO> getFollowResList(Set<Object> memberId) {
         return memberId.stream()
             .map(id -> {
                 Long userId;
@@ -112,15 +112,10 @@ public class FollowService {
                     userId = (Long) id;
                 }
                 // getUser 메서드는 @Cacheable 선언되어 있어, 캐시 hit이면 캐시에서 miss면 db에서 가져옴
-                UserInfoRes userInfo = userService.getUser(userId);
+                UserDTO userInfo = userService.getUser(userId);
                 log.info("==== userInfo : {}", userInfo);
 
-                return FollowRes.builder()
-                    .id(userInfo.getUserId())
-                    .nickname(userInfo.getNickname())
-                    .email(userInfo.getEmail())
-                    .imgUrl(userInfo.getImgUrl())
-                    .build();
+                return userInfo;
             }).toList();
     }
 }

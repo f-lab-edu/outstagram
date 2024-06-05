@@ -1,6 +1,7 @@
 package com.outstagram.outstagram.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,7 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class BookmarkDTO {
+public class BookmarkDTO implements Serializable {
 
     private Long userId;
 
