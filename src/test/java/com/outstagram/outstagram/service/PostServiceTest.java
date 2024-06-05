@@ -93,7 +93,7 @@ class PostServiceTest {
         when(imageService.getImageInfos(postId)).thenReturn(imageList);
         when(userService.getUser(userId)).thenReturn(user);
 
-        PostDetailsDTO foundPost = postService.getPost(postId, userId);
+        PostDetailsDTO foundPost = postService.getPostDetails(postId, userId);
 
         assertNotNull(foundPost);
         assertTrue(foundPost.getIsCreatedByCurrentUser());
@@ -110,7 +110,7 @@ class PostServiceTest {
         when(postMapper.findById(postId)).thenReturn(null);
 
         ApiException apiException = assertThrows(ApiException.class,
-            () -> postService.getPost(postId, userId));
+            () -> postService.getPostDetails(postId, userId));
 
         assertEquals(ErrorCode.POST_NOT_FOUND, apiException.getErrorCode());
         assertEquals("해당 게시물은 존재하지 않습니다.", apiException.getDescription());

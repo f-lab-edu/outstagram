@@ -56,7 +56,7 @@
 
   <!-- postId로 게시물 가져오기 -->
   <select id="findById" resultType="com.outstagram.outstagram.dto.PostDTO">
-    SELECT id, user_id, contents, likes, version
+    SELECT id, user_id, contents, likes, version, create_date, update_date
     FROM post
     WHERE id = #{postId}
       AND is_deleted = 0
@@ -82,11 +82,9 @@
 
   <update id="updateLikeCount">
     UPDATE post
-    SET likes = likes + #{count},
-        update_date = NOW(),
-        version = version + 1
+    SET likes = #{count},
+        update_date = NOW()
     WHERE id = #{postId}
-        AND version = #{currentVersion}
         AND is_deleted = 0
   </update>
 

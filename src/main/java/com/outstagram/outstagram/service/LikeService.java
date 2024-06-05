@@ -47,4 +47,6 @@ public class LikeService {
     public List<PostImageDTO> getLikePosts(Long userId, Long lastId) {
         return likeMapper.findWithPostsAndImageByUserId(userId, lastId, PAGE_SIZE);
     }
+
+
 }

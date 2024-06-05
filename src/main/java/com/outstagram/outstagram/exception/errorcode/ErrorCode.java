@@ -51,6 +51,7 @@ public enum ErrorCode {
 
     // like 관련 에러 코드
     DUPLICATED_LIKE(HttpStatus.CONFLICT, "이미 좋아요한 게시물입니다."),
+    NOT_FOUND_LIKE(HttpStatus.INTERNAL_SERVER_ERROR, "좋아요 기록이 없습니다"),
 
     // bookmark 관련 에러 코드
     DUPLICATED_BOOKMARK(HttpStatus.CONFLICT, "이미 북마크한 게시물입니다."),
