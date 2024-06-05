@@ -8,21 +8,28 @@
     VALUES (#{userId}, #{postId}, #{parentCommentId}, #{contents}, #{level}, #{isDeleted}, #{createDate}, #{updateDate})
   </insert>
 
-  <resultMap id="CommentsResultMap" type="com.outstagram.outstagram.controller.response.CommentRes">
-    <id column="commentId" property="commentId"/>
+  <resultMap id="CommentsResultMap" type="com.outstagram.outstagram.dto.CommentUserDTO">
+    <id column="commentId" property="id"/>
     <result column="userId" property="userId"/>
+    <result column="postId" property="postId"/>
+    <result column="parent_comment_id" property="parentCommentId"/>
+    <result column="level" property="level"/>
     <result column="userImgUrl" property="userImgUrl"/>
     <result column="nickname" property="nickname"/>
     <result column="contents" property="contents"/>
+    <result column="create_date" property="createDate"/>
     <result column="updateDate" property="updateDate"/>
 
     <!-- Association for nested replies -->
-    <collection property="replyList" ofType="com.outstagram.outstagram.controller.response.ReplyRes">
+    <collection property="replyList" ofType="com.outstagram.outstagram.dto.ReplyUserDTO">
       <id column="replyId" property="replyId"/>
       <result column="replyUserId" property="userId"/>
+      <result column="replyParentCommentId" property="parentCommentId"/>
+      <result column="replyContents" property="contents"/>
+      <result column="replyLevel" property="level"/>
       <result column="replyUserImgUrl" property="userImgUrl"/>
       <result column="replyNickname" property="nickname"/>
-      <result column="replyContents" property="contents"/>
+      <result column="replyCreateDate" property="createDate"/>
       <result column="replyUpdateDate" property="updateDate"/>
     </collection>
   </resultMap>
@@ -30,15 +37,23 @@
   <select id="findByPostId" resultMap="CommentsResultMap">
     SELECT c1.id                                            AS commentId,
            u1.id                                            AS userId,
+           c1.post_id                                       AS postId,
+           c1.parent_comment_id                             AS parentCommentId,
+           c1.level                                         AS level,
            u1.img_url                                       AS userImgUrl,
            u1.nickname                                      AS nickname,
            IF(c1.is_deleted = 1, '삭제된 댓글입니다.', c1.contents) AS contents,
+           c1.create_date                                   AS createDate,
            c1.update_date                                   AS updateDate,
+
            c2.id                                            AS replyId,
            u2.id                                            AS replyUserId,
+           c2.parent_comment_id                             AS replyParentCommentId,
+           c2.level                                         AS replyLevel,
            u2.img_url                                       AS replyUserImgUrl,
            u2.nickname                                      AS replyNickname,
            IF(c2.is_deleted = 1, '삭제된 대댓글입니다.', c2.contents) AS replyContents,
+           c2.create_date                                   AS replyCreateDate,
            c2.update_date                                   AS replyUpdateDate
     FROM comment AS c1
            JOIN
@@ -65,7 +80,9 @@
     UPDATE comment
     SET contents = #{contents},
         update_date = NOW()
-    WHERE id = #{commentId} AND is_deleted = 0
+    WHERE id = #{commentId}
+      AND post_id = #{postId}
+      AND is_deleted = 0
   </update>
 
   <delete id="deleteComment">

@@ -6,15 +6,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class CommentDTO {
-
-    @Id
+public class CommentUserDTO {
     private Long id;
 
     private Long userId;
@@ -27,11 +24,14 @@ public class CommentDTO {
 
     private Boolean level;
 
-    private Boolean isDeleted;
-
     private LocalDateTime createDate;
 
     private LocalDateTime updateDate;
 
     private List<ReplyUserDTO> replyList;
+
+    private String userImgUrl;
+
+    private String nickname;
+
 }

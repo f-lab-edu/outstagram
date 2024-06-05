@@ -8,7 +8,7 @@ import com.outstagram.outstagram.controller.request.EditCommentReq;
 import com.outstagram.outstagram.controller.request.EditPostReq;
 import com.outstagram.outstagram.controller.response.FeedRes;
 import com.outstagram.outstagram.controller.response.MyPostsRes;
-import com.outstagram.outstagram.controller.response.PostRes;
+import com.outstagram.outstagram.dto.PostDetailsDTO;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.service.PostService;
 import jakarta.validation.Valid;
@@ -48,10 +48,10 @@ public class PostController {
     }
 
     @GetMapping("/{postId}")
-    public ResponseEntity<PostRes> getPost(@PathVariable Long postId, @Login UserDTO user) {
-        PostRes postRes = postService.getPost(postId, user.getId());
+    public ResponseEntity<PostDetailsDTO> getPost(@PathVariable Long postId, @Login UserDTO user) {
+        PostDetailsDTO postDetailsDTO = postService.getPost(postId, user.getId());
 
-        return ResponseEntity.ok(postRes);
+        return ResponseEntity.ok(postDetailsDTO);
     }
 
     @PatchMapping("/{postId}")

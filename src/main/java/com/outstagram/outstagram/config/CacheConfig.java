@@ -1,11 +1,17 @@
 package com.outstagram.outstagram.config;
 
+import static com.outstagram.outstagram.common.constant.CacheNamesConst.COMMENT;
+import static com.outstagram.outstagram.common.constant.CacheNamesConst.POST;
+import static com.outstagram.outstagram.common.constant.CacheNamesConst.USER;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.outstagram.outstagram.common.constant.CacheNames;
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.EnableCaching;
@@ -18,10 +24,6 @@ import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
-
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * post의 경우, 리소스의 변경이 거의 일어나지 않으므로 만료 시간을 1시간으로 지정
@@ -71,8 +73,9 @@ public class CacheConfig {
                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(serializer));
 
         Map<String, RedisCacheConfiguration> redisCacheConfigMap = new HashMap<>();
-        redisCacheConfigMap.put(CacheNames.POST, defaultConfig.entryTtl(Duration.ofHours(1)));
-        redisCacheConfigMap.put(CacheNames.USER, defaultConfig.entryTtl(Duration.ofHours(5)));
+        redisCacheConfigMap.put(POST, defaultConfig.entryTtl(Duration.ofHours(1)));
+        redisCacheConfigMap.put(COMMENT, defaultConfig.entryTtl(Duration.ofHours(1)));
+        redisCacheConfigMap.put(USER, defaultConfig.entryTtl(Duration.ofHours(5)));
 
         return RedisCacheManager.builder(connectionFactory)
                 .withInitialCacheConfigurations(redisCacheConfigMap)

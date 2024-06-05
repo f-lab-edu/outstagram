@@ -3,7 +3,7 @@ package com.outstagram.outstagram.service;
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditPostReq;
 import com.outstagram.outstagram.controller.response.MyPostsRes;
-import com.outstagram.outstagram.controller.response.PostRes;
+import com.outstagram.outstagram.dto.PostDetailsDTO;
 import com.outstagram.outstagram.dto.ImageDTO;
 import com.outstagram.outstagram.dto.PostDTO;
 import com.outstagram.outstagram.dto.PostImageDTO;
@@ -93,7 +93,7 @@ class PostServiceTest {
         when(imageService.getImageInfos(postId)).thenReturn(imageList);
         when(userService.findByUserId(userId)).thenReturn(user);
 
-        PostRes foundPost = postService.getPost(postId, userId);
+        PostDetailsDTO foundPost = postService.getPost(postId, userId);
 
         assertNotNull(foundPost);
         assertTrue(foundPost.getIsCreatedByCurrentUser());

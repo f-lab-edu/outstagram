@@ -1,9 +1,8 @@
-package com.outstagram.outstagram.controller.response;
+package com.outstagram.outstagram.dto;
 
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,7 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class PostRes implements Serializable {
+public class PostDetailsDTO implements Serializable {
     private Long postId;
 
     private Long userId;
@@ -34,7 +33,7 @@ public class PostRes implements Serializable {
 
     private Boolean isCreatedByCurrentUser;        // 현재 로그인한 유저가 해당 게시물 작성했는지 여부
 
-    private List<CommentRes> comments;   // 게시물의 댓글 목록
+    private List<CommentUserDTO> comments;   // 게시물의 댓글 목록
 
 
 }

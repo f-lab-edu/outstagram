@@ -1,7 +1,7 @@
 package com.outstagram.outstagram.service;
 
 
-import com.outstagram.outstagram.common.constant.CacheNames;
+import com.outstagram.outstagram.common.constant.CacheNamesConst;
 import com.outstagram.outstagram.controller.request.CreateCommentReq;
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditCommentReq;
@@ -9,7 +9,7 @@ import com.outstagram.outstagram.controller.request.EditPostReq;
 import com.outstagram.outstagram.controller.response.FeedPost;
 import com.outstagram.outstagram.controller.response.FeedRes;
 import com.outstagram.outstagram.controller.response.MyPostsRes;
-import com.outstagram.outstagram.controller.response.PostRes;
+import com.outstagram.outstagram.dto.PostDetailsDTO;
 import com.outstagram.outstagram.dto.*;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
@@ -20,9 +20,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -93,8 +91,8 @@ public class PostService {
             .collect(Collectors.toList());
     }
 
-    @Cacheable(value = CacheNames.POST, key = "#postId")
-    public PostRes getPost(Long postId, Long userId) {
+    //@Cacheable(value = CacheNames.POST, key = "#postId")
+    public PostDetailsDTO getPost(Long postId, Long userId) {
         // 1. Post 가져오기
         PostDTO post = postMapper.findById(postId);
         if (post == null) {
@@ -116,7 +114,7 @@ public class PostService {
             imageUrlMap.put(img.getId(), img.getImgUrl());
         }
 
-        return PostRes.builder()
+        return PostDetailsDTO.builder()
                 .postId(postId)
                 .userId(author.getId())
                 .nickname(author.getNickname())
@@ -169,7 +167,7 @@ public class PostService {
         List<FeedPost> feedPostList = postIds.stream()
                 .limit(PAGE_SIZE)
                 .map(postId -> {
-                    PostRes post = proxy.getPost(postId, userId);
+                    PostDetailsDTO post = proxy.getPost(postId, userId);
                     return FeedPost.builder()
                             .postId(post.getPostId())
                             .postImgUrls(post.getPostImgUrls())
@@ -198,7 +196,7 @@ public class PostService {
 
 
     @Transactional
-    @Caching(evict = @CacheEvict(value = CacheNames.POST, key = "#postId"))
+    @Caching(evict = @CacheEvict(value = CacheNamesConst.POST, key = "#postId"))
     public void editPost(Long postId, EditPostReq editPostReq, Long userId) {
         // 수정할 게시물 가져오기
         PostDTO post = postMapper.findById(postId);
@@ -231,7 +229,7 @@ public class PostService {
      * 게시물 삭제 비동기 처리
      */
     @Transactional
-    @Caching(evict = @CacheEvict(value = CacheNames.POST, key = "#postId"))
+    @Caching(evict = @CacheEvict(value = CacheNamesConst.POST, key = "#postId"))
     public void deletePost(Long postId, Long userId) {
 
         // 게시물이 존재하는지 & 삭제 권한 있는지 검증
@@ -447,7 +445,7 @@ public class PostService {
         // 게시물&댓글 존재 여부 검증, 작성자인지 검증하기
         validatePostCommentAndOwnership(postId, commentId, userId);
 
-        commentService.updateContents(commentId, editCommentReq.getContents());
+        commentService.updateContents(postId, commentId, editCommentReq.getContents());
     }
 
     public void deleteComment(Long postId, Long commentId, Long userId) {

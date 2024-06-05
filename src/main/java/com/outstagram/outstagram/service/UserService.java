@@ -1,6 +1,6 @@
 package com.outstagram.outstagram.service;
 
-import com.outstagram.outstagram.common.constant.CacheNames;
+import com.outstagram.outstagram.common.constant.CacheNamesConst;
 import com.outstagram.outstagram.controller.response.SearchUserInfoRes;
 import com.outstagram.outstagram.controller.response.UserInfoRes;
 import com.outstagram.outstagram.dto.UserDTO;
@@ -42,7 +42,7 @@ public class UserService {
     }
 
 
-    @Cacheable(value = CacheNames.USER, key = "#userId")
+    @Cacheable(value = CacheNamesConst.USER, key = "#userId")
     public UserInfoRes getUser(Long userId) {
         UserDTO user = userMapper.findById(userId);
 

@@ -1,4 +1,4 @@
-package com.outstagram.outstagram.controller.response;
+package com.outstagram.outstagram.dto;
 
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
@@ -10,19 +10,23 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ReplyRes {
+public class ReplyUserDTO {
 
     private Long replyId; // comment 테이블의 id
 
     private Long userId;
 
-    private String userImgUrl;
-
-    private String nickname;
+    private Long parentCommentId;
 
     private String contents;
 
+    private Boolean level;
+
+    private LocalDateTime createDate;
+
     private LocalDateTime updateDate;
 
+    private String userImgUrl;
 
+    private String nickname;
 }
