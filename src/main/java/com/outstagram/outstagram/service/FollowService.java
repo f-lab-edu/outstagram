@@ -1,5 +1,8 @@
 package com.outstagram.outstagram.service;
 
+import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.FOLLOWER;
+import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.FOLLOWING;
+
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
@@ -17,8 +20,6 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class FollowService {
-    private final static String FOLLOWING = "followings:";
-    private final static String FOLLOWER = "followers:";
 
     private final UserService userService;
 
