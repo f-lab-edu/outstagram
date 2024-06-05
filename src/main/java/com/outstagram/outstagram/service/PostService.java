@@ -84,10 +84,12 @@ public class PostService {
     }
 
     // TODO : post 조회 쿼리, image 조회 쿼리, user 조회 쿼리, like 조회 쿼리 => 총 4개 쿼리 발생
+    // TODO : 게시물, 이미지, 좋아요 개수 -> 캐시 데이터 바탕으로 가져오기
     public List<MyPostsRes> getMyPosts(Long userId, Long lastId) {
         // 유저의 (게시물과 게시물의 대표이미지) 10개씩 가져오기
         List<PostImageDTO> postWithImgList = postMapper.findWithImageByUserId(userId, lastId,
             PAGE_SIZE);
+
 
         return postWithImgList.stream()
             .map(dto -> MyPostsRes.builder()
@@ -100,6 +102,7 @@ public class PostService {
                 .build())
             .collect(Collectors.toList());
     }
+
     @Cacheable(value = CacheNamesConst.POST, key = "#postId")
     public PostDTO getPost(Long postId) {
         return postMapper.findById(postId);
@@ -140,8 +143,8 @@ public class PostService {
                 .contents(post.getContents())
                 .postImgUrls(imageUrlMap)
                 .likes(likeCount)   // 캐시 사용
-                .likedByCurrentUser(likeService.existsLike(userId, post.getId()))
-                .bookmarkedByCurrentUser(bookmarkService.existsBookmark(userId, post.getId()))
+                .likedByCurrentUser(likeService.existsLike(userId, post.getId()))   // TODO : 게시물 좋아요 여부도 캐싱 가능할지 고민
+                .bookmarkedByCurrentUser(bookmarkService.existsBookmark(userId, post.getId()))  // TODO : 게시물 북마크 여부도 캐싱 가능할지 고민
                 .isCreatedByCurrentUser(isAuthor)
                 .comments(commentService.getComments(post.getId())) // 캐시 사용
                 .build();
@@ -168,6 +171,7 @@ public class PostService {
         Long finalLastId = lastId;
         List<Long> postIds = feedList.stream()
                 .map(postId -> {
+                    // TODO : if문 없이 바로 ((Integer) postId).longValue() 리턴해도 문제 없는지 확인
                     if (postId instanceof Integer) {
                         return ((Integer) postId).longValue();
                     } else {
@@ -179,13 +183,10 @@ public class PostService {
                 .toList();
         log.info("===== feed : {} 의 postId {}", userId, postIds);
 
-        // 아래 stream에서 getPost 가져올 때 @Cacheable 적용하기 위해서 필요
-        PostService proxy = (PostService) AopContext.currentProxy();
-
         List<FeedPost> feedPostList = postIds.stream()
                 .limit(PAGE_SIZE)
                 .map(postId -> {
-                    PostDetailsDTO post = proxy.getPostDetails(postId, userId);
+                    PostDetailsDTO post = getPostDetails(postId, userId);   // 캐싱된 정보들 다 조합해서 postDetailsDTO 반환해줌
                     return FeedPost.builder()
                             .postId(post.getPostId())
                             .postImgUrls(post.getPostImgUrls())
@@ -209,7 +210,6 @@ public class PostService {
                 .feedPostList(feedPostList)
                 .hasNext(hasNext)
                 .build();
-
     }
 
 
@@ -224,7 +224,7 @@ public class PostService {
 
         // 삭제할 이미지가 있다면 삭제하기(soft delete)
         if (editPostReq.getDeleteImgIds() != null && !editPostReq.getDeleteImgIds().isEmpty()) {
-            imageService.softDeleteByIds(postId, editPostReq.getDeleteImgIds());
+            imageService.softDeleteByIds(postId, editPostReq.getDeleteImgIds());    // 이미지 정보 캐시 삭제
         }
 
         // 추가할 이미지가 있다면 추가하기
@@ -353,6 +353,7 @@ public class PostService {
      * 로그인한 유저가 좋아요 누른 모든 게시물 가져오기
      */
     public List<MyPostsRes> getLikePosts(Long userId, Long lastId) {
+        // TODO : 아래 주석 구현하기
         // DB like 테이블에서 좋아요 누른 게시물 ID 목록 가져오기(커서 기반 페이징)
         // 게시물 ID 목록 순회하면서 getPost(postId) + Redis에서 postId 좋아요 개수 가져오기
         // 이미지 정보도 캐싱된 이미지 통해서 가져오기
