@@ -91,7 +91,7 @@ class PostServiceTest {
 
         when(postMapper.findById(postId)).thenReturn(post);
         when(imageService.getImageInfos(postId)).thenReturn(imageList);
-        when(userService.findByUserId(userId)).thenReturn(user);
+        when(userService.getUser(userId)).thenReturn(user);
 
         PostDetailsDTO foundPost = postService.getPost(postId, userId);
 

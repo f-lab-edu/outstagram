@@ -99,14 +99,14 @@ public class PostService {
             throw new ApiException(ErrorCode.POST_NOT_FOUND);
         }
 
-        // 2. Post의 이미지 정보 가져오기
+        // 2. Post의 이미지 정보 가져오기(캐시 사용)
         List<ImageDTO> imageList = imageService.getImageInfos(post.getId());
 
         // 3. 로그인한 유저가 게시물 작성자인지 판단
         boolean isAuthor = post.getUserId().equals(userId);
 
-        // 4. 작성자 정보 가져오기 -> nickname과 유저 img 가져오기 위해서
-        UserDTO author = userService.findByUserId(post.getUserId());
+        // 4. 작성자 정보 가져오기 -> nickname과 유저 img 가져오기 위해서(캐시 사용)
+        UserDTO author = userService.getUser(post.getUserId());
 
         // 5. 이미지 url 조합하기
         Map<Long, String> imageUrlMap = new HashMap<>();
@@ -125,7 +125,7 @@ public class PostService {
                 .likedByCurrentUser(likeService.existsLike(userId, post.getId()))
                 .bookmarkedByCurrentUser(bookmarkService.existsBookmark(userId, post.getId()))
                 .isCreatedByCurrentUser(isAuthor)
-                .comments(commentService.getComments(post.getId()))
+                .comments(commentService.getComments(post.getId())) // 캐시 사용
                 .build();
     }
 
@@ -206,7 +206,7 @@ public class PostService {
 
         // 삭제할 이미지가 있다면 삭제하기(soft delete)
         if (editPostReq.getDeleteImgIds() != null && !editPostReq.getDeleteImgIds().isEmpty()) {
-            imageService.softDeleteByIds(editPostReq.getDeleteImgIds());
+            imageService.softDeleteByIds(postId, editPostReq.getDeleteImgIds());
         }
 
         // 추가할 이미지가 있다면 추가하기

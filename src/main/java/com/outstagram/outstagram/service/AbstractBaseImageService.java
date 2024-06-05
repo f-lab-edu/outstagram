@@ -1,5 +1,7 @@
 package com.outstagram.outstagram.service;
 
+import static com.outstagram.outstagram.common.constant.CacheNamesConst.IMAGE;
+
 import com.outstagram.outstagram.dto.ImageDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
@@ -9,6 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -51,6 +55,7 @@ public abstract class AbstractBaseImageService implements ImageService{
     }
 
     @Override
+    @Cacheable(cacheNames = IMAGE, key = "#postId")
     public List<ImageDTO> getImageInfos(Long postId) {
         return imageMapper.findImagesByPostId(postId);
     }
@@ -62,7 +67,8 @@ public abstract class AbstractBaseImageService implements ImageService{
 
     @Transactional
     @Override
-    public void softDeleteByIds(List<Long> deleteImgIds) {
+    @CacheEvict(cacheNames = IMAGE, key = "#postId")
+    public void softDeleteByIds(Long postId, List<Long> deleteImgIds) {
         int result = imageMapper.deleteByIds(deleteImgIds);
         if (result == 0) {
             throw new ApiException(ErrorCode.DELETE_ERROR, "이미지 삭제에 실패했습니다.");

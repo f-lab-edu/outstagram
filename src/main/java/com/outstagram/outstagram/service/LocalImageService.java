@@ -19,12 +19,12 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Service
-public class LocalBaseImageService extends AbstractBaseImageService {
+public class LocalImageService extends AbstractBaseImageService {
 
     @Value("com.outstagram.upload.path")
     private String uploadPath;
 
-    public LocalBaseImageService(ImageMapper imageMapper) {
+    public LocalImageService(ImageMapper imageMapper) {
         super(imageMapper);
     }
 

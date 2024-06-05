@@ -15,7 +15,7 @@ public interface ImageService {
     /**
      * DB의 image 테이블에서 해당 레코드의 is_delete = 1로 수정(soft delete)
      */
-    void softDeleteByIds(List<Long> deleteImgIds);
+    void softDeleteByIds(Long postId, List<Long> deleteImgIds);
 
     /**
      * DB의 image 테이블에서 해당 레코드들 hard delete
