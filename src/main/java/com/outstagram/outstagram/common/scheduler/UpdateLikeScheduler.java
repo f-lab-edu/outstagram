@@ -6,6 +6,7 @@ import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER
 
 import com.outstagram.outstagram.mapper.PostMapper;
 import com.outstagram.outstagram.service.LikeService;
+import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -61,12 +62,13 @@ public class UpdateLikeScheduler {
         if (userLikeKeys != null) {
             for (String key : userLikeKeys) {
                 Long userId = Long.parseLong(key.replace(USER_LIKE_PREFIX, ""));
-                Set<Object> postIds = redisTemplate.opsForSet().members(key);
+                List<Object> postIds = redisTemplate.opsForList().range(key, 0, -1);
                 if (postIds != null) {
-                    for (Object postIdObj : postIds) {
-                        Long postId = ((Integer) postIdObj).longValue();
-                        likeService.insertLike(userId, postId);
-                    }
+
+                    postIds.stream()
+                        .map(Object::toString)
+                        .map(Long::parseLong)
+                        .forEach(postId-> likeService.insertLike(userId, postId));
                     // 캐시에서 해당 키 삭제
                     redisTemplate.delete(key);
                 }

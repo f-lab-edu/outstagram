@@ -23,6 +23,7 @@ import com.outstagram.outstagram.kafka.producer.FeedUpdateProducer;
 import com.outstagram.outstagram.kafka.producer.PostDeleteProducer;
 import com.outstagram.outstagram.mapper.PostMapper;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -173,17 +174,18 @@ public class PostService {
         // 피드 id 목록에서 lastId 기준으로 아래로 11개 가져오기
         Long finalLastId = lastId;
         List<Long> postIds = feedList.stream()
-            .map(postId -> ((Integer) postId).longValue())
+            .map(Object::toString)
+            .map(Long::parseLong)
             .filter(postId -> postId < finalLastId)
             .limit(PAGE_SIZE + 1)        // 다음 페이지 있는지 확인하기 위해 1개 더 가져옴
-            .toList();
+            .collect(Collectors.toList());
 
         log.info("===== feed : {} 의 postId {}", userId, postIds);
 
         return postIds.stream()
-                .limit(PAGE_SIZE)
-                .map(postId -> getPostDetails(postId, userId))
-                .toList();
+            .limit(PAGE_SIZE)
+            .map(postId -> getPostDetails(postId, userId))
+            .collect(Collectors.toList());
     }
 
 
@@ -240,7 +242,7 @@ public class PostService {
     public Integer loadLikeCountIfAbsent(Long postId) {
         String key = LIKE_COUNT_PREFIX + postId;
         int likeCount;
-        // Redis에 좋아요 개수 존재 여부 확인
+        // Redis에 좋아요 개수 캐싱된적 없으면 -> DB에서 가져와서 좋아요 개수 캐싱하기
         if (Boolean.FALSE.equals(redisTemplate.hasKey(key))) {
             PostDTO post = postMapper.findById(postId);
             if (post == null) {
@@ -255,7 +257,6 @@ public class PostService {
         return likeCount;
     }
 
-    // 예전에 좋아요 누른거 취소했다가 다시 좋아요 누를 때 -> "이미 좋아요한 게시물입니다." 에러 발생
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void increaseLike(Long postId, Long userId) {
         // Redis에 게시물에 대한 좋아요 개수 캐싱하기(없으면 DB에서 좋아요 개수 가져와서 캐싱하고 있으면 pass)
@@ -272,7 +273,12 @@ public class PostService {
 
         // 좋아요 한번 더 누르는거 방지
         // 캐싱되어 있는 곳에서 확인 -> 있으면 바로 예외
-        if (Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(userLikeKey, postId))) {
+        List<Object> likedPost = redisTemplate.opsForList().range(userLikeKey, 0, -1);
+        boolean isDuplicate = likedPost.stream()
+            .map(Object::toString)
+            .map(Long::parseLong)
+            .anyMatch(id -> id.equals(postId));
+        if (isDuplicate) {
             throw new ApiException(ErrorCode.DUPLICATED_LIKE);
         }
 
@@ -285,8 +291,8 @@ public class PostService {
             } else {    // 삭제 예정 캐시에 없고 DB에도 좋아요 기록 없음 -> 좋아요 증가 && 좋아요 기록 캐싱
                 // 좋아요 증가
                 redisTemplate.opsForValue().increment(key, 1);
-                // 유저 좋아요 기록 캐싱
-                redisTemplate.opsForSet().add(userLikeKey, postId);
+                // 유저 좋아요 기록 캐싱 수정하기
+                redisTemplate.opsForList().leftPush(userLikeKey, postId);
             }
         } else {    // 삭제 예정 캐시에 있음 -> DB에 좋아요 기록 저장되어 있는 상태이기에 그냥 삭제 예정 캐시만 삭제해주면 된다
             // 해당 게시물에 대해 좋아요 취소한 기록이 있다면 기록 삭제
@@ -312,8 +318,13 @@ public class PostService {
             throw new ApiException(ErrorCode.NOT_FOUND_LIKE);
         }
 
-        // Redis에 좋아요 기록 없는 경우
-        if (Boolean.FALSE.equals(redisTemplate.opsForSet().isMember(userLikeKey, postId))) {
+        // Redis에 좋아요 누른 기록 없는 경우
+        List<Object> likedPost = redisTemplate.opsForList().range(userLikeKey, 0, -1);
+        boolean isNotLiked = likedPost.stream()
+            .map(Object::toString)
+            .map(Long::parseLong)
+            .noneMatch(id -> id.equals(postId));    // postId와 일치하는 요소가 하나도 없으면 true 반환
+        if (isNotLiked) {
             // DB에도 좋아요 기록 없는 경우 -> 예외
             if (!likeService.existsLike(userId,postId)) {
                 throw new ApiException(ErrorCode.NOT_FOUND_LIKE);
@@ -327,23 +338,98 @@ public class PostService {
         redisTemplate.opsForValue().decrement(key, 1);
 
         // 유저 좋아요 기록 캐시 삭제
-        redisTemplate.opsForSet().remove(userLikeKey, postId);
+        redisTemplate.opsForList().remove(userLikeKey, 0, postId);
 
     }
 
     public List<PostDetailsDTO> getLikePosts(Long userId, Long lastId) {
-        // TODO : 캐시 좋아요 기록과 DB 좋아요 기록 합쳐서 커서 기반 페이징 적용...?
-        // DB like 테이블에서 좋아요 누른 게시물 ID 목록 가져오기(커서 기반 페이징)
-        List<Long> likePostIds = likeService.getLikePostIds(userId, lastId);
+        // 먼저 캐시 좋아요 누른 기록 확인 후 -> 모자라면 DB에서 좋아요 ID 목록 가져오기 (캐시에 항상 최신 데이터)
+        String userLikeKey = USER_LIKE_PREFIX + userId;
+
+
+        // 캐시에서 좋아요 누른 기록 가져오기
+        List<Long> recentLikeIdList = redisTemplate.opsForList().range(userLikeKey, 0, -1)
+            .stream()
+            .map(Object::toString)
+            .map(Long::parseLong)
+            .toList();
 
         PostService proxy = (PostService) AopContext.currentProxy();
+        List<PostDetailsDTO> postDetailList;
+        int recentIdSize = recentLikeIdList.size();
 
-        // 각 게시물 id에 대해서 PostDetailsDTO 호출하기
-        return likePostIds.stream()
-            .map(id -> proxy.getPostDetails(id, userId))
-            .collect(Collectors.toList());
+        if (lastId == null) {   // 첫 요청 : 캐시 -> DB
+            if (recentIdSize > 10) {      // 짜른게 10개 초과 -> 캐시만으로 해결
+                log.info("첫 요청 : 캐시에 10개 이상 존재");
+                postDetailList = recentLikeIdList.stream()
+                    .limit(PAGE_SIZE + 1)
+                    .map(id -> proxy.getPostDetails(id, userId))
+                    .collect(Collectors.toList());
+            } else if (recentIdSize == 10) {   // 딱 10개면 hasNext 알기 위해 DB에 1개 추가 질의
+                log.info("첫 요청 : 캐시에 딱 10개 존재");
 
+                postDetailList = recentLikeIdList.stream()
+                    .map(id -> proxy.getPostDetails(id, userId))
+                    .collect(Collectors.toList());
 
+                List<Long> likePostIds = likeService.getLikePostIds(userId, null, 1);
+                if (likePostIds.isEmpty()) {    // DB 조회한게 없으면 딱 10개 리턴
+                    return postDetailList;
+                }
+                // 있으면 찾아온 한 개 추가해서 리턴
+                postDetailList.add(proxy.getPostDetails(likePostIds.get(0), userId));
+            } else if (!recentLikeIdList.isEmpty()) { // 캐시에 1개 이상 10개 미만 있는 경우 -> 캐시 데이터 + DB 데이터 합쳐서 11개 가져오기
+                log.info("첫 요청 : 캐시에 1개 이상 10개 미만 존재");
+                postDetailList = recentLikeIdList.stream()
+                    .map(id -> proxy.getPostDetails(id, userId))
+                    .collect(Collectors.toList());
+                int need = PAGE_SIZE + 1 - postDetailList.size();
+
+                List<Long> likePostIds = likeService.getLikePostIds(userId, null, need);
+                for (Long id : likePostIds) {
+                    postDetailList.add(proxy.getPostDetails(id, userId));
+                }
+            } else { // 캐시에 1개도 없음 -> DB에서만 11개 조회해서 반환하기
+                log.info("첫 요청 : 캐시에 0개 존재");
+                postDetailList = new ArrayList<>();
+                List<Long> likePostIds = likeService.getLikePostIds(userId, lastId, PAGE_SIZE + 1);
+                for (Long id : likePostIds) {
+                    postDetailList.add(proxy.getPostDetails(id, userId));
+                }
+            }
+        } else {    // 첫 요청을 제외한 모든 요청
+            // lastId가 캐시에 있는지 확인
+            int startIndex = 0;
+            for (int i = 0; i < recentLikeIdList.size(); i++) {
+                if (Long.parseLong(recentLikeIdList.get(i).toString()) == lastId) {
+                    startIndex = i + 1;  // lastId의 다음 인덱스부터 시작
+                    break;
+                }
+            }
+
+            // lastId가 캐시에 없다 = 캐시는 이미 다 읽었거나, 없기 때문에  DB에서 가져와야 함
+            if (startIndex == 0) {
+                postDetailList = new ArrayList<>();
+                List<Long> likePostIds = likeService.getLikePostIds(userId, lastId, PAGE_SIZE + 1);
+                for (Long id : likePostIds) {
+                    postDetailList.add(proxy.getPostDetails(id, userId));
+                }
+            } else {    // lastId가 캐시에 있다 -> 캐시에서 페이징하고 남은만큼 DB에서 페이징
+                int toIndex = Math.min((startIndex + PAGE_SIZE + 1), recentIdSize);
+                postDetailList = recentLikeIdList.subList(startIndex,  toIndex).stream()
+                    .map(id -> proxy.getPostDetails(id, userId))
+                    .collect(Collectors.toList());
+
+                int need = PAGE_SIZE + 1 - postDetailList.size();
+
+                List<Long> likePostIds = likeService.getLikePostIds(userId, null, need);
+                for (Long id : likePostIds) {
+                    postDetailList.add(proxy.getPostDetails(id, userId));
+                }
+            }
+        }
+
+        return postDetailList;
     }
 
     /* ========================================================================================== */

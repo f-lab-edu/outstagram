@@ -48,8 +48,13 @@ public class LikeService {
         String userLikeKey = USER_LIKE_PREFIX + userId;
         String userUnlikeKey = USER_UNLIKE_PREFIX + userId;
 
+        List<Object> likedPost = redisTemplate.opsForList().range(userLikeKey, 0, -1);
+        List<Long> likePostIds = likedPost.stream()
+            .map(Object::toString)
+            .map(Long::parseLong)
+            .toList();
         // 캐시에 좋아요 누른 기록 있을 때
-        if (redisTemplate.opsForSet().isMember(userLikeKey, postId)) {
+        if (likePostIds.contains(postId)) {
             return true;
         }
 
@@ -73,8 +78,8 @@ public class LikeService {
         return likeMapper.findWithPostsAndImageByUserId(userId, lastId, PAGE_SIZE);
     }
 
-    public List<Long> getLikePostIds(Long userId, Long lastId) {
-        return likeMapper.findIdsByUserId(userId, lastId, PAGE_SIZE + 1);
+    public List<Long> getLikePostIds(Long userId, Long lastId, int size) {
+        return likeMapper.findIdsByUserId(userId, lastId, size);
     }
 
 
