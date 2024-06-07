@@ -421,10 +421,11 @@ public class PostService {
                     .collect(Collectors.toList());
 
                 int need = PAGE_SIZE + 1 - postDetailList.size();
-
-                List<Long> likePostIds = likeService.getLikePostIds(userId, null, need);
-                for (Long id : likePostIds) {
-                    postDetailList.add(proxy.getPostDetails(id, userId));
+                if (need != 0) {    // 남은 건 DB에서 가져오기
+                    List<Long> likePostIds = likeService.getLikePostIds(userId, null, need);
+                    for (Long id : likePostIds) {
+                        postDetailList.add(proxy.getPostDetails(id, userId));
+                    }
                 }
             }
         }
