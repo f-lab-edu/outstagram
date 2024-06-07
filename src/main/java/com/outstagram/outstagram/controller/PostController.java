@@ -10,6 +10,7 @@ import com.outstagram.outstagram.controller.request.EditCommentReq;
 import com.outstagram.outstagram.controller.request.EditPostReq;
 import com.outstagram.outstagram.controller.response.FeedRes;
 import com.outstagram.outstagram.controller.response.MyPostsRes;
+import com.outstagram.outstagram.dto.FeedPostDTO;
 import com.outstagram.outstagram.dto.MyPostDTO;
 import com.outstagram.outstagram.dto.PostDetailsDTO;
 import com.outstagram.outstagram.dto.UserDTO;
@@ -203,9 +204,34 @@ public class PostController {
      */
     @GetMapping("/feed")
     public ResponseEntity<FeedRes> getFeed(@RequestParam(required = false) Long lastId, @Login UserDTO user) {
-        FeedRes response = postService.getFeed(lastId, user.getId());
+        List<PostDetailsDTO> feedList = postService.getFeed(lastId, user.getId());
 
-        return ResponseEntity.ok(response);
+        boolean hasNext = feedList.size() > PAGE_SIZE;
+
+        List<FeedPostDTO> feedPostList = feedList.stream()
+            .limit(PAGE_SIZE)
+            .map(feed -> FeedPostDTO.builder()
+                .postId(feed.getPostId())
+                .postImgUrls(feed.getPostImgUrls())
+                .contents(feed.getContents())
+                .likeCount(feed.getLikes())
+                .commentCount(feed.getComments().size())
+                .likedByCurrentUser(feed.getLikedByCurrentUser())
+                .bookmarkedByCurrentUser(feed.getBookmarkedByCurrentUser())
+                .isCreatedByCurrentUser(feed.getIsCreatedByCurrentUser())
+
+                .userId(feed.getUserId())
+                .nickname(feed.getNickname())
+                .userImgUrl(feed.getUserImgUrl())
+                .build())
+            .toList();
+
+        return ResponseEntity.ok(
+            FeedRes.builder()
+                .feedPostDTOList(feedPostList)
+                .hasNext(hasNext)
+                .build()
+        );
     }
 
 

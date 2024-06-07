@@ -10,6 +10,9 @@ public class RedisKeyPrefixConst {
     public static final String USER_LIKE_PREFIX = "userLike:";
     public static final String USER_UNLIKE_PREFIX = "userUnlike:";
 
+    public static final String USER_BOOKMARK_PREFIX = "userBookmark:";
+    public static final String USER_UNBOOKMARK_PREFIX = "userUnbookmark:";
+
     public static final String FOLLOWING = "followings:";
 
     public static final String FOLLOWER = "followers:";

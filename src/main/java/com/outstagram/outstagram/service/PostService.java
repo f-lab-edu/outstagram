@@ -11,9 +11,8 @@ import com.outstagram.outstagram.controller.request.CreateCommentReq;
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditCommentReq;
 import com.outstagram.outstagram.controller.request.EditPostReq;
-import com.outstagram.outstagram.controller.response.FeedRes;
 import com.outstagram.outstagram.dto.CommentDTO;
-import com.outstagram.outstagram.dto.FeedPostDTO;
+import com.outstagram.outstagram.dto.CommentUserDTO;
 import com.outstagram.outstagram.dto.ImageDTO;
 import com.outstagram.outstagram.dto.PostDTO;
 import com.outstagram.outstagram.dto.PostDetailsDTO;
@@ -109,31 +108,41 @@ public class PostService {
         // 내부 메서드 호출할 때, @Cacheable 적용되도록 하려면 프록시 객체를 통해서 메서드를 호출해야 함.
         PostService proxy = (PostService) AopContext.currentProxy();
 
-        // 1. 순수 게시물 정보 가져오기(캐시 사용)
+        // 순수 게시물 정보 가져오기(캐시 사용)
         PostDTO post = proxy.getPost(postId);
 
         if (post == null) {
             throw new ApiException(ErrorCode.POST_NOT_FOUND);
         }
 
-        // 2. Post의 이미지 정보 가져오기(캐시 사용)
+        // Post의 이미지 정보 가져오기(캐시 사용)
         List<ImageDTO> imageList = imageService.getImageInfos(post.getId());
 
-        // 3. 로그인한 유저가 게시물 작성자인지 판단
+        // 로그인한 유저가 게시물 작성자인지 판단
         boolean isAuthor = post.getUserId().equals(userId);
 
-        // 4. 작성자 정보 가져오기 -> nickname과 유저 img 가져오기 위해서(캐시 사용)
+        // 작성자 정보 가져오기 -> nickname과 유저 img 가져오기 위해서(캐시 사용)
         UserDTO author = userService.getUser(post.getUserId());
 
-        // 5. 이미지 url 조합하기
+        // 이미지 url 조합하기
         Map<Long, String> imageUrlMap = new HashMap<>();
         for (ImageDTO img : imageList) {
             imageUrlMap.put(img.getId(), img.getImgUrl());
         }
 
-        // Redis에서 게시물의 좋아요 개수 가져오기
+        // Redis에서 게시물의 좋아요 개수 가져오기(캐시 사용)
         int likeCount = loadLikeCountIfAbsent(postId);
 
+        // 현재 유저가 해당 게시물 좋아요 눌렀는지 (캐시 데이터 먼저 확인 후 DB 확인)
+        boolean existLike = likeService.existsLike(userId, post.getId());
+
+        // 현재 유저가 해당 게시물 북마크 했는지
+        boolean existBookmark = bookmarkService.existsBookmark(userId, post.getId());
+
+        // 게시물의 모든 댓글들(캐시 사용)
+        List<CommentUserDTO> comments = commentService.getComments(post.getId());
+
+        // 캐싱 데이터 조합해 종합 게시물 만들기
         return PostDetailsDTO.builder()
                 .postId(postId)
                 .userId(author.getId())
@@ -141,74 +150,40 @@ public class PostService {
                 .userImgUrl(author.getImgUrl())
                 .contents(post.getContents())
                 .postImgUrls(imageUrlMap)
-                .likes(likeCount)   // 캐시 사용
-                .likedByCurrentUser(likeService.existsLike(userId, post.getId())) // 캐시
-                .bookmarkedByCurrentUser(bookmarkService.existsBookmark(userId, post.getId())) // 캐시
+                .likes(likeCount)
+                .likedByCurrentUser(existLike)
+                .bookmarkedByCurrentUser(existBookmark)
                 .isCreatedByCurrentUser(isAuthor)
-                .comments(commentService.getComments(post.getId())) // 캐시 사용
+                .comments(comments)
                 .build();
     }
 
-    // 피드 목록은 영구 저장해야 돼
     /**
      * 피드 가져오기
      */
-    public FeedRes getFeed(Long lastId, Long userId) {
+    public List<PostDetailsDTO> getFeed(Long lastId, Long userId) {
         // redis에서 userId의 피드 목록 가져오기
         if (lastId == null) lastId = Long.MAX_VALUE;
         List<Object> feedList = redisTemplate.opsForList().range("feed:" + userId, 0, -1);
 
         if (feedList == null) {
-            return FeedRes.builder()
-                    .feedPostDTOList(Collections.emptyList())
-                    .hasNext(false)
-                    .build();
+            return Collections.emptyList();
         }
 
-        // 피드 목록의 postId로 postService.getPost(postId)로 각 게시물 정보 가져오기
-        // 이렇게 가져오는 이유 : getPost가 캐싱되어 있으면 redis에서 없으면 mysql에서 가져옴
+        // 피드 id 목록에서 lastId 기준으로 아래로 11개 가져오기
         Long finalLastId = lastId;
         List<Long> postIds = feedList.stream()
-                .map(postId -> {
-                    // TODO : if문 없이 바로 ((Integer) postId).longValue() 리턴해도 문제 없는지 확인
-                    if (postId instanceof Integer) {
-                        return ((Integer) postId).longValue();
-                    } else {
-                        return (Long) postId;
-                    }
-                })
-                .filter(postId -> postId < finalLastId)
-                .limit(PAGE_SIZE+1L)        // 다음 페이지 있는지 확인하기 위해 1개 더 가져옴
-                .toList();
+            .map(postId -> ((Integer) postId).longValue())
+            .filter(postId -> postId < finalLastId)
+            .limit(PAGE_SIZE + 1)        // 다음 페이지 있는지 확인하기 위해 1개 더 가져옴
+            .toList();
+
         log.info("===== feed : {} 의 postId {}", userId, postIds);
 
-        List<FeedPostDTO> feedPostDTOList = postIds.stream()
+        return postIds.stream()
                 .limit(PAGE_SIZE)
-                .map(postId -> {
-                    PostDetailsDTO post = getPostDetails(postId, userId);   // 캐싱된 정보들 다 조합해서 postDetailsDTO 반환해줌
-                    return FeedPostDTO.builder()
-                            .postId(post.getPostId())
-                            .postImgUrls(post.getPostImgUrls())
-                            .contents(post.getContents())
-                            .likeCount(post.getLikes())
-                            .commentCount(post.getComments().size())
-                            .likedByCurrentUser(post.getLikedByCurrentUser())
-                            .bookmarkedByCurrentUser(post.getBookmarkedByCurrentUser())
-                            .isCreatedByCurrentUser(post.getIsCreatedByCurrentUser())
-
-                            .userId(post.getUserId())
-                            .nickname(post.getNickname())
-                            .userImgUrl(post.getUserImgUrl())
-                            .build();
-                })
+                .map(postId -> getPostDetails(postId, userId))
                 .toList();
-
-        Boolean hasNext = postIds.size() > PAGE_SIZE;
-        return FeedRes
-                .builder()
-                .feedPostDTOList(feedPostDTOList)
-                .hasNext(hasNext)
-                .build();
     }
 
 
@@ -264,7 +239,7 @@ public class PostService {
      */
     public Integer loadLikeCountIfAbsent(Long postId) {
         String key = LIKE_COUNT_PREFIX + postId;
-        int likeCount = 0;
+        int likeCount;
         // Redis에 좋아요 개수 존재 여부 확인
         if (Boolean.FALSE.equals(redisTemplate.hasKey(key))) {
             PostDTO post = postMapper.findById(postId);
@@ -273,6 +248,8 @@ public class PostService {
             }
             likeCount = post.getLikes();
             redisTemplate.opsForValue().set(key, likeCount);
+        } else {
+            likeCount = (int) redisTemplate.opsForValue().get(key);
         }
 
         return likeCount;
@@ -284,6 +261,11 @@ public class PostService {
         // Redis에 게시물에 대한 좋아요 개수 캐싱하기(없으면 DB에서 좋아요 개수 가져와서 캐싱하고 있으면 pass)
         loadLikeCountIfAbsent(postId);
 
+        if (likeService.existsLike(userId, postId)) {
+            throw new ApiException(ErrorCode.DUPLICATED_LIKE);
+        }
+
+
         String key = LIKE_COUNT_PREFIX + postId;
         String userLikeKey = USER_LIKE_PREFIX + userId;
         String userUnlikeKey = USER_UNLIKE_PREFIX + userId;
@@ -294,18 +276,19 @@ public class PostService {
             throw new ApiException(ErrorCode.DUPLICATED_LIKE);
         }
 
-        // 삭제 예정인 캐시(userUnlike) 확인 (여기에 있으면 다시 좋아요 누르기 가능)
+        // 삭제 예정인 캐시(userUnlike) 없을 때 (여기에 있으면 다시 좋아요 누르기 가능)
         if (Boolean.FALSE.equals(redisTemplate.opsForSet().isMember(userUnlikeKey, postId))) {
-            // 삭제 예정인 캐시에도 없으면 DB에서 확인
+
+            // 삭제 예정인 캐시에 없고 DB에는 좋아요 기록 있음 -> 예외
             if (likeService.existsLike(userId, postId)) {
                 throw new ApiException(ErrorCode.DUPLICATED_LIKE);
-            } else {
+            } else {    // 삭제 예정 캐시에 없고 DB에도 좋아요 기록 없음 -> 좋아요 증가 && 좋아요 기록 캐싱
                 // 좋아요 증가
                 redisTemplate.opsForValue().increment(key, 1);
                 // 유저 좋아요 기록 캐싱
                 redisTemplate.opsForSet().add(userLikeKey, postId);
             }
-        } else {
+        } else {    // 삭제 예정 캐시에 있음 -> DB에 좋아요 기록 저장되어 있는 상태이기에 그냥 삭제 예정 캐시만 삭제해주면 된다
             // 해당 게시물에 대해 좋아요 취소한 기록이 있다면 기록 삭제
             redisTemplate.opsForSet().remove(userUnlikeKey, postId);
             // 좋아요 증가
@@ -348,29 +331,8 @@ public class PostService {
 
     }
 
-    /**
-     * 로그인한 유저가 좋아요 누른 모든 게시물 가져오기
-     */
-//    public List<PostDetailsDTO> getLikePosts(Long userId, Long lastId) {
-//        List<PostImageDTO> likePosts = likeService.getLikePosts(userId, lastId);
-//
-//        return likePosts.stream()
-//            .map(dto -> {
-//                int likeCount = loadLikeCountIfAbsent(dto.getId());
-//                return MyPostDTO.builder()
-//                    .postId(dto.getId())
-//                    .contents(dto.getContents())
-//                    .likes(likeCount)
-//                    .thumbnailUrl(dto.getImgUrl() + "\\" + dto.getOriginalImgName())
-//                    .isLiked(true)  // 애초에 좋아요 누른 게시물의 정보를 가져온거임 그래서 무조건 true
-//                    .isBookmarked(bookmarkService.existsBookmark(userId, dto.getId()))
-//                    .build();
-//            })
-//            .collect(Collectors.toList());
-//    }
-
     public List<PostDetailsDTO> getLikePosts(Long userId, Long lastId) {
-        // TODO : 아래 주석 구현하기
+        // TODO : 캐시 좋아요 기록과 DB 좋아요 기록 합쳐서 커서 기반 페이징 적용...?
         // DB like 테이블에서 좋아요 누른 게시물 ID 목록 가져오기(커서 기반 페이징)
         List<Long> likePostIds = likeService.getLikePostIds(userId, lastId);
 
