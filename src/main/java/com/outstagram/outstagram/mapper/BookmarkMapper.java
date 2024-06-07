@@ -18,4 +18,6 @@ public interface BookmarkMapper {
 
 
     List<PostImageDTO> findWithPostsAndImageByUserId(Long userId, Long lastId, int size);
+
+    List<Long> findIdsByUserId(Long userId, Long lastId, int size);
 }

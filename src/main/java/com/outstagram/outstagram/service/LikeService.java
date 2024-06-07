@@ -1,5 +1,6 @@
 package com.outstagram.outstagram.service;
 
+import static com.outstagram.outstagram.common.constant.CacheNamesConst.*;
 import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
 
 import com.outstagram.outstagram.dto.LikeDTO;
@@ -10,6 +11,8 @@ import com.outstagram.outstagram.mapper.LikeMapper;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
@@ -33,10 +36,12 @@ public class LikeService {
         }
     }
 
+    @Cacheable(cacheNames = EXISTLIKE, key = "#userId")
     public Boolean existsLike(Long userId, Long postId) {
         return likeMapper.existsUserLike(userId, postId);
     }
 
+    @CacheEvict(cacheNames = EXISTLIKE, key = "#userId")
     public void deleteLike(Long userId, Long postId) {
         int result = likeMapper.deleteLike(userId, postId);
         if (result == 0) {
@@ -46,6 +51,10 @@ public class LikeService {
 
     public List<PostImageDTO> getLikePosts(Long userId, Long lastId) {
         return likeMapper.findWithPostsAndImageByUserId(userId, lastId, PAGE_SIZE);
+    }
+
+    public List<Long> getLikePostIds(Long userId, Long lastId) {
+        return likeMapper.findIdsByUserId(userId, lastId, PAGE_SIZE + 1);
     }
 
 

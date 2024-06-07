@@ -1,5 +1,7 @@
 package com.outstagram.outstagram.controller;
 
+import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
+
 import com.outstagram.outstagram.common.annotation.Login;
 import com.outstagram.outstagram.common.api.ApiResponse;
 import com.outstagram.outstagram.controller.request.CreateCommentReq;
@@ -8,10 +10,12 @@ import com.outstagram.outstagram.controller.request.EditCommentReq;
 import com.outstagram.outstagram.controller.request.EditPostReq;
 import com.outstagram.outstagram.controller.response.FeedRes;
 import com.outstagram.outstagram.controller.response.MyPostsRes;
+import com.outstagram.outstagram.dto.MyPostDTO;
 import com.outstagram.outstagram.dto.PostDetailsDTO;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.service.PostService;
 import jakarta.validation.Valid;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -39,12 +43,13 @@ public class PostController {
     }
 
     @GetMapping
-    public ResponseEntity<List<MyPostsRes>> getMyPosts(@RequestParam(required = false) Long lastId, @Login UserDTO user) {
-        // 첫 요청일 때는 lastId는 null로 옴 -> Long의 최댓값 대입
-        Long lastID = (lastId == null) ? Long.MAX_VALUE : lastId;
-        List<MyPostsRes> myPosts = postService.getMyPosts(user.getId(), lastID);
+    public ResponseEntity<MyPostsRes> getMyPosts(@RequestParam(required = false) Long lastId, @Login UserDTO user) {
 
-        return ResponseEntity.ok(myPosts);
+        List<PostDetailsDTO> myPosts = postService.getMyPosts(user.getId(), lastId);
+
+        MyPostsRes response = convertPostDetailsDtoToMyPostRes(myPosts);
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{postId}")
@@ -72,10 +77,12 @@ public class PostController {
     }
 
     @GetMapping("/likes")
-    public ResponseEntity<List<MyPostsRes>> getLikePosts(@RequestParam(required = false) Long lastId, @Login UserDTO user) {
-        List<MyPostsRes> myLikePosts =  postService.getLikePosts(user.getId(), lastId);
+    public ResponseEntity<MyPostsRes> getLikePosts(@RequestParam(required = false) Long lastId, @Login UserDTO user) {
+        List<PostDetailsDTO> likePosts = postService.getLikePosts(user.getId(), lastId);
 
-        return ResponseEntity.ok(myLikePosts);
+        MyPostsRes response = convertPostDetailsDtoToMyPostRes(likePosts);
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/{postId}/likes")
@@ -95,10 +102,12 @@ public class PostController {
     }
 
     @GetMapping("/bookmarks")
-    public ResponseEntity<List<MyPostsRes>> getBookmarkedPosts(@RequestParam(required = false) Long lastId, @Login UserDTO user) {
-        List<MyPostsRes> myLikePosts =  postService.getBookmarkedPosts(user.getId(), lastId);
+    public ResponseEntity<MyPostsRes> getBookmarkedPosts(@RequestParam(required = false) Long lastId, @Login UserDTO user) {
+        List<PostDetailsDTO> bookmarkedPosts =  postService.getBookmarkedPosts(user.getId(), lastId);
 
-        return ResponseEntity.ok(myLikePosts);
+        MyPostsRes response = convertPostDetailsDtoToMyPostRes(bookmarkedPosts);
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/{postId}/bookmark")
@@ -123,6 +132,7 @@ public class PostController {
     }
 
     // 댓글 등록
+
     @PostMapping("/{postId}/comment")
     public ResponseEntity<ApiResponse> addComment(@PathVariable Long postId, @Login UserDTO user,
         @RequestBody CreateCommentReq commentReq) {
@@ -136,8 +146,8 @@ public class PostController {
                 .build()
         );
     }
-
     // 대댓글 등록
+
     @PostMapping("/{postId}/comments/{commentId}")
     public ResponseEntity<ApiResponse> addReply(@PathVariable("postId") Long postId,
         @PathVariable("commentId") Long commentId,
@@ -153,7 +163,6 @@ public class PostController {
                 .build()
         );
     }
-
     /**
      * (대)댓글 수정
      */
@@ -200,6 +209,29 @@ public class PostController {
     }
 
 
+
+    private static MyPostsRes convertPostDetailsDtoToMyPostRes(List<PostDetailsDTO> myPosts) {
+        boolean hasNext = myPosts.size() > PAGE_SIZE;   // 가져온게 11개면 다음 페이지 존재함
+
+        List<MyPostDTO> postList = myPosts.stream()
+            .limit(PAGE_SIZE)
+            .map(dto -> MyPostDTO.builder()
+                .postId(dto.getPostId())
+                .contents(dto.getContents())
+                .likes(dto.getLikes())
+                //이미지는 한 개만 가져오기
+                .postThumbnailImage(dto.getPostImgUrls().values().stream().findFirst().orElse(null))
+                .isLiked(dto.getLikedByCurrentUser())
+                .isBookmarked(dto.getBookmarkedByCurrentUser())
+                .commentCount(dto.getComments().size())
+                .build())
+            .collect(Collectors.toList());
+
+        return MyPostsRes.builder()
+            .postList(postList)
+            .hasNext(hasNext)
+            .build();
+    }
 }
 
 

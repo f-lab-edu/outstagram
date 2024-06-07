@@ -18,6 +18,8 @@ public interface PostMapper {
 
     List<PostImageDTO> findWithImageByUserId(Long userId, Long lastId, int size);
 
+    List<Long> findIdsByUserId(Long userId, Long lastId, int size);
+
     int updateLikeCount(Long postId, int count);
 
 }

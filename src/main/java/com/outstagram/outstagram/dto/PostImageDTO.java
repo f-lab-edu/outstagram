@@ -16,8 +16,8 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 public class PostImageDTO extends PostDTO implements Serializable {
 
-    private String imgPath;
+    private String imgUrl;
 
-    private String savedImgName;
+    private String originalImgName;
 
 }

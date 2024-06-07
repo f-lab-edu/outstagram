@@ -11,14 +11,12 @@ import com.outstagram.outstagram.controller.request.CreateCommentReq;
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditCommentReq;
 import com.outstagram.outstagram.controller.request.EditPostReq;
-import com.outstagram.outstagram.controller.response.FeedPost;
 import com.outstagram.outstagram.controller.response.FeedRes;
-import com.outstagram.outstagram.controller.response.MyPostsRes;
 import com.outstagram.outstagram.dto.CommentDTO;
+import com.outstagram.outstagram.dto.FeedPostDTO;
 import com.outstagram.outstagram.dto.ImageDTO;
 import com.outstagram.outstagram.dto.PostDTO;
 import com.outstagram.outstagram.dto.PostDetailsDTO;
-import com.outstagram.outstagram.dto.PostImageDTO;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
@@ -61,6 +59,7 @@ public class PostService {
 
     private final RedisTemplate<String, Object> redisTemplate;
 
+
     @Transactional
     public void insertPost(CreatePostReq createPostReq, Long userId) {
         PostDTO newPost = PostDTO.builder()
@@ -83,34 +82,34 @@ public class PostService {
         feedUpdateProducer.send("feed", userId, newPostId);
     }
 
-    // TODO : post 조회 쿼리, image 조회 쿼리, user 조회 쿼리, like 조회 쿼리 => 총 4개 쿼리 발생
-    // TODO : 게시물, 이미지, 좋아요 개수 -> 캐시 데이터 바탕으로 가져오기
-    public List<MyPostsRes> getMyPosts(Long userId, Long lastId) {
-        // 유저의 (게시물과 게시물의 대표이미지) 10개씩 가져오기
-        List<PostImageDTO> postWithImgList = postMapper.findWithImageByUserId(userId, lastId,
-            PAGE_SIZE);
 
+    public List<PostDetailsDTO> getMyPosts(Long userId, Long lastId) {
+        // 유저가 작성한 최신 게시물 11개씩 가져오기 (11개 가져와지면 다음 페이지 존재하는 것)
+        List<Long> ids = postMapper.findIdsByUserId(userId, lastId, PAGE_SIZE + 1);
 
-        return postWithImgList.stream()
-            .map(dto -> MyPostsRes.builder()
-                .postId(dto.getId())
-                .contents(dto.getContents())
-                .likes(dto.getLikes())
-                .thumbnailUrl(dto.getImgPath() + "\\" + dto.getSavedImgName())
-                .isLiked(likeService.existsLike(userId, dto.getId()))
-                .isBookmarked(bookmarkService.existsBookmark(userId, dto.getId()))
-                .build())
+        PostService proxy = (PostService) AopContext.currentProxy();
+
+        return ids.stream()
+            .map(id -> proxy.getPostDetails(id, userId))
             .collect(Collectors.toList());
     }
 
+    /**
+     * 순수 게시물 캐싱
+     */
     @Cacheable(value = CacheNamesConst.POST, key = "#postId")
     public PostDTO getPost(Long postId) {
         return postMapper.findById(postId);
     }
 
+    /**
+     * 각 캐싱된 순수 게시물 + 이미지 정보 + 댓글 + 좋아요 + 북마크 들을 조합해서 종합 게시물 만들어주는 메서드
+     */
     public PostDetailsDTO getPostDetails(Long postId, Long userId) {
-        // 1. Post 가져오기(캐시 사용)
+        // 내부 메서드 호출할 때, @Cacheable 적용되도록 하려면 프록시 객체를 통해서 메서드를 호출해야 함.
         PostService proxy = (PostService) AopContext.currentProxy();
+
+        // 1. 순수 게시물 정보 가져오기(캐시 사용)
         PostDTO post = proxy.getPost(postId);
 
         if (post == null) {
@@ -143,8 +142,8 @@ public class PostService {
                 .contents(post.getContents())
                 .postImgUrls(imageUrlMap)
                 .likes(likeCount)   // 캐시 사용
-                .likedByCurrentUser(likeService.existsLike(userId, post.getId()))   // TODO : 게시물 좋아요 여부도 캐싱 가능할지 고민
-                .bookmarkedByCurrentUser(bookmarkService.existsBookmark(userId, post.getId()))  // TODO : 게시물 북마크 여부도 캐싱 가능할지 고민
+                .likedByCurrentUser(likeService.existsLike(userId, post.getId())) // 캐시
+                .bookmarkedByCurrentUser(bookmarkService.existsBookmark(userId, post.getId())) // 캐시
                 .isCreatedByCurrentUser(isAuthor)
                 .comments(commentService.getComments(post.getId())) // 캐시 사용
                 .build();
@@ -161,7 +160,7 @@ public class PostService {
 
         if (feedList == null) {
             return FeedRes.builder()
-                    .feedPostList(Collections.emptyList())
+                    .feedPostDTOList(Collections.emptyList())
                     .hasNext(false)
                     .build();
         }
@@ -183,11 +182,11 @@ public class PostService {
                 .toList();
         log.info("===== feed : {} 의 postId {}", userId, postIds);
 
-        List<FeedPost> feedPostList = postIds.stream()
+        List<FeedPostDTO> feedPostDTOList = postIds.stream()
                 .limit(PAGE_SIZE)
                 .map(postId -> {
                     PostDetailsDTO post = getPostDetails(postId, userId);   // 캐싱된 정보들 다 조합해서 postDetailsDTO 반환해줌
-                    return FeedPost.builder()
+                    return FeedPostDTO.builder()
                             .postId(post.getPostId())
                             .postImgUrls(post.getPostImgUrls())
                             .contents(post.getContents())
@@ -207,7 +206,7 @@ public class PostService {
         Boolean hasNext = postIds.size() > PAGE_SIZE;
         return FeedRes
                 .builder()
-                .feedPostList(feedPostList)
+                .feedPostDTOList(feedPostDTOList)
                 .hasNext(hasNext)
                 .build();
     }
@@ -352,28 +351,37 @@ public class PostService {
     /**
      * 로그인한 유저가 좋아요 누른 모든 게시물 가져오기
      */
-    public List<MyPostsRes> getLikePosts(Long userId, Long lastId) {
+//    public List<PostDetailsDTO> getLikePosts(Long userId, Long lastId) {
+//        List<PostImageDTO> likePosts = likeService.getLikePosts(userId, lastId);
+//
+//        return likePosts.stream()
+//            .map(dto -> {
+//                int likeCount = loadLikeCountIfAbsent(dto.getId());
+//                return MyPostDTO.builder()
+//                    .postId(dto.getId())
+//                    .contents(dto.getContents())
+//                    .likes(likeCount)
+//                    .thumbnailUrl(dto.getImgUrl() + "\\" + dto.getOriginalImgName())
+//                    .isLiked(true)  // 애초에 좋아요 누른 게시물의 정보를 가져온거임 그래서 무조건 true
+//                    .isBookmarked(bookmarkService.existsBookmark(userId, dto.getId()))
+//                    .build();
+//            })
+//            .collect(Collectors.toList());
+//    }
+
+    public List<PostDetailsDTO> getLikePosts(Long userId, Long lastId) {
         // TODO : 아래 주석 구현하기
         // DB like 테이블에서 좋아요 누른 게시물 ID 목록 가져오기(커서 기반 페이징)
-        // 게시물 ID 목록 순회하면서 getPost(postId) + Redis에서 postId 좋아요 개수 가져오기
-        // 이미지 정보도 캐싱된 이미지 통해서 가져오기
-        // LikePostDTO로 변환
-        // 컨트롤러에서 MyPostRes로 변환 후 반환
-        List<PostImageDTO> likePosts = likeService.getLikePosts(userId, lastId);
+        List<Long> likePostIds = likeService.getLikePostIds(userId, lastId);
 
-        return likePosts.stream()
-            .map(dto -> {
-                int likeCount = loadLikeCountIfAbsent(dto.getId());
-                return MyPostsRes.builder()
-                    .postId(dto.getId())
-                    .contents(dto.getContents())
-                    .likes(likeCount)
-                    .thumbnailUrl(dto.getImgPath() + "\\" + dto.getSavedImgName())
-                    .isLiked(true)  // 애초에 좋아요 누른 게시물의 정보를 가져온거임 그래서 무조건 true
-                    .isBookmarked(bookmarkService.existsBookmark(userId, dto.getId()))
-                    .build();
-            })
+        PostService proxy = (PostService) AopContext.currentProxy();
+
+        // 각 게시물 id에 대해서 PostDetailsDTO 호출하기
+        return likePostIds.stream()
+            .map(id -> proxy.getPostDetails(id, userId))
             .collect(Collectors.toList());
+
+
     }
 
     /* ========================================================================================== */
@@ -381,18 +389,14 @@ public class PostService {
     /**
      * 로그인한 유저가 북마크한 모든 게시물 가져오기
      */
-    public List<MyPostsRes> getBookmarkedPosts(Long userId, Long lastId) {
-        List<PostImageDTO> bookmarkPosts = bookmarkService.getBookmarkedPosts(userId, lastId);
+    public List<PostDetailsDTO> getBookmarkedPosts(Long userId, Long lastId) {
+        List<Long> bookmarkPostIds = bookmarkService.getBookmarkedPostIds(userId, lastId);
 
-        return bookmarkPosts.stream()
-            .map(dto -> MyPostsRes.builder()
-                .postId(dto.getId())
-                .contents(dto.getContents())
-                .likes(dto.getLikes())
-                .thumbnailUrl(dto.getImgPath() + "\\" + dto.getSavedImgName())
-                .isLiked(likeService.existsLike(userId, dto.getId()))
-                .isBookmarked(true) // 애초에 북마크한 게시물의 정보를 가져온거임 그래서 무조건 true
-                .build())
+        PostService proxy = (PostService) AopContext.currentProxy();
+
+        // 각 게시물 id에 대해서 PostDetailsDTO 호출하기
+        return bookmarkPostIds.stream()
+            .map(id -> proxy.getPostDetails(id, userId))
             .collect(Collectors.toList());
     }
 
