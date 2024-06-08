@@ -5,6 +5,7 @@ import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_UNLIKE_PREFIX;
 
 import com.outstagram.outstagram.dto.LikeDTO;
+import com.outstagram.outstagram.dto.LikeRecordDTO;
 import com.outstagram.outstagram.dto.PostImageDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
@@ -24,11 +25,11 @@ public class LikeService {
 
     private final RedisTemplate<String, Object> redisTemplate;
 
-    public void insertLike(Long userId, Long postId) {
+    public void insertLike(Long userId, Long postId, LocalDateTime time) {
         LikeDTO newLike = LikeDTO.builder()
             .userId(userId)
             .postId(postId)
-            .createDate(LocalDateTime.now())
+            .createDate(time)
             .build();
 
         try {
@@ -49,12 +50,11 @@ public class LikeService {
         String userUnlikeKey = USER_UNLIKE_PREFIX + userId;
 
         List<Object> likedPost = redisTemplate.opsForList().range(userLikeKey, 0, -1);
-        List<Long> likePostIds = likedPost.stream()
-            .map(Object::toString)
-            .map(Long::parseLong)
-            .toList();
+        boolean isDuplicate = likedPost.stream()
+            .map(record -> (LikeRecordDTO) record)
+            .anyMatch(record -> record.getPostId().equals(postId));
         // 캐시에 좋아요 누른 기록 있을 때
-        if (likePostIds.contains(postId)) {
+        if (isDuplicate) {
             return true;
         }
 

@@ -14,6 +14,7 @@ import com.outstagram.outstagram.controller.request.EditPostReq;
 import com.outstagram.outstagram.dto.CommentDTO;
 import com.outstagram.outstagram.dto.CommentUserDTO;
 import com.outstagram.outstagram.dto.ImageDTO;
+import com.outstagram.outstagram.dto.LikeRecordDTO;
 import com.outstagram.outstagram.dto.PostDTO;
 import com.outstagram.outstagram.dto.PostDetailsDTO;
 import com.outstagram.outstagram.dto.UserDTO;
@@ -275,9 +276,8 @@ public class PostService {
         // 캐싱되어 있는 곳에서 확인 -> 있으면 바로 예외
         List<Object> likedPost = redisTemplate.opsForList().range(userLikeKey, 0, -1);
         boolean isDuplicate = likedPost.stream()
-            .map(Object::toString)
-            .map(Long::parseLong)
-            .anyMatch(id -> id.equals(postId));
+            .map(record -> (LikeRecordDTO) record)
+            .anyMatch(record -> record.getPostId().equals(postId));
         if (isDuplicate) {
             throw new ApiException(ErrorCode.DUPLICATED_LIKE);
         }
@@ -292,7 +292,8 @@ public class PostService {
                 // 좋아요 증가
                 redisTemplate.opsForValue().increment(key, 1);
                 // 유저 좋아요 기록 캐싱 수정하기
-                redisTemplate.opsForList().leftPush(userLikeKey, postId);
+                LikeRecordDTO likeRecord = new LikeRecordDTO(postId, LocalDateTime.now());
+                redisTemplate.opsForList().leftPush(userLikeKey, likeRecord);
             }
         } else {    // 삭제 예정 캐시에 있음 -> DB에 좋아요 기록 저장되어 있는 상태이기에 그냥 삭제 예정 캐시만 삭제해주면 된다
             // 해당 게시물에 대해 좋아요 취소한 기록이 있다면 기록 삭제
@@ -321,9 +322,8 @@ public class PostService {
         // Redis에 좋아요 누른 기록 없는 경우
         List<Object> likedPost = redisTemplate.opsForList().range(userLikeKey, 0, -1);
         boolean isNotLiked = likedPost.stream()
-            .map(Object::toString)
-            .map(Long::parseLong)
-            .noneMatch(id -> id.equals(postId));    // postId와 일치하는 요소가 하나도 없으면 true 반환
+            .map(record -> (LikeRecordDTO) record)
+            .noneMatch(record -> record.getPostId().equals(postId));    // postId와 일치하는 요소가 하나도 없으면 true 반환
         if (isNotLiked) {
             // DB에도 좋아요 기록 없는 경우 -> 예외
             if (!likeService.existsLike(userId,postId)) {
@@ -338,7 +338,13 @@ public class PostService {
         redisTemplate.opsForValue().decrement(key, 1);
 
         // 유저 좋아요 기록 캐시 삭제
-        redisTemplate.opsForList().remove(userLikeKey, 0, postId);
+        likedPost.stream()
+            .map(record -> (LikeRecordDTO) record)
+            .filter(record -> record.getPostId().equals(postId))
+            .findFirst()
+            .ifPresent(
+                recordToRemove -> redisTemplate.opsForList().remove(userLikeKey, 1, recordToRemove)
+            );
 
     }
 
@@ -348,10 +354,9 @@ public class PostService {
 
 
         // 캐시에서 좋아요 누른 기록 가져오기
-        List<Long> recentLikeIdList = redisTemplate.opsForList().range(userLikeKey, 0, -1)
+        List<LikeRecordDTO> recentLikeIdList = redisTemplate.opsForList().range(userLikeKey, 0, -1)
             .stream()
-            .map(Object::toString)
-            .map(Long::parseLong)
+            .map(record -> (LikeRecordDTO) record)
             .toList();
 
         PostService proxy = (PostService) AopContext.currentProxy();
@@ -363,13 +368,13 @@ public class PostService {
                 log.info("첫 요청 : 캐시에 10개 이상 존재");
                 postDetailList = recentLikeIdList.stream()
                     .limit(PAGE_SIZE + 1)
-                    .map(id -> proxy.getPostDetails(id, userId))
+                    .map(record -> proxy.getPostDetails(record.getPostId(), userId))
                     .collect(Collectors.toList());
             } else if (recentIdSize == 10) {   // 딱 10개면 hasNext 알기 위해 DB에 1개 추가 질의
                 log.info("첫 요청 : 캐시에 딱 10개 존재");
 
                 postDetailList = recentLikeIdList.stream()
-                    .map(id -> proxy.getPostDetails(id, userId))
+                    .map(record -> proxy.getPostDetails(record.getPostId(), userId))
                     .collect(Collectors.toList());
 
                 List<Long> likePostIds = likeService.getLikePostIds(userId, null, 1);
@@ -381,7 +386,7 @@ public class PostService {
             } else if (!recentLikeIdList.isEmpty()) { // 캐시에 1개 이상 10개 미만 있는 경우 -> 캐시 데이터 + DB 데이터 합쳐서 11개 가져오기
                 log.info("첫 요청 : 캐시에 1개 이상 10개 미만 존재");
                 postDetailList = recentLikeIdList.stream()
-                    .map(id -> proxy.getPostDetails(id, userId))
+                    .map(record -> proxy.getPostDetails(record.getPostId(), userId))
                     .collect(Collectors.toList());
                 int need = PAGE_SIZE + 1 - postDetailList.size();
 
@@ -401,7 +406,7 @@ public class PostService {
             // lastId가 캐시에 있는지 확인
             int startIndex = 0;
             for (int i = 0; i < recentLikeIdList.size(); i++) {
-                if (Long.parseLong(recentLikeIdList.get(i).toString()) == lastId) {
+                if (recentLikeIdList.get(i).getPostId().equals(lastId)) {
                     startIndex = i + 1;  // lastId의 다음 인덱스부터 시작
                     break;
                 }
@@ -416,8 +421,8 @@ public class PostService {
                 }
             } else {    // lastId가 캐시에 있다 -> 캐시에서 페이징하고 남은만큼 DB에서 페이징
                 int toIndex = Math.min((startIndex + PAGE_SIZE + 1), recentIdSize);
-                postDetailList = recentLikeIdList.subList(startIndex,  toIndex).stream()
-                    .map(id -> proxy.getPostDetails(id, userId))
+                postDetailList = recentLikeIdList.subList(startIndex, toIndex).stream()
+                    .map(record -> proxy.getPostDetails(record.getPostId(), userId))
                     .collect(Collectors.toList());
 
                 int need = PAGE_SIZE + 1 - postDetailList.size();

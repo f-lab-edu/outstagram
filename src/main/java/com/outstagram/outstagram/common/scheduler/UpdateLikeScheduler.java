@@ -4,6 +4,7 @@ import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.LIKE
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_LIKE_PREFIX;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_UNLIKE_PREFIX;
 
+import com.outstagram.outstagram.dto.LikeRecordDTO;
 import com.outstagram.outstagram.mapper.PostMapper;
 import com.outstagram.outstagram.service.LikeService;
 import java.util.List;
@@ -62,16 +63,17 @@ public class UpdateLikeScheduler {
         if (userLikeKeys != null) {
             for (String key : userLikeKeys) {
                 Long userId = Long.parseLong(key.replace(USER_LIKE_PREFIX, ""));
-                List<Object> postIds = redisTemplate.opsForList().range(key, 0, -1);
-                if (postIds != null) {
+                List<LikeRecordDTO> likeRecordList = redisTemplate.opsForList().range(key, 0, -1)
+                    .stream()
+                    .map(record -> (LikeRecordDTO) record)
+                    .toList();
 
-                    postIds.stream()
-                        .map(Object::toString)
-                        .map(Long::parseLong)
-                        .forEach(postId-> likeService.insertLike(userId, postId));
-                    // 캐시에서 해당 키 삭제
-                    redisTemplate.delete(key);
-                }
+                likeRecordList
+                    .forEach(record -> likeService.insertLike(userId, record.getPostId(),
+                        record.getLikeAt()));
+
+                // 캐시에서 해당 키 삭제
+                redisTemplate.delete(key);
             }
         }
         log.info("=================== 좋아요 정보 DB에 insert 종료");

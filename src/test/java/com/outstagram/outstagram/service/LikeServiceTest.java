@@ -11,6 +11,7 @@ import com.outstagram.outstagram.dto.LikeDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.LikeMapper;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -37,7 +38,7 @@ class LikeServiceTest {
 //            .createDate(LocalDateTime.now())
 //            .build();
 
-        likeService.insertLike(userId, postId);
+        likeService.insertLike(userId, postId, LocalDateTime.now());
 
         verify(likeMapper).insertLike(any(LikeDTO.class));
     }
