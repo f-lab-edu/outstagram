@@ -1,12 +1,12 @@
 package com.outstagram.outstagram.service;
 
 
+import static com.outstagram.outstagram.common.constant.CacheNamesConst.POST;
 import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.LIKE_COUNT_PREFIX;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_LIKE_PREFIX;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_UNLIKE_PREFIX;
 
-import com.outstagram.outstagram.common.constant.CacheNamesConst;
 import com.outstagram.outstagram.controller.request.CreateCommentReq;
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditCommentReq;
@@ -98,7 +98,7 @@ public class PostService {
     /**
      * 순수 게시물 캐싱
      */
-    @Cacheable(value = CacheNamesConst.POST, key = "#postId")
+    @Cacheable(value = POST, key = "#postId")
     public PostDTO getPost(Long postId) {
         return postMapper.findById(postId);
     }
@@ -191,7 +191,7 @@ public class PostService {
 
 
     @Transactional
-    @Caching(evict = @CacheEvict(value = CacheNamesConst.POST, key = "#postId"))
+    @Caching(evict = @CacheEvict(value = POST, key = "#postId"))
     public void editPost(Long postId, EditPostReq editPostReq, Long userId) {
         // 수정할 게시물 가져오기
         PostDTO post = postMapper.findById(postId);
@@ -224,7 +224,7 @@ public class PostService {
      * 게시물 삭제 비동기 처리
      */
     @Transactional
-    @Caching(evict = @CacheEvict(value = CacheNamesConst.POST, key = "#postId"))
+    @Caching(evict = @CacheEvict(value = POST, key = "#postId"))
     public void deletePost(Long postId, Long userId) {
 
         // 게시물이 존재하는지 & 삭제 권한 있는지 검증
@@ -359,48 +359,32 @@ public class PostService {
             .map(record -> (LikeRecordDTO) record)
             .toList();
 
-        PostService proxy = (PostService) AopContext.currentProxy();
-        List<PostDetailsDTO> postDetailList;
         int recentIdSize = recentLikeIdList.size();
+
+        List<Long> idList = new ArrayList<>();
 
         if (lastId == null) {   // 첫 요청 : 캐시 -> DB
             if (recentIdSize > 10) {      // 짜른게 10개 초과 -> 캐시만으로 해결
-                log.info("첫 요청 : 캐시에 10개 이상 존재");
-                postDetailList = recentLikeIdList.stream()
+                recentLikeIdList.stream()
                     .limit(PAGE_SIZE + 1)
-                    .map(record -> proxy.getPostDetails(record.getPostId(), userId))
-                    .collect(Collectors.toList());
+                    .forEach(record -> idList.add(record.getPostId()));
             } else if (recentIdSize == 10) {   // 딱 10개면 hasNext 알기 위해 DB에 1개 추가 질의
-                log.info("첫 요청 : 캐시에 딱 10개 존재");
-
-                postDetailList = recentLikeIdList.stream()
-                    .map(record -> proxy.getPostDetails(record.getPostId(), userId))
-                    .collect(Collectors.toList());
+                recentLikeIdList.forEach(record -> idList.add(record.getPostId()));
 
                 List<Long> likePostIds = likeService.getLikePostIds(userId, null, 1);
-                if (likePostIds.isEmpty()) {    // DB 조회한게 없으면 딱 10개 리턴
-                    return postDetailList;
+
+                if (!likePostIds.isEmpty()) {    // DB에서 1개 조회해왔으면 그거 추가
+                    idList.add(likePostIds.get(0));
                 }
-                // 있으면 찾아온 한 개 추가해서 리턴
-                postDetailList.add(proxy.getPostDetails(likePostIds.get(0), userId));
             } else if (!recentLikeIdList.isEmpty()) { // 캐시에 1개 이상 10개 미만 있는 경우 -> 캐시 데이터 + DB 데이터 합쳐서 11개 가져오기
-                log.info("첫 요청 : 캐시에 1개 이상 10개 미만 존재");
-                postDetailList = recentLikeIdList.stream()
-                    .map(record -> proxy.getPostDetails(record.getPostId(), userId))
-                    .collect(Collectors.toList());
-                int need = PAGE_SIZE + 1 - postDetailList.size();
+                recentLikeIdList.forEach(record -> idList.add(record.getPostId()));
+                int need = PAGE_SIZE + 1 - idList.size();
 
                 List<Long> likePostIds = likeService.getLikePostIds(userId, null, need);
-                for (Long id : likePostIds) {
-                    postDetailList.add(proxy.getPostDetails(id, userId));
-                }
+                idList.addAll(likePostIds);
             } else { // 캐시에 1개도 없음 -> DB에서만 11개 조회해서 반환하기
-                log.info("첫 요청 : 캐시에 0개 존재");
-                postDetailList = new ArrayList<>();
                 List<Long> likePostIds = likeService.getLikePostIds(userId, lastId, PAGE_SIZE + 1);
-                for (Long id : likePostIds) {
-                    postDetailList.add(proxy.getPostDetails(id, userId));
-                }
+                idList.addAll(likePostIds);
             }
         } else {    // 첫 요청을 제외한 모든 요청
             // lastId가 캐시에 있는지 확인
@@ -414,26 +398,26 @@ public class PostService {
 
             // lastId가 캐시에 없다 = 캐시는 이미 다 읽었거나, 없기 때문에  DB에서 가져와야 함
             if (startIndex == 0) {
-                postDetailList = new ArrayList<>();
                 List<Long> likePostIds = likeService.getLikePostIds(userId, lastId, PAGE_SIZE + 1);
-                for (Long id : likePostIds) {
-                    postDetailList.add(proxy.getPostDetails(id, userId));
-                }
+                idList.addAll(likePostIds);
             } else {    // lastId가 캐시에 있다 -> 캐시에서 페이징하고 남은만큼 DB에서 페이징
                 int toIndex = Math.min((startIndex + PAGE_SIZE + 1), recentIdSize);
-                postDetailList = recentLikeIdList.subList(startIndex, toIndex).stream()
-                    .map(record -> proxy.getPostDetails(record.getPostId(), userId))
-                    .collect(Collectors.toList());
+                recentLikeIdList.subList(startIndex, toIndex)
+                    .forEach(record -> idList.add(record.getPostId()));
 
-                int need = PAGE_SIZE + 1 - postDetailList.size();
+                int need = PAGE_SIZE + 1 - idList.size();
                 if (need != 0) {    // 남은 건 DB에서 가져오기
                     List<Long> likePostIds = likeService.getLikePostIds(userId, null, need);
-                    for (Long id : likePostIds) {
-                        postDetailList.add(proxy.getPostDetails(id, userId));
-                    }
+                    idList.addAll(likePostIds);
                 }
             }
         }
+
+        PostService proxy = (PostService) AopContext.currentProxy();
+        List<PostDetailsDTO> postDetailList = new ArrayList<>(11);
+        log.info("캐시와 DB 합친 좋아요 리스트 : {}", idList);
+
+        idList.forEach(id -> postDetailList.add(proxy.getPostDetails(id, userId)));
 
         return postDetailList;
     }
