@@ -10,7 +10,5 @@ public class CacheNamesConst {
     public static final String USER = "userInfo";
     public static final String COMMENT = "comments";
     public static final String IMAGE = "images";
-    public static final String EXISTLIKE = "existLike";
-    public static final String EXISTBOOKMARK = "existBookmark";
 
 }

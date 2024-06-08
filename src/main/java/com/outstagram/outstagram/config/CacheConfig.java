@@ -1,9 +1,7 @@
 package com.outstagram.outstagram.config;
 
 import static com.outstagram.outstagram.common.constant.CacheNamesConst.COMMENT;
-import static com.outstagram.outstagram.common.constant.CacheNamesConst.EXISTBOOKMARK;
 import static com.outstagram.outstagram.common.constant.CacheNamesConst.IMAGE;
-import static com.outstagram.outstagram.common.constant.CacheNamesConst.EXISTLIKE;
 import static com.outstagram.outstagram.common.constant.CacheNamesConst.POST;
 import static com.outstagram.outstagram.common.constant.CacheNamesConst.USER;
 
@@ -79,8 +77,6 @@ public class CacheConfig {
         redisCacheConfigMap.put(POST, defaultConfig.entryTtl(Duration.ofHours(1)));
         redisCacheConfigMap.put(COMMENT, defaultConfig.entryTtl(Duration.ofHours(1)));
         redisCacheConfigMap.put(IMAGE, defaultConfig.entryTtl(Duration.ofHours(1)));
-        redisCacheConfigMap.put(EXISTLIKE, defaultConfig.entryTtl(Duration.ofHours(1)));
-        redisCacheConfigMap.put(EXISTBOOKMARK, defaultConfig.entryTtl(Duration.ofHours(1)));
         redisCacheConfigMap.put(USER, defaultConfig.entryTtl(Duration.ofHours(5)));
 
         return RedisCacheManager.builder(connectionFactory)
