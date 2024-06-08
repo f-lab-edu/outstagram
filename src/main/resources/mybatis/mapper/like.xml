@@ -91,15 +91,20 @@
     l.user_id = #{userId}
     AND p.is_deleted = 0
     <if test="lastId != null">
-      AND l.create_date &lt; (
+      AND (l.create_date &lt; (
       SELECT create_date
       FROM `like`
       WHERE post_id = #{lastId}
       LIMIT 1
       )
+      OR (l.create_date = (
+      SELECT create_date
+      FROM `like`
+      WHERE post_id = #{lastId}
+      LIMIT 1
+      ) AND l.post_id > #{lastId}))
     </if>
-
-    ORDER BY l.create_date DESC
+    ORDER BY l.create_date DESC, l.post_id ASC
     LIMIT #{size}
   </select>
 
