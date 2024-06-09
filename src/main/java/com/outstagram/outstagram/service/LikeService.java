@@ -39,6 +39,8 @@ public class LikeService {
         }
     }
 
+
+
     /**
      * 캐시에 좋아요 누른 기록 없음 & 캐시에 좋아요 취소한 기록 있음 -> false
      * 캐시, DB 아무 곳에도 좋아요 기록 없음 -> false

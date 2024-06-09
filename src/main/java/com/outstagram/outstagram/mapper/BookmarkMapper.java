@@ -20,4 +20,8 @@ public interface BookmarkMapper {
     List<PostImageDTO> findWithPostsAndImageByUserId(Long userId, Long lastId, int size);
 
     List<Long> findIdsByUserId(Long userId, Long lastId, int size);
+
+    void insertBookmarkAll(List<BookmarkDTO> bookmarkList);
+
+    int deleteBookmarkAll(List<BookmarkDTO> deleteBookmarkList);
 }

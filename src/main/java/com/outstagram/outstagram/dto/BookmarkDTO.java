@@ -20,4 +20,9 @@ public class BookmarkDTO implements Serializable {
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createDate;
+
+    public BookmarkDTO(Long userId, Long postId) {
+        this.userId = userId;
+        this.postId = postId;
+    }
 }

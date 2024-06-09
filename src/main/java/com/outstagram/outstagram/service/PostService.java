@@ -4,13 +4,16 @@ package com.outstagram.outstagram.service;
 import static com.outstagram.outstagram.common.constant.CacheNamesConst.POST;
 import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.LIKE_COUNT_PREFIX;
+import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_BOOKMARK_PREFIX;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_LIKE_PREFIX;
+import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_UNBOOKMARK_PREFIX;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_UNLIKE_PREFIX;
 
 import com.outstagram.outstagram.controller.request.CreateCommentReq;
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditCommentReq;
 import com.outstagram.outstagram.controller.request.EditPostReq;
+import com.outstagram.outstagram.dto.BookmarkRecordDTO;
 import com.outstagram.outstagram.dto.CommentDTO;
 import com.outstagram.outstagram.dto.CommentUserDTO;
 import com.outstagram.outstagram.dto.ImageDTO;
@@ -245,6 +248,7 @@ public class PostService {
         int likeCount;
         // Redis에 좋아요 개수 캐싱된적 없으면 -> DB에서 가져와서 좋아요 개수 캐싱하기
         if (Boolean.FALSE.equals(redisTemplate.hasKey(key))) {
+            // 삭제되거나 없는 게시물이면 예외 던지기
             PostDTO post = postMapper.findById(postId);
             if (post == null) {
                 throw new ApiException(ErrorCode.POST_NOT_FOUND);
@@ -261,7 +265,7 @@ public class PostService {
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void increaseLike(Long postId, Long userId) {
         // Redis에 게시물에 대한 좋아요 개수 캐싱하기(없으면 DB에서 좋아요 개수 가져와서 캐싱하고 있으면 pass)
-        loadLikeCountIfAbsent(postId);
+        loadLikeCountIfAbsent(postId); // 게시물 존재 여부도 검증함
         String likeCountKey = LIKE_COUNT_PREFIX + postId;
         String userLikeKey = USER_LIKE_PREFIX + userId;
         String userUnlikeKey = USER_UNLIKE_PREFIX + userId;
@@ -290,7 +294,7 @@ public class PostService {
      */
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void unlikePost(Long postId, Long userId) {
-        loadLikeCountIfAbsent(postId);
+        loadLikeCountIfAbsent(postId);  // 게시물 존재 여부도 검증함
 
         String key = LIKE_COUNT_PREFIX + postId;
         String userLikeKey = USER_LIKE_PREFIX + userId;
@@ -407,14 +411,77 @@ public class PostService {
      * 로그인한 유저가 북마크한 모든 게시물 가져오기
      */
     public List<PostDetailsDTO> getBookmarkedPosts(Long userId, Long lastId) {
-        List<Long> bookmarkPostIds = bookmarkService.getBookmarkedPostIds(userId, lastId);
+        // 먼저 캐시 북마크 누른 기록 확인 후 -> 모자라면 DB에서 북마크 ID 목록 가져오기 (캐시에 항상 최신 데이터)
+        String userBookmarkKey = USER_BOOKMARK_PREFIX + userId;
+
+
+        // 캐시에서 북마크 누른 기록 가져오기
+        List<BookmarkRecordDTO> recentBookmarkIdList = redisTemplate.opsForList().range(userBookmarkKey, 0, -1)
+            .stream()
+            .map(record -> (BookmarkRecordDTO) record)
+            .toList();
+
+        int recentIdSize = recentBookmarkIdList.size();
+
+        List<Long> idList = new ArrayList<>();
+
+        if (lastId == null) {   // 첫 요청 : 캐시 -> DB
+            if (recentIdSize > 10) {      // 짜른게 10개 초과 -> 캐시만으로 해결
+                recentBookmarkIdList.stream()
+                    .limit(PAGE_SIZE + 1)
+                    .forEach(record -> idList.add(record.getPostId()));
+            } else if (recentIdSize == 10) {   // 딱 10개면 hasNext 알기 위해 DB에 1개 추가 질의
+                recentBookmarkIdList.forEach(record -> idList.add(record.getPostId()));
+
+                List<Long> bookmarkIds = bookmarkService.getBookmarkedPostIds(userId, null, 1);
+
+                if (!bookmarkIds.isEmpty()) {    // DB에서 1개 조회해왔으면 그거 추가
+                    idList.add(bookmarkIds.get(0));
+                }
+            } else if (!recentBookmarkIdList.isEmpty()) { // 캐시에 1개 이상 10개 미만 있는 경우 -> 캐시 데이터 + DB 데이터 합쳐서 11개 가져오기
+                recentBookmarkIdList.forEach(record -> idList.add(record.getPostId()));
+                int need = PAGE_SIZE + 1 - idList.size();
+
+                List<Long> bookmarkIds = bookmarkService.getBookmarkedPostIds(userId, null, need);
+                idList.addAll(bookmarkIds);
+            } else { // 캐시에 1개도 없음 -> DB에서만 11개 조회해서 반환하기
+                List<Long> bookmarkIds = bookmarkService.getBookmarkedPostIds(userId, lastId, PAGE_SIZE + 1);
+                idList.addAll(bookmarkIds);
+            }
+        } else {    // 첫 요청을 제외한 모든 요청
+            // lastId가 캐시에 있는지 확인
+            int startIndex = 0;
+            for (int i = 0; i < recentBookmarkIdList.size(); i++) {
+                if (recentBookmarkIdList.get(i).getPostId().equals(lastId)) {
+                    startIndex = i + 1;  // lastId의 다음 인덱스부터 시작
+                    break;
+                }
+            }
+
+            // lastId가 캐시에 없다 = 캐시는 이미 다 읽었거나, 없기 때문에  DB에서 가져와야 함
+            if (startIndex == 0) {
+                List<Long> bookmarkIds = bookmarkService.getBookmarkedPostIds(userId, lastId, PAGE_SIZE + 1);
+                idList.addAll(bookmarkIds);
+            } else {    // lastId가 캐시에 있다 -> 캐시에서 페이징하고 남은만큼 DB에서 페이징
+                int toIndex = Math.min((startIndex + PAGE_SIZE + 1), recentIdSize);
+                recentBookmarkIdList.subList(startIndex, toIndex)
+                    .forEach(record -> idList.add(record.getPostId()));
+
+                int need = PAGE_SIZE + 1 - idList.size();
+                if (need != 0) {    // 남은 건 DB에서 가져오기
+                    List<Long> bookmarkIds = bookmarkService.getBookmarkedPostIds(userId, null, need);
+                    idList.addAll(bookmarkIds);
+                }
+            }
+        }
 
         PostService proxy = (PostService) AopContext.currentProxy();
+        List<PostDetailsDTO> postDetailList = new ArrayList<>(11);
+        log.info("캐시와 DB 합친 북마크 리스트 : {}", idList);
 
-        // 각 게시물 id에 대해서 PostDetailsDTO 호출하기
-        return bookmarkPostIds.stream()
-            .map(id -> proxy.getPostDetails(id, userId))
-            .collect(Collectors.toList());
+        idList.forEach(id -> postDetailList.add(proxy.getPostDetails(id, userId)));
+
+        return postDetailList;
     }
 
     /**
@@ -422,7 +489,32 @@ public class PostService {
      */
     @Transactional
     public void addBookmark(Long postId, Long userId) {
-        bookmarkService.insertBookmark(userId, postId);
+        PostService proxy = (PostService) AopContext.currentProxy();
+
+        // 게시물 존재 여부 검증
+        PostDTO post = proxy.getPost(postId);
+        if (post == null) {
+            throw new ApiException(ErrorCode.POST_NOT_FOUND);
+        }
+
+        String userBookmarkKey = USER_BOOKMARK_PREFIX + userId;
+        String userUnbookmarkKey = USER_UNBOOKMARK_PREFIX + userId;
+
+        // 캐시에 북마크 누른 기록 있음 OR (캐시에 아무 기록 없고 DB에 북마크 기록 있음) -> 중복 북마크 방지
+        if (bookmarkService.existsBookmark(userId, postId)) {
+            throw new ApiException(ErrorCode.DUPLICATED_BOOKMARK);
+        } else {    // 캐시에 취소한 기록 있거나, 아무 곳에도 북마크 기록 없음
+            // 캐시에 북마크 취소 기록 있는 경우
+            if (redisTemplate.opsForSet().isMember(userUnbookmarkKey, postId)) {
+                // 캐시의 북마크 취소 기록을 삭제(-> DB에는 북마크 기록 있는 상태)
+                redisTemplate.opsForSet().remove(userUnbookmarkKey, postId);
+            } else { // 캐시, DB 모두 북마크 기록 없음
+                // 캐시에 북마크 누른 기록 추가
+                BookmarkRecordDTO bookmarkRecord = new BookmarkRecordDTO(postId,
+                    LocalDateTime.now());
+                redisTemplate.opsForList().leftPush(userBookmarkKey, bookmarkRecord);
+            }
+        }
     }
 
     /**
@@ -430,7 +522,41 @@ public class PostService {
      */
     @Transactional
     public void deleteBookmark(Long postId, Long userId) {
-        bookmarkService.deleteBookmark(userId, postId);
+        PostService proxy = (PostService) AopContext.currentProxy();
+
+        PostDTO post = proxy.getPost(postId);
+        if (post == null) {
+            throw new ApiException(ErrorCode.POST_NOT_FOUND);
+        }
+        String userBookmarkKey = USER_BOOKMARK_PREFIX + userId;
+        String userUnbookmarkKey = USER_UNBOOKMARK_PREFIX + userId;
+
+
+        // 북마크 존재하지 않는 경우 -> 취소 불가능
+        if (!bookmarkService.existsBookmark(userId, postId)) {
+            throw new ApiException(ErrorCode.NOT_FOUND_BOOKMARK);
+        }
+
+        // 북마크 존재하는 경우
+        List<Object> bookmarkedPosts = redisTemplate.opsForList().range(userBookmarkKey, 0, -1);
+        boolean isBookmarkRecordInCache = bookmarkedPosts.stream()
+            .map(record -> (BookmarkRecordDTO) record)
+            .anyMatch(record -> record.getPostId().equals(postId));
+
+        // 1. 캐시에 북마크 누른 기록 있는 경우
+        if (isBookmarkRecordInCache) {
+            // 캐시에서 북마크 누른 기록 삭제
+            bookmarkedPosts.stream()
+                .map(record -> (BookmarkRecordDTO) record)
+                .filter(record -> record.getPostId().equals(postId))
+                .findFirst()
+                .ifPresent(
+                    recordToRemove -> redisTemplate.opsForList().remove(userBookmarkKey, 1, recordToRemove)
+                );
+        } else {    // 2. DB에만 북마크 기록 있음(캐시에는 아무 기록 없음)
+            // 캐시에 북마크 취소 기록 생성
+            redisTemplate.opsForSet().add(userUnbookmarkKey, postId);
+        }
     }
 
     /* ========================================================================================== */

@@ -55,6 +55,7 @@ public enum ErrorCode {
 
     // bookmark 관련 에러 코드
     DUPLICATED_BOOKMARK(HttpStatus.CONFLICT, "이미 북마크한 게시물입니다."),
+    NOT_FOUND_BOOKMARK(HttpStatus.INTERNAL_SERVER_ERROR, "북마크 기록이 없습니다"),
 
     NULL_POINT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "null point error 입니다.");
 

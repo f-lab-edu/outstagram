@@ -8,6 +8,14 @@
     VALUES (#{userId}, #{postId}, #{createDate})
   </insert>
 
+  <insert id="insertBookmarkAll" parameterType="java.util.List">
+    INSERT INTO bookmark (user_id, post_id, create_date)
+    VALUES
+        <foreach collection="list" item="dto" separator=",">
+          (#{dto.userId}, #{dto.postId}, #{dto.createDate})
+        </foreach>
+  </insert>
+
   <select id="existsUserBookmark" resultType="boolean">
     SELECT CASE WHEN COUNT(*) > 0 THEN true ELSE false END
     FROM bookmark
@@ -19,6 +27,14 @@
     DELETE FROM bookmark
     WHERE user_id = #{userId}
       AND post_id = #{postId}
+  </delete>
+
+  <delete id="deleteBookmarkAll" parameterType="java.util.List">
+    DELETE FROM bookmark
+    WHERE (user_id, post_id) IN
+    <foreach collection="list" item="dto" open="(" separator="),(" close=")">
+      #{dto.userId}, #{dto.postId}
+    </foreach>
   </delete>
 
   <delete id="deleteByPostId">
