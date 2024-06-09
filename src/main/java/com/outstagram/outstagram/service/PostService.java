@@ -325,39 +325,6 @@ public class PostService {
 
         // 좋아요 개수 1 감소
         redisTemplate.opsForValue().decrement(key, 1);
-
-//        // 이미 좋아요 취소해서 Redis에 취소할 내용 캐시된 상태 -> 5분안에 DB에서 delete 될 예정
-//        if (Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(userUnlikeKey, postId))) {
-//            throw new ApiException(ErrorCode.NOT_FOUND_LIKE);
-//        }
-//
-//        // Redis에 좋아요 누른 기록 없는 경우
-//        List<Object> likedPost = redisTemplate.opsForList().range(userLikeKey, 0, -1);
-//        boolean isNotLiked = likedPost.stream()
-//            .map(record -> (LikeRecordDTO) record)
-//            .noneMatch(record -> record.getPostId().equals(postId));    // postId와 일치하는 요소가 하나도 없으면 true 반환
-//        if (isNotLiked) {
-//            // DB에도 좋아요 기록 없는 경우 -> 예외
-//            if (!likeService.existsLike(userId,postId)) {
-//                throw new ApiException(ErrorCode.NOT_FOUND_LIKE);
-//            }
-//
-//            // Redis에 좋아요 기록 없고 & DB에는 좋아요 기록 있음 -> 5분마다 DB에 반영
-//            redisTemplate.opsForSet().add(userUnlikeKey, postId);
-//        }
-//
-//        // 좋아요 개수 감소
-//        redisTemplate.opsForValue().decrement(key, 1);
-//
-//        // 유저 좋아요 기록 캐시 삭제
-//        likedPost.stream()
-//            .map(record -> (LikeRecordDTO) record)
-//            .filter(record -> record.getPostId().equals(postId))
-//            .findFirst()
-//            .ifPresent(
-//                recordToRemove -> redisTemplate.opsForList().remove(userLikeKey, 1, recordToRemove)
-//            );
-
     }
 
     public List<PostDetailsDTO> getLikePosts(Long userId, Long lastId) {
