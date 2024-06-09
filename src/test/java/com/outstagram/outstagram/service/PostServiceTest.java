@@ -145,8 +145,8 @@ class PostServiceTest {
         );
 
         when(postMapper.findWithImageByUserId(userId, 9223372036854775807L, PAGE_SIZE)).thenReturn(mockPostImages);
-        when(likeService.existsLike(userId, 1L)).thenReturn(true);
-        when(likeService.existsLike(userId, 2L)).thenReturn(false);
+        when(likeService.existsLike(userId, 1L)).thenReturn(1);
+        when(likeService.existsLike(userId, 2L)).thenReturn(1);
 
         List<PostDetailsDTO> myPosts = postService.getMyPosts(userId, 9223372036854775807L);
 

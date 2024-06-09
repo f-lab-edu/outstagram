@@ -1,6 +1,6 @@
 package com.outstagram.outstagram.service;
 
-import static com.outstagram.outstagram.common.constant.CacheNamesConst.IMAGE;
+import static com.outstagram.outstagram.common.constant.CacheConst.IMAGE;
 
 import com.outstagram.outstagram.dto.ImageDTO;
 import com.outstagram.outstagram.exception.ApiException;

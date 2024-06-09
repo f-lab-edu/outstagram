@@ -1,8 +1,10 @@
 package com.outstagram.outstagram.service;
 
+import static com.outstagram.outstagram.common.constant.CacheConst.IN_CACHE;
+import static com.outstagram.outstagram.common.constant.CacheConst.IN_DB;
+import static com.outstagram.outstagram.common.constant.CacheConst.NOT_FOUND;
 import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_BOOKMARK_PREFIX;
-import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_UNBOOKMARK_PREFIX;
 
 import com.outstagram.outstagram.dto.BookmarkDTO;
 import com.outstagram.outstagram.dto.BookmarkRecordDTO;
@@ -36,6 +38,8 @@ public class BookmarkService {
             bookmarkMapper.insertBookmark(newBookmark);
         } catch (DuplicateKeyException e) {
             throw new ApiException(ErrorCode.DUPLICATED_BOOKMARK);
+        } catch (Exception e) {
+            throw new ApiException(e, ErrorCode.INSERT_ERROR);
         }
     }
 
@@ -45,15 +49,19 @@ public class BookmarkService {
                 bookmarkMapper.insertBookmarkAll(bookmarkList);
             } catch (DuplicateKeyException e) {
                 throw new ApiException(ErrorCode.DUPLICATED_BOOKMARK);
+            } catch (Exception e) {
+                throw new ApiException(e, ErrorCode.INSERT_ERROR);
             }
         }
-
-
     }
 
-    public Boolean existsBookmark(Long userId, Long postId) {
+    /**
+     * 캐시에 있음 -> 2
+     * DB에 있음 -> 1
+     * 없음 -> 0
+     */
+    public int existsBookmark(Long userId, Long postId) {
         String userBookmarkKey = USER_BOOKMARK_PREFIX + userId;
-        String userUnbookmarkKey = USER_UNBOOKMARK_PREFIX + userId;
 
         List<Object> likedPost = redisTemplate.opsForList().range(userBookmarkKey, 0, -1);
         boolean isBookmarkRecordInCache = likedPost.stream()
@@ -62,16 +70,11 @@ public class BookmarkService {
 
         // 캐시에 북마크 누른 기록 있을 때
         if (isBookmarkRecordInCache) {
-            return true;
+            return IN_CACHE;
         }
 
-        // 캐시에 북마크 취소한 기록 있을 때
-        if (redisTemplate.opsForSet().isMember(userUnbookmarkKey, postId)) {
-            return false;
-        }
-
-        // 캐시에 아무 기록 없음 -> DB 조회
-        return bookmarkMapper.existsUserBookmark(userId, postId);
+        // 캐시에 없어서 DB 조회
+        return bookmarkMapper.existsUserBookmark(userId, postId) ? IN_DB : NOT_FOUND;
     }
 
     public void deleteBookmark(Long userId, Long postId) {

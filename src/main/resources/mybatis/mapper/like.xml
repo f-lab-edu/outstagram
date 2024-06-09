@@ -8,6 +8,14 @@
     VALUES (#{userId}, #{postId}, #{createDate})
   </insert>
 
+  <insert id="insertLikeAll" parameterType="java.util.List">
+    INSERT INTO `like` (user_id, post_id, create_date)
+    VALUES
+    <foreach collection="list" item="dto" separator=",">
+      (#{dto.userId}, #{dto.postId}, #{dto.createDate})
+    </foreach>
+  </insert>
+
   <select id="existsUserLike" resultType="boolean">
     SELECT CASE WHEN COUNT(*) > 0 THEN true ELSE false END
     FROM `like`

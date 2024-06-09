@@ -1,8 +1,10 @@
 package com.outstagram.outstagram.service;
 
+import static com.outstagram.outstagram.common.constant.CacheConst.NOT_FOUND;
+import static com.outstagram.outstagram.common.constant.CacheConst.IN_CACHE;
+import static com.outstagram.outstagram.common.constant.CacheConst.IN_DB;
 import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_LIKE_PREFIX;
-import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_UNLIKE_PREFIX;
 
 import com.outstagram.outstagram.dto.LikeDTO;
 import com.outstagram.outstagram.dto.LikeRecordDTO;
@@ -39,17 +41,22 @@ public class LikeService {
         }
     }
 
-
+    public void insertLikeAll(List<LikeDTO> insertLikeList) {
+        if (insertLikeList != null && !insertLikeList.isEmpty()) {
+            int result = likeMapper.insertLikeAll(insertLikeList);
+            if (result == 0) {
+                throw new ApiException(ErrorCode.INSERT_ERROR);
+            }
+        }
+    }
 
     /**
-     * 캐시에 좋아요 누른 기록 없음 & 캐시에 좋아요 취소한 기록 있음 -> false
-     * 캐시, DB 아무 곳에도 좋아요 기록 없음 -> false
-     * 캐시에 좋아요 누른 기록 있음 -> true
-     * 캐시에 아무 기록 없고, DB에 좋아요 기록 있음 -> true
+     * 캐시에 있음 -> 2
+     * DB에 있음 -> 1
+     * 없음 -> 0
      */
-    public Boolean existsLike(Long userId, Long postId) {
+    public int existsLike(Long userId, Long postId) {
         String userLikeKey = USER_LIKE_PREFIX + userId;
-        String userUnlikeKey = USER_UNLIKE_PREFIX + userId;
 
         List<Object> likedPost = redisTemplate.opsForList().range(userLikeKey, 0, -1);
         boolean isLikeRecordInCache = likedPost.stream()
@@ -58,17 +65,12 @@ public class LikeService {
 
         // 캐시에 좋아요 누른 기록 있을 때
         if (isLikeRecordInCache) {
-            return true;
+            return IN_CACHE;
         }
 
-        // 캐시에 좋아요 취소한 기록 있을 때
-        if (redisTemplate.opsForSet().isMember(userUnlikeKey, postId)) {
-            return false;
-        }
-
-        // 캐시에 아무 기록 없음
-        return likeMapper.existsUserLike(userId, postId);
+        return likeMapper.existsUserLike(userId, postId) ? IN_DB : NOT_FOUND;
     }
+
 
     public void deleteLike(Long userId, Long postId) {
         int result = likeMapper.deleteLike(userId, postId);
@@ -84,6 +86,7 @@ public class LikeService {
     public List<Long> getLikePostIds(Long userId, Long lastId, int size) {
         return likeMapper.findIdsByUserId(userId, lastId, size);
     }
+
 
 
 }

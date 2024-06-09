@@ -1,7 +1,6 @@
 package com.outstagram.outstagram.common.scheduler;
 
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_BOOKMARK_PREFIX;
-import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_UNBOOKMARK_PREFIX;
 
 import com.outstagram.outstagram.dto.BookmarkDTO;
 import com.outstagram.outstagram.dto.BookmarkRecordDTO;
@@ -37,6 +36,7 @@ public class UpdateBookmarkScheduler {
         Set<String> userBookmarkKeys = redisTemplate.keys(USER_BOOKMARK_PREFIX + "*");
         if (userBookmarkKeys != null) {
             List<BookmarkDTO> insertBookmarkList = new ArrayList<>();
+            List<String> deleteKeys= new ArrayList<>();
             for (String key : userBookmarkKeys) {
                 Long userId = Long.parseLong(key.replace(USER_BOOKMARK_PREFIX, ""));
 
@@ -49,42 +49,15 @@ public class UpdateBookmarkScheduler {
                         record.getBookmarkAt()))
                     .forEach(insertBookmarkList::add);
 
-                // 캐시에서 해당 키 삭제
-                redisTemplate.delete(key);
+                // 삭제할 키 모으기
+                deleteKeys.add(key);
             }
 
-            // 한번에 db에 insert
             bookmarkService.insertBookmarkAll(insertBookmarkList);
+
+            redisTemplate.delete(deleteKeys);
         }
         log.info("=================== 북마크 정보 DB에 insert 종료");
     }
 
-    @Transactional
-    @Scheduled(fixedRate = 450000)
-    public void deleteBookmarks() {
-        log.info("=================== 북마크 정보 DB에서 delete 시작");
-
-        Set<String> userUnbookmarkKeys = redisTemplate.keys(USER_UNBOOKMARK_PREFIX + "*");
-        if (userUnbookmarkKeys != null) {
-            List<BookmarkDTO> deleteBookmarkList = new ArrayList<>();
-
-            for (String key : userUnbookmarkKeys) {
-                Long userId = Long.parseLong(key.replace(USER_UNBOOKMARK_PREFIX, ""));
-
-                redisTemplate.opsForSet().members(key).stream()
-                    .map(Object::toString)
-                    .map(Long::parseLong)
-                    .map(postId -> new BookmarkDTO(userId, postId))
-                    .forEach(deleteBookmarkList::add);
-
-                // 캐시에서 해당 키 삭제
-                redisTemplate.delete(key);
-            }
-
-            // 한번에 db에서 delete
-            bookmarkService.deleteBookmarkAll(deleteBookmarkList);
-        }
-        log.info("=================== 북마크 정보 DB에서 delete 종료");
-
-    }
 }

@@ -1,6 +1,6 @@
 package com.outstagram.outstagram.service;
 
-import static com.outstagram.outstagram.common.constant.CacheNamesConst.USER;
+import static com.outstagram.outstagram.common.constant.CacheConst.USER;
 import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
 
 import com.outstagram.outstagram.controller.response.SearchUserInfoRes;

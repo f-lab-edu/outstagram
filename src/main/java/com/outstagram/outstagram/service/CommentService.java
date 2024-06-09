@@ -1,6 +1,6 @@
 package com.outstagram.outstagram.service;
 
-import static com.outstagram.outstagram.common.constant.CacheNamesConst.COMMENT;
+import static com.outstagram.outstagram.common.constant.CacheConst.COMMENT;
 
 import com.outstagram.outstagram.dto.CommentDTO;
 import com.outstagram.outstagram.dto.CommentUserDTO;

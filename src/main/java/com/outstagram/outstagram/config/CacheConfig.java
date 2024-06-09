@@ -1,9 +1,9 @@
 package com.outstagram.outstagram.config;
 
-import static com.outstagram.outstagram.common.constant.CacheNamesConst.COMMENT;
-import static com.outstagram.outstagram.common.constant.CacheNamesConst.IMAGE;
-import static com.outstagram.outstagram.common.constant.CacheNamesConst.POST;
-import static com.outstagram.outstagram.common.constant.CacheNamesConst.USER;
+import static com.outstagram.outstagram.common.constant.CacheConst.COMMENT;
+import static com.outstagram.outstagram.common.constant.CacheConst.IMAGE;
+import static com.outstagram.outstagram.common.constant.CacheConst.POST;
+import static com.outstagram.outstagram.common.constant.CacheConst.USER;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;

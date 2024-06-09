@@ -32,7 +32,7 @@
   <delete id="deleteBookmarkAll" parameterType="java.util.List">
     DELETE FROM bookmark
     WHERE (user_id, post_id) IN
-    <foreach collection="list" item="dto" open="(" separator="),(" close=")">
+    <foreach collection="list" item="dto" separator=",">
       #{dto.userId}, #{dto.postId}
     </foreach>
   </delete>

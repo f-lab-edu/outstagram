@@ -99,6 +99,16 @@
         AND is_deleted = 0
   </update>
 
+  <update id="updateLikeCountAll" parameterType="java.util.List">
+    <foreach collection="list" item="item" separator=";">
+      UPDATE post
+      SET likes = #{item.likeCount},
+      update_date = NOW()
+      WHERE id = #{item.postId}
+      AND is_deleted = 0
+    </foreach>
+  </update>
+
 
     <!-- postId list 매개변수로 주어지면 해당 post들의 미리보기 정보 가져오기 -->
     <select id="findLikePostsWithImageByPostIds" resultMap="postImageDTOMap">
