@@ -40,21 +40,22 @@ public class LikeService {
     }
 
     /**
-     * 캐시에 좋아요 누른 기록 있으면 -> true
-     * 캐시에 좋아요 취소한 기록 있음 -> false
-     * 캐시에 좋아요 누른 기록도 없고 취소한 기록도 없음 -> DB 조회 결과 리턴
-     *
+     * 캐시에 좋아요 누른 기록 없음 & 캐시에 좋아요 취소한 기록 있음 -> false
+     * 캐시, DB 아무 곳에도 좋아요 기록 없음 -> false
+     * 캐시에 좋아요 누른 기록 있음 -> true
+     * 캐시에 아무 기록 없고, DB에 좋아요 기록 있음 -> true
      */
     public Boolean existsLike(Long userId, Long postId) {
         String userLikeKey = USER_LIKE_PREFIX + userId;
         String userUnlikeKey = USER_UNLIKE_PREFIX + userId;
 
         List<Object> likedPost = redisTemplate.opsForList().range(userLikeKey, 0, -1);
-        boolean isDuplicate = likedPost.stream()
+        boolean isLikeRecordInCache = likedPost.stream()
             .map(record -> (LikeRecordDTO) record)
             .anyMatch(record -> record.getPostId().equals(postId));
+
         // 캐시에 좋아요 누른 기록 있을 때
-        if (isDuplicate) {
+        if (isLikeRecordInCache) {
             return true;
         }
 

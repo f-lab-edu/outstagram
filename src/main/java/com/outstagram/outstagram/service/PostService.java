@@ -262,44 +262,26 @@ public class PostService {
     public void increaseLike(Long postId, Long userId) {
         // Redis에 게시물에 대한 좋아요 개수 캐싱하기(없으면 DB에서 좋아요 개수 가져와서 캐싱하고 있으면 pass)
         loadLikeCountIfAbsent(postId);
-
-        if (likeService.existsLike(userId, postId)) {
-            throw new ApiException(ErrorCode.DUPLICATED_LIKE);
-        }
-
-
-        String key = LIKE_COUNT_PREFIX + postId;
+        String likeCountKey = LIKE_COUNT_PREFIX + postId;
         String userLikeKey = USER_LIKE_PREFIX + userId;
         String userUnlikeKey = USER_UNLIKE_PREFIX + userId;
 
-        // 좋아요 한번 더 누르는거 방지
-        // 캐싱되어 있는 곳에서 확인 -> 있으면 바로 예외
-        List<Object> likedPost = redisTemplate.opsForList().range(userLikeKey, 0, -1);
-        boolean isDuplicate = likedPost.stream()
-            .map(record -> (LikeRecordDTO) record)
-            .anyMatch(record -> record.getPostId().equals(postId));
-        if (isDuplicate) {
+        // 캐시에 좋아요 누른 기록 있음 OR (캐시에 아무 기록 없고 DB에 좋아요 기록 있음) -> 중복 좋아요 방지
+        if (likeService.existsLike(userId, postId)) {
             throw new ApiException(ErrorCode.DUPLICATED_LIKE);
-        }
-
-        // 삭제 예정인 캐시(userUnlike) 없을 때 (여기에 있으면 다시 좋아요 누르기 가능)
-        if (Boolean.FALSE.equals(redisTemplate.opsForSet().isMember(userUnlikeKey, postId))) {
-
-            // 삭제 예정인 캐시에 없고 DB에는 좋아요 기록 있음 -> 예외
-            if (likeService.existsLike(userId, postId)) {
-                throw new ApiException(ErrorCode.DUPLICATED_LIKE);
-            } else {    // 삭제 예정 캐시에 없고 DB에도 좋아요 기록 없음 -> 좋아요 증가 && 좋아요 기록 캐싱
-                // 좋아요 증가
-                redisTemplate.opsForValue().increment(key, 1);
-                // 유저 좋아요 기록 캐싱 수정하기
+        } else {    // 캐시에 취소한 기록 있거나, 아무 곳에도 좋아요 기록 없음
+            // 캐시에 좋아요 취소 기록 있는 경우
+            if (redisTemplate.opsForSet().isMember(userUnlikeKey, postId)) {
+                // 캐시의 좋아요 취소 기록을 삭제
+                redisTemplate.opsForSet().remove(userUnlikeKey, postId);
+            } else { // 캐시, DB 모두 좋아요 기록 없음
+                // 캐시에 좋아요 누른 기록 추가
                 LikeRecordDTO likeRecord = new LikeRecordDTO(postId, LocalDateTime.now());
                 redisTemplate.opsForList().leftPush(userLikeKey, likeRecord);
             }
-        } else {    // 삭제 예정 캐시에 있음 -> DB에 좋아요 기록 저장되어 있는 상태이기에 그냥 삭제 예정 캐시만 삭제해주면 된다
-            // 해당 게시물에 대해 좋아요 취소한 기록이 있다면 기록 삭제
-            redisTemplate.opsForSet().remove(userUnlikeKey, postId);
-            // 좋아요 증가
-            redisTemplate.opsForValue().increment(key, 1);
+            // 좋아요 개수 증가
+            redisTemplate.opsForValue().increment(likeCountKey, 1);
+
         }
     }
 
@@ -314,37 +296,67 @@ public class PostService {
         String userLikeKey = USER_LIKE_PREFIX + userId;
         String userUnlikeKey = USER_UNLIKE_PREFIX + userId;
 
-        // 이미 좋아요 취소해서 Redis에 취소할 내용 캐시된 상태 -> 5분안에 DB에서 delete 될 예정
-        if (Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(userUnlikeKey, postId))) {
+
+        // 좋아요 존재하지 않는 경우 -> 취소 불가능
+        if (!likeService.existsLike(userId, postId)) {
             throw new ApiException(ErrorCode.NOT_FOUND_LIKE);
         }
 
-        // Redis에 좋아요 누른 기록 없는 경우
+        // 좋아요 존재하는 경우
         List<Object> likedPost = redisTemplate.opsForList().range(userLikeKey, 0, -1);
-        boolean isNotLiked = likedPost.stream()
+        boolean isLikeRecordInCache = likedPost.stream()
             .map(record -> (LikeRecordDTO) record)
-            .noneMatch(record -> record.getPostId().equals(postId));    // postId와 일치하는 요소가 하나도 없으면 true 반환
-        if (isNotLiked) {
-            // DB에도 좋아요 기록 없는 경우 -> 예외
-            if (!likeService.existsLike(userId,postId)) {
-                throw new ApiException(ErrorCode.NOT_FOUND_LIKE);
-            }
+            .anyMatch(record -> record.getPostId().equals(postId));
 
-            // Redis에 좋아요 기록 없고 & DB에는 좋아요 기록 있음 -> 5분마다 DB에 반영
+        // 1. 캐시에 좋아요 누른 기록 있는 경우
+        if (isLikeRecordInCache) {
+            // 캐시에서 좋아요 누른 기록 삭제
+            likedPost.stream()
+                .map(record -> (LikeRecordDTO) record)
+                .filter(record -> record.getPostId().equals(postId))
+                .findFirst()
+                .ifPresent(
+                    recordToRemove -> redisTemplate.opsForList().remove(userLikeKey, 1, recordToRemove)
+                );
+        } else {    // 2. DB에만 좋아요 기록 있음(캐시에는 아무 기록 없음)
+            // 캐시에 좋아요 취소 기록 생성
             redisTemplate.opsForSet().add(userUnlikeKey, postId);
         }
 
-        // 좋아요 개수 감소
+        // 좋아요 개수 1 감소
         redisTemplate.opsForValue().decrement(key, 1);
 
-        // 유저 좋아요 기록 캐시 삭제
-        likedPost.stream()
-            .map(record -> (LikeRecordDTO) record)
-            .filter(record -> record.getPostId().equals(postId))
-            .findFirst()
-            .ifPresent(
-                recordToRemove -> redisTemplate.opsForList().remove(userLikeKey, 1, recordToRemove)
-            );
+//        // 이미 좋아요 취소해서 Redis에 취소할 내용 캐시된 상태 -> 5분안에 DB에서 delete 될 예정
+//        if (Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(userUnlikeKey, postId))) {
+//            throw new ApiException(ErrorCode.NOT_FOUND_LIKE);
+//        }
+//
+//        // Redis에 좋아요 누른 기록 없는 경우
+//        List<Object> likedPost = redisTemplate.opsForList().range(userLikeKey, 0, -1);
+//        boolean isNotLiked = likedPost.stream()
+//            .map(record -> (LikeRecordDTO) record)
+//            .noneMatch(record -> record.getPostId().equals(postId));    // postId와 일치하는 요소가 하나도 없으면 true 반환
+//        if (isNotLiked) {
+//            // DB에도 좋아요 기록 없는 경우 -> 예외
+//            if (!likeService.existsLike(userId,postId)) {
+//                throw new ApiException(ErrorCode.NOT_FOUND_LIKE);
+//            }
+//
+//            // Redis에 좋아요 기록 없고 & DB에는 좋아요 기록 있음 -> 5분마다 DB에 반영
+//            redisTemplate.opsForSet().add(userUnlikeKey, postId);
+//        }
+//
+//        // 좋아요 개수 감소
+//        redisTemplate.opsForValue().decrement(key, 1);
+//
+//        // 유저 좋아요 기록 캐시 삭제
+//        likedPost.stream()
+//            .map(record -> (LikeRecordDTO) record)
+//            .filter(record -> record.getPostId().equals(postId))
+//            .findFirst()
+//            .ifPresent(
+//                recordToRemove -> redisTemplate.opsForList().remove(userLikeKey, 1, recordToRemove)
+//            );
 
     }
 
