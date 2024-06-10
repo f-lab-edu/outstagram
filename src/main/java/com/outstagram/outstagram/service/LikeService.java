@@ -51,9 +51,7 @@ public class LikeService {
     }
 
     /**
-     * 캐시에 있음 -> 2
-     * DB에 있음 -> 1
-     * 없음 -> 0
+     * 캐시에 있음 -> 2 DB에 있음 -> 1 없음 -> 0
      */
     public int existsLike(Long userId, Long postId) {
         String userLikeKey = USER_LIKE_PREFIX + userId;
@@ -86,7 +84,6 @@ public class LikeService {
     public List<Long> getLikePostIds(Long userId, Long lastId, int size) {
         return likeMapper.findIdsByUserId(userId, lastId, size);
     }
-
 
 
 }
