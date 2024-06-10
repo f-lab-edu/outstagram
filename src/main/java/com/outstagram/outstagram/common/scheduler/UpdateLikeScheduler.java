@@ -39,10 +39,8 @@ public class UpdateLikeScheduler {
         // likeCount:{postId} 전부 가져오기
         Set<String> keys = redisTemplate.keys(LIKE_COUNT_PREFIX + "*");
 
-
         if (keys != null) {
             List<LikeCountDTO> likeCountList = new ArrayList<>();
-            List<String> deletedKeys = new ArrayList<>();
 
             for (String key : keys) {
                 Long postId = Long.parseLong(key.replace(LIKE_COUNT_PREFIX, ""));
@@ -50,17 +48,11 @@ public class UpdateLikeScheduler {
                 if (likeCount != null) {
                     // DB에 업데이트할 거 모으기
                     likeCountList.add(new LikeCountDTO(postId, likeCount));
-
-                    // 캐시에서 삭제할 키 모으기
-                    deletedKeys.add(key);
                 }
             }
 
             // 한번에 DB에 업데이트하기
             postService.updateLikeCountAll(likeCountList);
-
-            // 한번에 key 삭제하기
-            redisTemplate.delete(deletedKeys);
             log.info("=================== 좋아요 개수 DB에 반영 종료");
         }
     }
@@ -83,10 +75,10 @@ public class UpdateLikeScheduler {
 
                 insertLikeList.addAll(
                     redisTemplate.opsForList().range(key, 0, -1)
-                    .stream()
-                    .map(record -> (LikeRecordDTO) record)
-                    .map(record -> new LikeDTO(userId, record.getPostId(), record.getLikeAt()))
-                    .toList()
+                        .stream()
+                        .map(record -> (LikeRecordDTO) record)
+                        .map(record -> new LikeDTO(userId, record.getPostId(), record.getLikeAt()))
+                        .toList()
                 );
 
                 deleteKeys.add(key);
