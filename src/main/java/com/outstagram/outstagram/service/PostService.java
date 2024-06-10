@@ -370,15 +370,16 @@ public class PostService {
         } else {    // 첫 요청을 제외한 모든 요청
             // lastId가 캐시에 있는지 확인
             int startIndex = 0;
-            for (int i = 0; i < recentLikeIdList.size(); i++) {
+            for (int i = 0; i < recentIdSize; i++) {
                 if (recentLikeIdList.get(i).getPostId().equals(lastId)) {
                     startIndex = i + 1;  // lastId의 다음 인덱스부터 시작
                     break;
                 }
             }
 
-            // lastId가 캐시에 없다 = 캐시는 이미 다 읽었거나, 없기 때문에  DB에서 가져와야 함
-            if (startIndex == 0) {
+            // startIndex == 0 -> 캐시에 lastId가 없다
+            // startIndex >= recentIdSize -> 캐시의 가장 마지막에 lastId가 있는 경우 = 캐시 다 읽어서 DB 읽자
+            if (startIndex == 0 || startIndex == recentIdSize) {
                 List<Long> likePostIds = likeService.getLikePostIds(userId, lastId, PAGE_SIZE + 1);
                 idList.addAll(likePostIds);
             } else {    // lastId가 캐시에 있다 -> 캐시에서 페이징하고 남은만큼 DB에서 페이징
@@ -527,7 +528,7 @@ public class PostService {
         } else {    // 첫 요청을 제외한 모든 요청
             // lastId가 캐시에 있는지 확인
             int startIndex = 0;
-            for (int i = 0; i < recentBookmarkIdList.size(); i++) {
+            for (int i = 0; i < recentIdSize; i++) {
                 if (recentBookmarkIdList.get(i).getPostId().equals(lastId)) {
                     startIndex = i + 1;  // lastId의 다음 인덱스부터 시작
                     break;
@@ -535,7 +536,7 @@ public class PostService {
             }
 
             // lastId가 캐시에 없다 = 캐시는 이미 다 읽었거나, 없기 때문에  DB에서 가져와야 함
-            if (startIndex == 0) {
+            if (startIndex == 0 || startIndex == recentIdSize) {
                 List<Long> bookmarkIds = bookmarkService.getBookmarkedPostIds(userId, lastId, PAGE_SIZE + 1);
                 idList.addAll(bookmarkIds);
             } else {    // lastId가 캐시에 있다 -> 캐시에서 페이징하고 남은만큼 DB에서 페이징
