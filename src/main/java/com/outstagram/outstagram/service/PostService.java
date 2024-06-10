@@ -27,6 +27,7 @@ import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.kafka.producer.FeedUpdateProducer;
 import com.outstagram.outstagram.kafka.producer.PostDeleteProducer;
 import com.outstagram.outstagram.mapper.PostMapper;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -285,6 +286,7 @@ public class PostService {
         // 캐시에 좋아요 누른 기록 추가하고 좋아요 개수 1 증가
         LikeRecordDTO likeRecord = new LikeRecordDTO(postId, LocalDateTime.now());
         redisTemplate.opsForList().leftPush(userLikeKey, likeRecord);
+        redisTemplate.expire(userLikeKey, Duration.ofHours(1)); // TTL 1시간
         redisTemplate.opsForValue().increment(likeCountKey, 1);
     }
 
