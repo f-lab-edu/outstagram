@@ -9,6 +9,8 @@ import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.LIKE
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_BOOKMARK_PREFIX;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_LIKE_PREFIX;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.outstagram.outstagram.controller.request.CreateCommentReq;
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditCommentReq;
@@ -27,9 +29,9 @@ import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.kafka.producer.FeedUpdateProducer;
 import com.outstagram.outstagram.kafka.producer.PostDeleteProducer;
 import com.outstagram.outstagram.mapper.PostMapper;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -45,7 +47,10 @@ import org.springframework.aop.framework.AopContext;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.data.redis.RedisSystemException;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -70,6 +75,8 @@ public class PostService {
 
     private final SqlSessionFactory sqlSessionFactory;
 
+    private final DefaultRedisScript<String> increaseLikeScript;
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public void insertPost(CreatePostReq createPostReq, Long userId) {
@@ -156,18 +163,18 @@ public class PostService {
 
         // 캐싱 데이터 조합해 종합 게시물 만들기
         return PostDetailsDTO.builder()
-                .postId(postId)
-                .userId(author.getId())
-                .nickname(author.getNickname())
-                .userImgUrl(author.getImgUrl())
-                .contents(post.getContents())
-                .postImgUrls(imageUrlMap)
-                .likes(likeCount)
-                .likedByCurrentUser(existLike)
-                .bookmarkedByCurrentUser(existBookmark)
-                .isCreatedByCurrentUser(isAuthor)
-                .comments(comments)
-                .build();
+            .postId(postId)
+            .userId(author.getId())
+            .nickname(author.getNickname())
+            .userImgUrl(author.getImgUrl())
+            .contents(post.getContents())
+            .postImgUrls(imageUrlMap)
+            .likes(likeCount)
+            .likedByCurrentUser(existLike)
+            .bookmarkedByCurrentUser(existBookmark)
+            .isCreatedByCurrentUser(isAuthor)
+            .comments(comments)
+            .build();
     }
 
     /**
@@ -175,7 +182,9 @@ public class PostService {
      */
     public List<PostDetailsDTO> getFeed(Long lastId, Long userId) {
         // redis에서 userId의 피드 목록 가져오기
-        if (lastId == null) lastId = Long.MAX_VALUE;
+        if (lastId == null) {
+            lastId = Long.MAX_VALUE;
+        }
         List<Object> feedList = redisTemplate.opsForList().range("feed:" + userId, 0, -1);
 
         if (feedList == null) {
@@ -247,8 +256,7 @@ public class PostService {
     /* ========================================================================================== */
 
     /**
-     * postId에 대한 좋아요 개수 캐싱되어 있는지 확인
-        * 캐싱 안되어 있으면 DB에서 postId의 좋아요 개수를 Redis로 캐싱
+     * postId에 대한 좋아요 개수 캐싱되어 있는지 확인 캐싱 안되어 있으면 DB에서 postId의 좋아요 개수를 Redis로 캐싱
      */
     public Integer loadLikeCountIfAbsent(Long postId) {
         String key = LIKE_COUNT_PREFIX + postId;
@@ -282,12 +290,25 @@ public class PostService {
             throw new ApiException(ErrorCode.DUPLICATED_LIKE);
         }
 
-        // 캐시와 DB 모두 좋아요 기록 없음
-        // 캐시에 좋아요 누른 기록 추가하고 좋아요 개수 1 증가
         LikeRecordDTO likeRecord = new LikeRecordDTO(postId, LocalDateTime.now());
-        redisTemplate.opsForList().leftPush(userLikeKey, likeRecord);
-        redisTemplate.expire(userLikeKey, Duration.ofHours(1)); // TTL 1시간
-        redisTemplate.opsForValue().increment(likeCountKey, 1);
+
+        // likeRecord 직렬화
+        String likeRecordString;
+        try {
+            likeRecordString = objectMapper.writeValueAsString(likeRecord);
+        } catch (JsonProcessingException e) {
+            throw new ApiException(ErrorCode.JSON_CONVERTING_ERROR, "JSON 직렬화 오류");
+        }
+
+        RedisSerializer<String> stringSerializer = redisTemplate.getStringSerializer();
+
+        // lua script execute
+        try {
+            redisTemplate.execute(increaseLikeScript, stringSerializer, stringSerializer,
+                Arrays.asList(likeCountKey, userLikeKey), likeRecordString);
+        } catch (RedisSystemException e) {
+            throw new ApiException(e, ErrorCode.DUPLICATED_LIKE);
+        }
     }
 
 
@@ -333,7 +354,6 @@ public class PostService {
     public List<PostDetailsDTO> getLikePosts(Long userId, Long lastId) {
         // 먼저 캐시 좋아요 누른 기록 확인 후 -> 모자라면 DB에서 좋아요 ID 목록 가져오기 (캐시에 항상 최신 데이터)
         String userLikeKey = USER_LIKE_PREFIX + userId;
-
 
         // 캐시에서 좋아요 누른 기록 가져오기
         List<LikeRecordDTO> recentLikeIdList = redisTemplate.opsForList()
@@ -414,7 +434,8 @@ public class PostService {
         if (likeCountList != null && !likeCountList.isEmpty()) {
             try (SqlSession session = sqlSessionFactory.openSession(ExecutorType.BATCH)) {
                 PostMapper mapper = session.getMapper(PostMapper.class);
-                likeCountList.forEach(dto -> mapper.updateLikeCount(dto.getPostId(), dto.getLikeCount()));
+                likeCountList.forEach(
+                    dto -> mapper.updateLikeCount(dto.getPostId(), dto.getLikeCount()));
                 session.commit();
             }
         }
@@ -452,7 +473,7 @@ public class PostService {
      */
     @Transactional
     public void deleteBookmark(Long postId, Long userId) {
-       PostService proxy = (PostService) AopContext.currentProxy();
+        PostService proxy = (PostService) AopContext.currentProxy();
 
         PostDTO post = proxy.getPost(postId);
         if (post == null) {
@@ -493,9 +514,9 @@ public class PostService {
         // 먼저 캐시 북마크 누른 기록 확인 후 -> 모자라면 DB에서 북마크 ID 목록 가져오기 (캐시에 항상 최신 데이터)
         String userBookmarkKey = USER_BOOKMARK_PREFIX + userId;
 
-
         // 캐시에서 북마크 누른 기록 가져오기
-        List<BookmarkRecordDTO> recentBookmarkIdList = redisTemplate.opsForList().range(userBookmarkKey, 0, -1)
+        List<BookmarkRecordDTO> recentBookmarkIdList = redisTemplate.opsForList()
+            .range(userBookmarkKey, 0, -1)
             .stream()
             .map(record -> (BookmarkRecordDTO) record)
             .toList();
@@ -524,7 +545,8 @@ public class PostService {
                 List<Long> bookmarkIds = bookmarkService.getBookmarkedPostIds(userId, null, need);
                 idList.addAll(bookmarkIds);
             } else { // 캐시에 1개도 없음 -> DB에서만 11개 조회해서 반환하기
-                List<Long> bookmarkIds = bookmarkService.getBookmarkedPostIds(userId, lastId, PAGE_SIZE + 1);
+                List<Long> bookmarkIds = bookmarkService.getBookmarkedPostIds(userId, lastId,
+                    PAGE_SIZE + 1);
                 idList.addAll(bookmarkIds);
             }
         } else {    // 첫 요청을 제외한 모든 요청
@@ -539,7 +561,8 @@ public class PostService {
 
             // lastId가 캐시에 없다 = 캐시는 이미 다 읽었거나, 없기 때문에  DB에서 가져와야 함
             if (startIndex == 0 || startIndex == recentIdSize) {
-                List<Long> bookmarkIds = bookmarkService.getBookmarkedPostIds(userId, lastId, PAGE_SIZE + 1);
+                List<Long> bookmarkIds = bookmarkService.getBookmarkedPostIds(userId, lastId,
+                    PAGE_SIZE + 1);
                 idList.addAll(bookmarkIds);
             } else {    // lastId가 캐시에 있다 -> 캐시에서 페이징하고 남은만큼 DB에서 페이징
                 int toIndex = Math.min((startIndex + PAGE_SIZE + 1), recentIdSize);
@@ -548,7 +571,8 @@ public class PostService {
 
                 int need = PAGE_SIZE + 1 - idList.size();
                 if (need != 0) {    // 남은 건 DB에서 가져오기
-                    List<Long> bookmarkIds = bookmarkService.getBookmarkedPostIds(userId, null, need);
+                    List<Long> bookmarkIds = bookmarkService.getBookmarkedPostIds(userId, null,
+                        need);
                     idList.addAll(bookmarkIds);
                 }
             }
