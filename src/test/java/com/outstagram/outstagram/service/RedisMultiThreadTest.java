@@ -52,15 +52,13 @@ public class RedisMultiThreadTest {
     @Test
     @Transactional
     public void testConcurrentDecreaseLike() throws InterruptedException {
-        Long postId = 11L;
+        Long postId = 14L;
         Long userId = 4L;
 
         // Initial setup to ensure post exists and is cached
         postService.loadLikeCountIfAbsent(postId);
 
         ExecutorService executorService = Executors.newFixedThreadPool(2);
-
-        postService.increaseLike(postId, userId);
 
         Runnable task = () -> {
             try {

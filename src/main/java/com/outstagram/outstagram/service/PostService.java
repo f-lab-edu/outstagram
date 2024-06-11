@@ -76,6 +76,7 @@ public class PostService {
     private final SqlSessionFactory sqlSessionFactory;
 
     private final DefaultRedisScript<String> increaseLikeScript;
+    private final DefaultRedisScript<String> decreaseLikeScript;
     private final ObjectMapper objectMapper;
 
     @Transactional
@@ -332,23 +333,18 @@ public class PostService {
 
         // 캐시에 좋아요 기록 있는 경우
         if (existLike == IN_CACHE) {
-            // 캐시에서 좋아요 누른 기록 삭제
-            redisTemplate.opsForList()
-                .range(userLikeKey, 0, -1)
-                .stream()
-                .map(record -> (LikeRecordDTO) record)
-                .filter(record -> record.getPostId().equals(postId))
-                .findFirst()
-                .ifPresent(
-                    recordToRemove -> redisTemplate.opsForList()
-                        .remove(userLikeKey, 1, recordToRemove)
-                );
+            RedisSerializer<String> stringSerializer = redisTemplate.getStringSerializer();
+            try {
+                redisTemplate.execute(decreaseLikeScript, stringSerializer, stringSerializer,
+                    Arrays.asList(key, userLikeKey), postId.toString());
+            } catch (RedisSystemException e) {
+                throw new ApiException(e, ErrorCode.NOT_FOUND_LIKE);
+            }
         } else {    // DB에 좋아요 기록 있는 경우
             // DB에서 바로 delete
             likeService.deleteLike(userId, postId);
+            redisTemplate.opsForValue().decrement(key, 1);
         }
-        // 좋아요 1 감소
-        redisTemplate.opsForValue().decrement(key, 1);
     }
 
     public List<PostDetailsDTO> getLikePosts(Long userId, Long lastId) {

@@ -78,4 +78,13 @@ public class RedisConfig {
         return redisScript;
     }
 
+    @Bean
+    public DefaultRedisScript<String> decreaseLikeScript() {
+        DefaultRedisScript<String> redisScript = new DefaultRedisScript<>();
+        redisScript.setScriptSource(
+            new ResourceScriptSource(new ClassPathResource("scripts/decreaseLike.lua")));
+        redisScript.setResultType(String.class);
+        return redisScript;
+    }
+
 }
