@@ -29,6 +29,7 @@ import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.kafka.producer.FeedUpdateProducer;
 import com.outstagram.outstagram.kafka.producer.PostDeleteProducer;
 import com.outstagram.outstagram.mapper.PostMapper;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -271,6 +272,7 @@ public class PostService {
             }
             likeCount = post.getLikes();
             redisTemplate.opsForValue().set(key, likeCount);
+            redisTemplate.expire(key, Duration.ofHours(1));
         } else {
             likeCount = (int) redisTemplate.opsForValue().get(key);
         }

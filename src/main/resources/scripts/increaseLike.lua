@@ -16,7 +16,6 @@ end
 
 -- 사용자 좋아요 기록 추가 및 좋아요 수 증가를 원자적으로 처리
 redis.call('lpush', userLikeKey, likeRecord)
-redis.call('expire', userLikeKey, 3600) -- TTL 1시간 설정
 redis.call('incr', likeCountKey) -- 좋아요 개수 증가
 
 return 'OK'
