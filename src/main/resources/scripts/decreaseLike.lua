@@ -23,12 +23,13 @@ for i, v in ipairs(userLikes) do
 end
 
 if found then
-    -- Clear the original list
+    -- 해당 키의 값들 지우고
     redis.call('del', userLikeKey)
-    -- Insert the remaining values back to the list
+    -- 삭제된 거 빼고 다시 값 push하기
     for _, v in ipairs(parsedValue) do
         redis.call('rpush', userLikeKey, v)
     end
+    -- 좋아요 개수 1 감소
     redis.call('decr', likeCountKey)
     return postId .. " removed successfully"
 else

@@ -3,10 +3,13 @@ local likeCountKey = KEYS[1]
 local userLikeKey = KEYS[2]
 local likeRecord = ARGV[1]
 
+local decodedLikeRecord = cjson.decode(likeRecord)
+
 -- 사용자 좋아요 기록을 확인
 local userLikes = redis.call('lrange', userLikeKey, 0, -1)
 for i, v in ipairs(userLikes) do
-    if v == likeRecord then
+    local decodedValue = cjson.decode(v)
+    if decodedValue.postId == decodedLikeRecord.postId then
         return redis.error_reply('DUPLICATED_LIKE')
     end
 end
