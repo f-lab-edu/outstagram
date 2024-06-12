@@ -365,7 +365,7 @@ public class PostService {
         List<Long> idList = new ArrayList<>();
 
         if (lastId == null) {   // 첫 요청 : 캐시 -> DB
-            if (recentIdSize > 10) {      // 짜른게 10개 초과 -> 캐시만으로 해결
+            if (recentIdSize > PAGE_SIZE) {      // 짜른게 10개 초과 -> 캐시만으로 해결
                 recentLikeIdList.stream()
                     .limit(PAGE_SIZE + 1)
                     .forEach(record -> idList.add(record.getPostId()));
