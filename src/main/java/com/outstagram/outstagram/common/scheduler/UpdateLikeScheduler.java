@@ -1,5 +1,6 @@
 package com.outstagram.outstagram.common.scheduler;
 
+import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.INSERT_LOCK;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.LIKE_COUNT_PREFIX;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_LIKE_PREFIX;
 
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -60,7 +62,7 @@ public class UpdateLikeScheduler {
     /**
      * like 테이블에 좋아요 기록 insert
      */
-    @Transactional
+    @SchedulerLock(name = INSERT_LOCK, lockAtLeastFor = "10s", lockAtMostFor = "50s")
     @Scheduled(fixedRate = 300000)
     public void insertUserLike() {
         log.info("=================== 좋아요 정보 DB에 insert 시작");

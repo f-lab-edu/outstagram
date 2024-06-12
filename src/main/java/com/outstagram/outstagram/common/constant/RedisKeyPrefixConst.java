@@ -18,4 +18,6 @@ public class RedisKeyPrefixConst {
 
     public static final String FEED = "feed:";
 
+    public static final String INSERT_LOCK = "insert_lock";
+
 }

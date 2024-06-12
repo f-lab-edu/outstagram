@@ -36,6 +36,9 @@ dependencies {
 	// AWS S3
 	implementation group: 'org.springframework.cloud', name: 'spring-cloud-starter-aws', version: '2.2.6.RELEASE'
 
+	// Shedlock
+	implementation 'net.javacrumbs.shedlock:shedlock-spring:5.13.0'
+	implementation 'net.javacrumbs.shedlock:shedlock-provider-redis-spring:5.13.0'
 
 	compileOnly 'org.projectlombok:lombok'
 //	developmentOnly 'org.springframework.boot:spring-boot-devtools'

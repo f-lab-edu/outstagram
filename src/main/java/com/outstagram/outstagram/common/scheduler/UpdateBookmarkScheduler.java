@@ -1,5 +1,6 @@
 package com.outstagram.outstagram.common.scheduler;
 
+import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.INSERT_LOCK;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_BOOKMARK_PREFIX;
 
 import com.outstagram.outstagram.dto.BookmarkDTO;
@@ -10,11 +11,11 @@ import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Component
@@ -28,7 +29,9 @@ public class UpdateBookmarkScheduler {
     /**
      * like 테이블에 좋아요 기록 insert
      */
-    @Transactional
+    // lockAtLeastFor : lock이 유지되는 최소 시간 (Job 의 수행 시간이 매우 빠를 때 중복 실행이 일어나는 문제를 방지하기 위해)
+    // lockAtMostFor : lock이 유지되는 최대 시간 (Job 의 수행 시간이 매우 길어지거나, 끝나지 않을 때 다음 순서의 Job 이 실행되지 않는 문제를 방지하기 위해)
+    @SchedulerLock(name = INSERT_LOCK, lockAtLeastFor = "10s", lockAtMostFor = "50s")
     @Scheduled(fixedRate = 450000)
     public void insertBookmarks() {
         log.info("=================== 북마크 정보 DB에 insert 시작");
