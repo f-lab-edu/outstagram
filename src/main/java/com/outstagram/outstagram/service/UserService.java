@@ -1,22 +1,20 @@
 package com.outstagram.outstagram.service;
 
-import com.outstagram.outstagram.common.constant.CacheNames;
+import static com.outstagram.outstagram.common.constant.CacheConst.USER;
+import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
+
 import com.outstagram.outstagram.controller.response.SearchUserInfoRes;
-import com.outstagram.outstagram.controller.response.UserInfoRes;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.UserMapper;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
 
 @Slf4j
 @Service
@@ -41,17 +39,12 @@ public class UserService {
         userMapper.insertUser(userInfo);
     }
 
-
-    @Cacheable(value = CacheNames.USER, key = "#userId")
-    public UserInfoRes getUser(Long userId) {
-        UserDTO user = userMapper.findById(userId);
-
-        return UserInfoRes.builder()
-                .userId(user.getId())
-                .nickname(user.getNickname())
-                .email(user.getEmail())
-                .imgUrl(user.getImgUrl())
-                .build();
+    /**
+     * userId로 유저 찾기
+     */
+    @Cacheable(value = USER, key = "#userId")
+    public UserDTO getUser(Long userId) {
+        return userMapper.findById(userId);
     }
 
 
@@ -83,14 +76,6 @@ public class UserService {
             throw new ApiException(ErrorCode.DUPLICATED);
         }
     }
-
-    /**
-     * userId로 유저 찾기
-     */
-    public UserDTO findByUserId(Long userId) {
-        return userMapper.findById(userId);
-    }
-
 
 
     /* ========================================================================================== */

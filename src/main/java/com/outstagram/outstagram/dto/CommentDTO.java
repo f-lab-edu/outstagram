@@ -1,6 +1,8 @@
 package com.outstagram.outstagram.dto;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,7 +13,7 @@ import org.springframework.data.annotation.Id;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class CommentDTO {
+public class CommentDTO implements Serializable {
 
     @Id
     private Long id;
@@ -31,4 +33,6 @@ public class CommentDTO {
     private LocalDateTime createDate;
 
     private LocalDateTime updateDate;
+
+    private List<ReplyUserDTO> replyList;
 }

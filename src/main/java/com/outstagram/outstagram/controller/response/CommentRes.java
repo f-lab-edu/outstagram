@@ -1,5 +1,6 @@
 package com.outstagram.outstagram.controller.response;
 
+import com.outstagram.outstagram.dto.ReplyUserDTO;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -24,6 +25,6 @@ public class CommentRes {
 
     private LocalDateTime updateDate;
 
-    private List<ReplyRes> replyList;
+    private List<ReplyUserDTO> replyList;
 
 }

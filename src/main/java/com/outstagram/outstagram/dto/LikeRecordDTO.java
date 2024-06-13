@@ -11,12 +11,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class FollowDTO implements Serializable {
-
-    private Long fromId;
-
-    private Long toId;
-
-    private LocalDateTime createDate;
+public class LikeRecordDTO implements Serializable {
+    private Long postId;
+    private LocalDateTime likeAt;
 
 }

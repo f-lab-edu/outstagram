@@ -1,4 +1,4 @@
-package com.outstagram.outstagram.controller.response;
+package com.outstagram.outstagram.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,7 +12,7 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class FeedPost implements Serializable {
+public class FeedPostDTO implements Serializable {
 
     // 게시물 id
     private Long postId;
