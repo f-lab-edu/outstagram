@@ -71,6 +71,8 @@ bootJar {
 	archiveBaseName.set('outstagram')
 }
 
+
 jar {
 	enabled = false
 }
+
