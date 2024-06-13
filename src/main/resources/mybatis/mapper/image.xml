@@ -21,6 +21,13 @@
     ORDER BY id
   </select>
 
+  <select id="findDeletedImages" resultType="com.outstagram.outstagram.dto.ImageDTO">
+    SELECT id, img_path, saved_img_name
+    FROM image
+    WHERE is_deleted = 1
+  </select>
+
+
   <delete id="deleteByIds" parameterType="java.util.List">
     UPDATE image
     SET is_deleted = 1,
@@ -37,4 +44,15 @@
         update_date = NOW()
     WHERE post_id = #{postId} AND is_deleted = 0
   </delete>
+
+
+  <delete id="hardDeleteByIds" parameterType="java.util.List">
+    DELETE FROM image
+    WHERE id IN
+    <foreach collection="list" item="id" open="(" separator="," close=")">
+      #{id}
+    </foreach>
+     AND is_deleted = 1
+  </delete>
+
 </mapper>
