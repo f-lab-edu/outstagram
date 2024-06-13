@@ -353,8 +353,7 @@ public class PostService {
         }
     }
 
-    // TODO : 메서드명 수정하기(11개 리턴한다는 내용 포함)
-    public List<PostDetailsDTO> getLikePosts(Long userId, Long lastId) {
+    public List<PostDetailsDTO> getLikePostsPlusOne(Long userId, Long lastId) {
         // 먼저 캐시 좋아요 누른 기록 확인 후 -> 모자라면 DB에서 좋아요 ID 목록 가져오기 (캐시에 항상 최신 데이터)
         String userLikeKey = USER_LIKE_PREFIX + userId;
 
@@ -505,7 +504,7 @@ public class PostService {
     /**
      * 로그인한 유저가 북마크한 모든 게시물 가져오기
      */
-    public List<PostDetailsDTO> getBookmarkedPosts(Long userId, Long lastId) {
+    public List<PostDetailsDTO> getBookmarkedPostsPlusOne(Long userId, Long lastId) {
         // 먼저 캐시 북마크 누른 기록 확인 후 -> 모자라면 DB에서 북마크 ID 목록 가져오기 (캐시에 항상 최신 데이터)
         String userBookmarkKey = USER_BOOKMARK_PREFIX + userId;
 
