@@ -1,16 +1,19 @@
 package com.outstagram.outstagram.controller.response;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class PostRes {
+public class PostRes implements Serializable {
 
     private String authorName;      // 게시물 작성자의 이름
 

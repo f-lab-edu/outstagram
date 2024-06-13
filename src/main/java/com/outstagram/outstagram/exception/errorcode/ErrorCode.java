@@ -36,6 +36,8 @@ public enum ErrorCode {
     // comment 관련 에러 코드
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 댓글은 존재하지 않습니다."),
 
+    NULL_POINT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "null point error 입니다."),
+
     ;
 
 

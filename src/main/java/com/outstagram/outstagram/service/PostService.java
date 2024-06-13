@@ -4,6 +4,7 @@ package com.outstagram.outstagram.service;
 import static com.outstagram.outstagram.common.constant.OptimisticLockConst.MAX_RETRIES;
 import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
 
+import com.outstagram.outstagram.common.constant.CacheNames;
 import com.outstagram.outstagram.controller.request.CreateCommentReq;
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditCommentReq;
@@ -17,6 +18,8 @@ import com.outstagram.outstagram.dto.PostImageDTO;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
+import com.outstagram.outstagram.kafka.producer.FeedUpdateProducer;
+import com.outstagram.outstagram.kafka.producer.PostDeleteProducer;
 import com.outstagram.outstagram.mapper.PostMapper;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -26,6 +29,9 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +49,9 @@ public class PostService {
     private final BookmarkService bookmarkService;
     private final CommentService commentService;
 
+    private final FeedUpdateProducer feedUpdateProducer;
+    private final PostDeleteProducer postDeleteProducer;
+
     @Transactional
     public void insertPost(CreatePostReq createPostReq, Long userId) {
         PostDTO newPost = PostDTO.builder()
@@ -55,9 +64,14 @@ public class PostService {
         // 게시물 내용 저장 (insertPost 정상 실행되면, newPost의 id 속성에 id값이 들어 있다)
         postMapper.insertPost(newPost);
 
+        Long newPostId = newPost.getId();
+
         // 로컬 디렉토리에 이미지 저장 후, DB에 이미지 정보 저장
         imageService.saveImages(createPostReq.getImgFiles(),
-            newPost.getId());
+            newPostId);
+
+        // kafka에 메시지 발행 : 팔로워들의 피드목록에 내가 작성한 게시물 ID 넣기
+        feedUpdateProducer.send("feed", userId, newPostId);
     }
 
     // TODO : post 조회 쿼리, image 조회 쿼리, user 조회 쿼리, like 조회 쿼리 => 총 4개 쿼리 발생
@@ -78,6 +92,7 @@ public class PostService {
             .collect(Collectors.toList());
     }
 
+    @Cacheable(value = CacheNames.POST, key = "#postId")
     public PostRes getPost(Long postId, Long userId) {
         // 1. Post 가져오기
         PostDTO post = postMapper.findById(postId);
@@ -100,7 +115,6 @@ public class PostService {
             imageUrlMap.put(img.getId(), img.getImgPath() + "\\" + img.getSavedImgName());
         }
 
-        // TODO : comments 채우기
         return PostRes.builder()
             .authorName(author.getNickname())
             .authorImgUrl(author.getImgUrl())
@@ -115,6 +129,7 @@ public class PostService {
     }
 
     @Transactional
+    @Caching(evict = @CacheEvict(value = CacheNames.POST, key = "#postId"))
     public void editPost(Long postId, EditPostReq editPostReq, Long userId) {
         // 수정할 게시물 가져오기
         PostDTO post = postMapper.findById(postId);
@@ -144,21 +159,17 @@ public class PostService {
     }
 
     /**
-     * 게시물 삭제 메서드 실제 레코드를 삭제하지 않고 is_deleted = 1 방식으로 soft_delete
+     * 게시물 삭제 비동기 처리
      */
     @Transactional
+    @Caching(evict = @CacheEvict(value = CacheNames.POST, key = "#postId"))
     public void deletePost(Long postId, Long userId) {
-        // 삭제할 게시물 가져오기
-        PostDTO post = postMapper.findById(postId);
 
-        // 게시물 작성자인지 검증
-        validatePostOwner(post, userId);
+        // 게시물이 존재하는지 & 삭제 권한 있는지 검증
+        validatePostOwner(postId, userId);
 
-        // 게시물 삭제
-        int result = postMapper.deleteById(postId);
-        if (result == 0) {
-            throw new ApiException(ErrorCode.DELETE_ERROR, "게시물 삭제 오류 발생!!");
-        }
+        // 게시물 삭제 비동기 처리
+        postDeleteProducer.send("post-delete", postId);
     }
 
     /* ========================================================================================== */
@@ -380,6 +391,18 @@ public class PostService {
     /**
      * 게시물 작성자인지 검증 -> 수정, 삭제 시 확인 필요
      */
+    private void validatePostOwner(Long postId, Long userId) {
+        PostDTO post = postMapper.findById(postId);
+        if (post == null) {
+            throw new ApiException(ErrorCode.POST_NOT_FOUND);
+        }
+
+        // 게시물 작성자인지 확인
+        if (!Objects.equals(post.getUserId(), userId)) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED_ACCESS, "게시물에 대한 권한이 없습니다.");
+        }
+    }
+
     private void validatePostOwner(PostDTO post, Long userId) {
         if (post == null) {
             throw new ApiException(ErrorCode.POST_NOT_FOUND);

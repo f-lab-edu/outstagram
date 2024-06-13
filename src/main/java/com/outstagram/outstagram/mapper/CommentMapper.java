@@ -17,4 +17,6 @@ public interface CommentMapper {
     int updateContentsById(Long commentId, String contents);
 
     int deleteComment(Long commentId);
+
+    int deleteByPostId(Long postId);
 }

@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -91,12 +92,49 @@ public class LocalImageService implements ImageService {
         return imageMapper.findImagesByPostId(postId);
     }
 
+    @Override
+    public List<ImageDTO> getDeletedImages() {
+        return imageMapper.findDeletedImages();
+    }
+
     @Transactional
     @Override
     public void deleteByIds(List<Long> deleteImgIds) {
         int result = imageMapper.deleteByIds(deleteImgIds);
         if (result == 0) {
             throw new ApiException(ErrorCode.DELETE_ERROR, "이미지 삭제에 실패했습니다.");
+        }
+    }
+
+    @Override
+    public void deleteLocalImages(List<ImageDTO> deletedImages) {
+        if (deletedImages.isEmpty()) return;
+        for (ImageDTO image : deletedImages) {
+            String filePath = image.getImgPath();
+            String fileName = image.getSavedImgName();
+            File file = new File(filePath, fileName);
+
+            if (file.exists()) {
+                if (file.delete()) {
+                    log.info("============Deleted file : " + file.getAbsolutePath());
+                } else {
+                    log.error("============Failed to delete file : " + file.getAbsolutePath());
+                }
+            } else {
+                log.error("============File not found : " + file.getAbsolutePath());
+            }
+        }
+    }
+
+    @Override
+    public void hardDeleteByIds(List<ImageDTO> deletedImages) {
+        List<Long> deletedImageIds = deletedImages.stream()
+            .map(ImageDTO::getId)
+            .collect(Collectors.toList());
+
+        int result = imageMapper.hardDeleteByIds(deletedImageIds);
+        if (result == 0) {
+            throw new ApiException(ErrorCode.DELETE_ERROR, "image hard delete 하다가 에러 발생!");
         }
     }
 
