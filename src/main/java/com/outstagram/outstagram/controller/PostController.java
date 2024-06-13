@@ -1,31 +1,29 @@
 package com.outstagram.outstagram.controller;
 
+import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
+
 import com.outstagram.outstagram.common.annotation.Login;
 import com.outstagram.outstagram.common.api.ApiResponse;
 import com.outstagram.outstagram.controller.request.CreateCommentReq;
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditCommentReq;
 import com.outstagram.outstagram.controller.request.EditPostReq;
+import com.outstagram.outstagram.controller.response.FeedRes;
 import com.outstagram.outstagram.controller.response.MyPostsRes;
-import com.outstagram.outstagram.controller.response.PostRes;
+import com.outstagram.outstagram.dto.FeedPostDTO;
+import com.outstagram.outstagram.dto.MyPostDTO;
+import com.outstagram.outstagram.dto.PostDetailsDTO;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.service.PostService;
 import jakarta.validation.Valid;
-import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -46,19 +44,20 @@ public class PostController {
     }
 
     @GetMapping
-    public ResponseEntity<List<MyPostsRes>> getMyPosts(@RequestParam(required = false) Long lastId, @Login UserDTO user) {
-        // 첫 요청일 때는 lastId는 null로 옴 -> Long의 최댓값 대입
-        Long lastID = (lastId == null) ? Long.MAX_VALUE : lastId;
-        List<MyPostsRes> myPosts = postService.getMyPosts(user.getId(), lastID);
+    public ResponseEntity<MyPostsRes> getMyPosts(@RequestParam(required = false) Long lastId, @Login UserDTO user) {
 
-        return ResponseEntity.ok(myPosts);
+        List<PostDetailsDTO> myPosts = postService.getMyPosts(user.getId(), lastId);
+
+        MyPostsRes response = convertPostDetailsDtoToMyPostRes(myPosts);
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{postId}")
-    public ResponseEntity<PostRes> getPost(@PathVariable Long postId, @Login UserDTO user) {
-        PostRes postRes = postService.getPost(postId, user.getId());
+    public ResponseEntity<PostDetailsDTO> getPost(@PathVariable Long postId, @Login UserDTO user) {
+        PostDetailsDTO postDetailsDTO = postService.getPostDetails(postId, user.getId());
 
-        return ResponseEntity.ok(postRes);
+        return ResponseEntity.ok(postDetailsDTO);
     }
 
     @PatchMapping("/{postId}")
@@ -79,10 +78,12 @@ public class PostController {
     }
 
     @GetMapping("/likes")
-    public ResponseEntity<List<MyPostsRes>> getLikePosts(@RequestParam(required = false) Long lastId, @Login UserDTO user) {
-        List<MyPostsRes> myLikePosts =  postService.getLikePosts(user.getId(), lastId);
+    public ResponseEntity<MyPostsRes> getLikePosts(@RequestParam(required = false) Long lastId, @Login UserDTO user) {
+        List<PostDetailsDTO> likePosts = postService.getLikePostsPlusOne(user.getId(), lastId);
 
-        return ResponseEntity.ok(myLikePosts);
+        MyPostsRes response = convertPostDetailsDtoToMyPostRes(likePosts);
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/{postId}/likes")
@@ -102,10 +103,12 @@ public class PostController {
     }
 
     @GetMapping("/bookmarks")
-    public ResponseEntity<List<MyPostsRes>> getBookmarkedPosts(@RequestParam(required = false) Long lastId, @Login UserDTO user) {
-        List<MyPostsRes> myLikePosts =  postService.getBookmarkedPosts(user.getId(), lastId);
+    public ResponseEntity<MyPostsRes> getBookmarkedPosts(@RequestParam(required = false) Long lastId, @Login UserDTO user) {
+        List<PostDetailsDTO> bookmarkedPosts =  postService.getBookmarkedPostsPlusOne(user.getId(), lastId);
 
-        return ResponseEntity.ok(myLikePosts);
+        MyPostsRes response = convertPostDetailsDtoToMyPostRes(bookmarkedPosts);
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/{postId}/bookmark")
@@ -130,6 +133,7 @@ public class PostController {
     }
 
     // 댓글 등록
+
     @PostMapping("/{postId}/comment")
     public ResponseEntity<ApiResponse> addComment(@PathVariable Long postId, @Login UserDTO user,
         @RequestBody CreateCommentReq commentReq) {
@@ -143,8 +147,8 @@ public class PostController {
                 .build()
         );
     }
-
     // 대댓글 등록
+
     @PostMapping("/{postId}/comments/{commentId}")
     public ResponseEntity<ApiResponse> addReply(@PathVariable("postId") Long postId,
         @PathVariable("commentId") Long commentId,
@@ -160,7 +164,6 @@ public class PostController {
                 .build()
         );
     }
-
     /**
      * (대)댓글 수정
      */
@@ -196,7 +199,65 @@ public class PostController {
         );
     }
 
+    /**
+     * 피드 불러오기
+     */
+    @GetMapping("/feed")
+    public ResponseEntity<FeedRes> getFeed(@RequestParam(required = false) Long lastId, @Login UserDTO user) {
+        List<PostDetailsDTO> feedList = postService.getFeed(lastId, user.getId());
 
+        boolean hasNext = feedList.size() > PAGE_SIZE;
+
+        List<FeedPostDTO> feedPostList = feedList.stream()
+            .limit(PAGE_SIZE)
+            .map(feed -> FeedPostDTO.builder()
+                .postId(feed.getPostId())
+                .postImgUrls(feed.getPostImgUrls())
+                .contents(feed.getContents())
+                .likeCount(feed.getLikes())
+                .commentCount(feed.getComments().size())
+                .likedByCurrentUser(feed.getLikedByCurrentUser())
+                .bookmarkedByCurrentUser(feed.getBookmarkedByCurrentUser())
+                .isCreatedByCurrentUser(feed.getIsCreatedByCurrentUser())
+
+                .userId(feed.getUserId())
+                .nickname(feed.getNickname())
+                .userImgUrl(feed.getUserImgUrl())
+                .build())
+            .toList();
+
+        return ResponseEntity.ok(
+            FeedRes.builder()
+                .feedPostDTOList(feedPostList)
+                .hasNext(hasNext)
+                .build()
+        );
+    }
+
+
+
+    private static MyPostsRes convertPostDetailsDtoToMyPostRes(List<PostDetailsDTO> myPosts) {
+        boolean hasNext = myPosts.size() > PAGE_SIZE;   // 가져온게 11개면 다음 페이지 존재함
+
+        List<MyPostDTO> postList = myPosts.stream()
+            .limit(PAGE_SIZE)
+            .map(dto -> MyPostDTO.builder()
+                .postId(dto.getPostId())
+                .contents(dto.getContents())
+                .likes(dto.getLikes())
+                //이미지는 한 개만 가져오기
+                .postThumbnailImage(dto.getPostImgUrls().values().stream().findFirst().orElse(null))
+                .isLiked(dto.getLikedByCurrentUser())
+                .isBookmarked(dto.getBookmarkedByCurrentUser())
+                .commentCount(dto.getComments().size())
+                .build())
+            .collect(Collectors.toList());
+
+        return MyPostsRes.builder()
+            .postList(postList)
+            .hasNext(hasNext)
+            .build();
+    }
 }
 
 

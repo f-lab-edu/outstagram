@@ -17,4 +17,8 @@ public interface LikeMapper {
     int deleteByPostId(Long postId);
 
     List<PostImageDTO> findWithPostsAndImageByUserId(Long userId, Long lastId, int size);
+
+    List<Long> findIdsByUserId(Long userId, Long lastId, int size);
+
+    int insertLikeAll(List<LikeDTO> insertLikeList);
 }

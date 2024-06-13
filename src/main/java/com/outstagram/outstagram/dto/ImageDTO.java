@@ -1,5 +1,6 @@
 package com.outstagram.outstagram.dto;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,7 +12,7 @@ import org.springframework.data.annotation.Id;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class ImageDTO {
+public class ImageDTO implements Serializable {
 
     @Id
     private Long id;
@@ -20,9 +21,7 @@ public class ImageDTO {
 
     private String originalImgName;
 
-    private String savedImgName;
-
-    private String imgPath;
+    private String imgUrl;
 
     private Boolean isDeleted;
 

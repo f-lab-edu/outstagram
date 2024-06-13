@@ -6,6 +6,7 @@ import com.outstagram.outstagram.controller.response.FollowRes;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.service.FollowService;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -39,14 +40,36 @@ public class FollowController {
 
     @GetMapping("/following")
     public ResponseEntity<List<FollowRes>> getFollowingList(@Login UserDTO user) {
-        List<FollowRes> response = followService.getFollowingList(user.getId());
+
+        List<UserDTO> followingList = followService.getFollowingList(user.getId());
+
+        List<FollowRes> response = followingList.stream()
+            .map(userDTO -> FollowRes.builder()
+                .id(userDTO.getId())
+                .nickname(userDTO.getNickname())
+                .email(userDTO.getEmail())
+                .imgUrl(userDTO.getImgUrl())
+                .build())
+            .collect(Collectors.toList());
+
 
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/follower")
     public ResponseEntity<List<FollowRes>> getFollowerList(@Login UserDTO user) {
-        List<FollowRes> response = followService.getFollowerList(user.getId());
+
+        List<UserDTO> followerList = followService.getFollowerList(user.getId());
+
+        List<FollowRes> response = followerList.stream()
+            .map(userDTO -> FollowRes.builder()
+                .id(userDTO.getId())
+                .nickname(userDTO.getNickname())
+                .email(userDTO.getEmail())
+                .imgUrl(userDTO.getImgUrl())
+                .build())
+            .collect(Collectors.toList());
+
 
         return ResponseEntity.ok(response);
     }

@@ -1,5 +1,6 @@
 package com.outstagram.outstagram.service;
 
+import static com.outstagram.outstagram.common.constant.CacheConst.USER;
 import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
 
 import com.outstagram.outstagram.controller.response.SearchUserInfoRes;
@@ -12,8 +13,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.HashOperations;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -42,6 +42,14 @@ public class UserService {
         saveUserToRedis(userInfo);
     }
 
+    /**
+     * userId로 유저 찾기
+     */
+    @Cacheable(value = USER, key = "#userId")
+    public UserDTO getUser(Long userId) {
+        return userMapper.findById(userId);
+    }
+
 
     /**
      * 로그인 메서드
@@ -52,9 +60,6 @@ public class UserService {
     }
 
     //==validator method==//
-
-
-
     /**
      * 중복 -> true
      */
@@ -72,11 +77,26 @@ public class UserService {
         }
     }
 
+
+    /* ========================================================================================== */
+
     /**
-     * userId로 유저 찾기
+     * email, nickname 둘 다 중복되지 않을 경우 -> true
      */
-    public UserDTO findByUserId(Long userId) {
-        return userMapper.findById(userId);
+    private void validateUserInfo(UserDTO userInfo) {
+        validateDuplicatedEmail(userInfo.getEmail());
+        validateDuplicatedNickname(userInfo.getNickname());
+    }
+
+    public List<SearchUserInfoRes> searchByNickname(String search) {
+        List<UserDTO> resultList = userMapper.findByNicknameContaining(search);
+
+        return resultList.stream()
+            .map(userDTO -> SearchUserInfoRes.builder()
+                .userId(userDTO.getId())
+                .nickname(userDTO.getNickname())
+                .build())
+            .collect(Collectors.toList());
     }
 
 
