@@ -40,7 +40,6 @@ public class FollowController {
 
     @GetMapping("/following")
     public ResponseEntity<List<FollowRes>> getFollowingList(@Login UserDTO user) {
-
         List<UserDTO> followingList = followService.getFollowingList(user.getId());
 
         List<FollowRes> response = followingList.stream()
@@ -52,13 +51,11 @@ public class FollowController {
                 .build())
             .collect(Collectors.toList());
 
-
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/follower")
     public ResponseEntity<List<FollowRes>> getFollowerList(@Login UserDTO user) {
-
         List<UserDTO> followerList = followService.getFollowerList(user.getId());
 
         List<FollowRes> response = followerList.stream()
@@ -69,7 +66,6 @@ public class FollowController {
                 .imgUrl(userDTO.getImgUrl())
                 .build())
             .collect(Collectors.toList());
-
 
         return ResponseEntity.ok(response);
     }
