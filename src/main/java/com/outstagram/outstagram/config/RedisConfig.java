@@ -1,4 +1,5 @@
 package com.outstagram.outstagram.config;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
@@ -85,6 +86,5 @@ public class RedisConfig {
         redisScript.setResultType(String.class);
         return redisScript;
     }
-
 
 }
