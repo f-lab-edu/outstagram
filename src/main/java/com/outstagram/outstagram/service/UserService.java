@@ -23,8 +23,6 @@ public class UserService {
 
     private final UserMapper userMapper;
 
-    private final RedisTemplate<String, String> redisTemplate;
-
     /**
      * 유저 회원가입 메서드 비밀번호는 sha256으로 암호화해 저장
      */
@@ -39,7 +37,6 @@ public class UserService {
         userInfo.setPassword(encryptedPassword(userInfo.getPassword()));
 
         userMapper.insertUser(userInfo);
-        saveUserToRedis(userInfo);
     }
 
     /**
@@ -58,6 +55,9 @@ public class UserService {
         String cryptoPassword = encryptedPassword(password);
         return userMapper.findByEmailAndPassword(email, cryptoPassword);
     }
+
+
+
 
     //==validator method==//
     /**
@@ -99,39 +99,4 @@ public class UserService {
             .collect(Collectors.toList());
     }
 
-
-
-
-
-    /* ========================================================================================== */
-
-    /**
-     * email, nickname 둘 다 중복되지 않을 경우 -> true
-     */
-    private void validateUserInfo(UserDTO userInfo) {
-        validateDuplicatedEmail(userInfo.getEmail());
-        validateDuplicatedNickname(userInfo.getNickname());
-    }
-
-    /**
-     * redis에 유저 정보 캐싱해놓기
-     */
-    private void saveUserToRedis(UserDTO userInfo) {
-        // Redis의 Hash 구조를 사용하여 유저 정보 저장
-        String userKey = "user:" + userInfo.getId();  // Redis에서 사용할 키
-        HashOperations<String, Object, Object> hashOps = redisTemplate.opsForHash();
-        hashOps.put(userKey, "nickname", userInfo.getNickname());
-        hashOps.put(userKey, "profileImage", userInfo.getImgUrl());
-    }
-
-    public List<SearchUserInfoRes> searchByNickname(String search) {
-        List<UserDTO> resultList = userMapper.findByNicknameContaining(search);
-
-        return resultList.stream()
-            .map(userDTO -> SearchUserInfoRes.builder()
-                .userId(userDTO.getId())
-                .nickname(userDTO.getNickname())
-                .build())
-            .collect(Collectors.toList());
-    }
 }
