@@ -189,7 +189,10 @@ public class PostService {
         }
         List<Object> feedList = redisTemplate.opsForList().range("feed:" + userId, 0, -1);
 
+        // 피드 redis 캐시가 없다면
         if (feedList == null) {
+            // DB에서 만들어서 가져오기...
+            // 내 게시물 + 나의 팔로잉 유저들의 게시물
             return Collections.emptyList();
         }
 

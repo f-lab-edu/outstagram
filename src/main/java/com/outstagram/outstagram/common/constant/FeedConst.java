@@ -8,4 +8,6 @@ public class FeedConst {
     public static final String FOLLOWER = "followers:";
     public static final String FEED = "feed:";
 
+    public static final int FEED_MAX_SIZE = 200;
+
 }
