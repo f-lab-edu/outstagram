@@ -87,7 +87,7 @@ class SnowflakeTest {
         for (int nodeId = 0; nodeId < nodeCount; nodeId++) {
             int finalNodeId = nodeId;
             Callable<Set<Long>> task = () -> {
-                Snowflake snowflake = new Snowflake(finalNodeId); // 각 노드가 별도의 Snowflake 인스턴스를 사용하도록 수정
+                Snowflake snowflake = Snowflake.getInstance(finalNodeId); // 각 노드가 별도의 Snowflake 인스턴스를 사용하도록 수정
                 Set<Long> localIds = new HashSet<>();
                 for (int i = 0; i < idCount; i++) {
                     long id = snowflake.nextId();
