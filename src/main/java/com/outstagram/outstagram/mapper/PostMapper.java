@@ -1,5 +1,6 @@
 package com.outstagram.outstagram.mapper;
 
+import com.outstagram.outstagram.dto.LikeCountDTO;
 import com.outstagram.outstagram.dto.PostDTO;
 import com.outstagram.outstagram.dto.PostImageDTO;
 import java.util.List;
@@ -18,7 +19,11 @@ public interface PostMapper {
 
     List<PostImageDTO> findWithImageByUserId(Long userId, Long lastId, int size);
 
-    int updateLikeCount(Long postId, int count, int currentVersion);
+    List<Long> findIdsByUserId(Long userId, Long lastId, int size);
+
+    void updateLikeCount(Long postId, int count);
+
+    void updateLikeCountAll(List<LikeCountDTO> likeCountDTOList);
 
 
 }

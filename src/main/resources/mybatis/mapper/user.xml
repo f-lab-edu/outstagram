@@ -24,7 +24,7 @@
     </select>
 
     <select id="findById" resultType="com.outstagram.outstagram.dto.UserDTO">
-        SELECT id, nickname, img_url, email
+        SELECT id, nickname, img_url, email, create_date, update_date
         FROM user
         WHERE id = #{userId}
         AND is_deleted = 0

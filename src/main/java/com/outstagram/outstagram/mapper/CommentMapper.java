@@ -1,7 +1,7 @@
 package com.outstagram.outstagram.mapper;
 
-import com.outstagram.outstagram.controller.response.CommentRes;
 import com.outstagram.outstagram.dto.CommentDTO;
+import com.outstagram.outstagram.dto.CommentUserDTO;
 import java.util.List;
 import org.springframework.stereotype.Repository;
 
@@ -10,13 +10,13 @@ public interface CommentMapper {
 
     void insertComment(CommentDTO comment);
 
-    List<CommentRes> findByPostId(Long postId);
+    List<CommentUserDTO> findByPostId(Long postId);
 
-    CommentDTO findById(Long commentId);
+    CommentDTO findById(Long postId, Long commentId);
 
-    int updateContentsById(Long commentId, String contents);
+    int updateContentsById(Long postId, Long commentId, String contents);
 
-    int deleteComment(Long commentId);
+    int deleteComment(Long postId, Long commentId);
 
     int deleteByPostId(Long postId);
 }

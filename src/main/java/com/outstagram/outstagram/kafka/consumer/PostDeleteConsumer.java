@@ -1,5 +1,8 @@
 package com.outstagram.outstagram.kafka.consumer;
 
+import static com.outstagram.outstagram.common.constant.KafkaConst.DELETE_GROUPID;
+import static com.outstagram.outstagram.common.constant.KafkaConst.DELETE_TOPIC;
+
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.BookmarkMapper;
@@ -12,7 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @RequiredArgsConstructor
@@ -25,8 +27,7 @@ public class PostDeleteConsumer {
     private final CommentMapper commentMapper;
     private final ImageMapper imageMapper;
 
-    @Transactional
-    @KafkaListener(topics = "post-delete", groupId = "post", containerFactory = "postDeleteKafkaListenerContainerFactory")
+    @KafkaListener(topics = DELETE_TOPIC, groupId = DELETE_GROUPID, containerFactory = "postDeleteKafkaListenerContainerFactory")
     public void receive(@Payload Long postId) {
         log.info("=========== 게시물 관련 레코드 삭제 시작, postId = {}", postId);
         // post에서 soft delete

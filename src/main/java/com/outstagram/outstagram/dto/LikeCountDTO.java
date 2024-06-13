@@ -1,7 +1,5 @@
 package com.outstagram.outstagram.dto;
 
-import java.io.Serializable;
-import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,12 +9,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class FollowDTO implements Serializable {
+public class LikeCountDTO {
 
-    private Long fromId;
-
-    private Long toId;
-
-    private LocalDateTime createDate;
+    private Long postId;
+    private Integer likeCount;
 
 }

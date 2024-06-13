@@ -8,6 +8,14 @@
     VALUES (#{userId}, #{postId}, #{createDate})
   </insert>
 
+  <insert id="insertLikeAll" parameterType="java.util.List">
+    INSERT INTO `like` (user_id, post_id, create_date)
+    VALUES
+    <foreach collection="list" item="dto" separator=",">
+      (#{dto.userId}, #{dto.postId}, #{dto.createDate})
+    </foreach>
+  </insert>
+
   <select id="existsUserLike" resultType="boolean">
     SELECT CASE WHEN COUNT(*) > 0 THEN true ELSE false END
     FROM `like`
@@ -78,6 +86,33 @@
         </if>
 
     ORDER BY l.create_date DESC
+    LIMIT #{size}
+  </select>
+
+  <select id="findIdsByUserId" resultType="Long">
+    SELECT
+    l.post_id AS post_id
+    FROM
+    `like` AS l
+    JOIN post AS p ON l.post_id = p.id
+    WHERE
+    l.user_id = #{userId}
+    AND p.is_deleted = 0
+    <if test="lastId != null">
+      AND (l.create_date &lt; (
+      SELECT create_date
+      FROM `like`
+      WHERE post_id = #{lastId}
+      LIMIT 1
+      )
+      OR (l.create_date = (
+      SELECT create_date
+      FROM `like`
+      WHERE post_id = #{lastId}
+      LIMIT 1
+      ) AND l.post_id > #{lastId}))
+    </if>
+    ORDER BY l.create_date DESC, l.post_id ASC
     LIMIT #{size}
   </select>
 

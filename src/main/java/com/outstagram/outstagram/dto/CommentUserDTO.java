@@ -1,8 +1,8 @@
 package com.outstagram.outstagram.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,17 +12,27 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class BookmarkDTO implements Serializable {
+public class CommentUserDTO implements Serializable {
+    private Long id;
 
     private Long userId;
 
     private Long postId;
 
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Long parentCommentId;
+
+    private String contents;
+
+    private Boolean level;
+
     private LocalDateTime createDate;
 
-    public BookmarkDTO(Long userId, Long postId) {
-        this.userId = userId;
-        this.postId = postId;
-    }
+    private LocalDateTime updateDate;
+
+    private List<ReplyUserDTO> replyList;
+
+    private String userImgUrl;
+
+    private String nickname;
+
 }

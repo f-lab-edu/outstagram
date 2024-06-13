@@ -98,8 +98,14 @@ public class UserController {
 
     @GetMapping("{userId}")
     public ResponseEntity<UserInfoRes> getUser(@PathVariable Long userId) {
-        UserInfoRes response = userService.getUser(userId);
+        UserDTO user = userService.getUser(userId);
 
+        UserInfoRes response = UserInfoRes.builder()
+            .userId(user.getId())
+            .nickname(user.getNickname())
+            .email(user.getEmail())
+            .imgUrl(user.getImgUrl())
+            .build();
         return ResponseEntity.ok(response);
     }
 

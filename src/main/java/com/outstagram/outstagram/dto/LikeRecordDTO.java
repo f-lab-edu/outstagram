@@ -1,5 +1,6 @@
 package com.outstagram.outstagram.dto;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
@@ -11,12 +12,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class FollowDTO implements Serializable {
+@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "@class")
+public class LikeRecordDTO implements Serializable {
 
-    private Long fromId;
-
-    private Long toId;
-
-    private LocalDateTime createDate;
+    private Long postId;
+    private LocalDateTime likeAt;
 
 }

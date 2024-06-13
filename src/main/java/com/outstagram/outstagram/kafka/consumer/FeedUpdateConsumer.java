@@ -1,7 +1,9 @@
 package com.outstagram.outstagram.kafka.consumer;
 
-import static com.outstagram.outstagram.common.constant.FeedConst.FEED;
-import static com.outstagram.outstagram.common.constant.FeedConst.FOLLOWER;
+import static com.outstagram.outstagram.common.constant.KafkaConst.FEED_GROUPID;
+import static com.outstagram.outstagram.common.constant.KafkaConst.FEED_TOPIC;
+import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.FEED;
+import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.FOLLOWER;
 
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +21,7 @@ public class FeedUpdateConsumer {
     private final RedisTemplate<String, Object> redisTemplate;
 
     // consumer 설정
-    @KafkaListener(topics = "feed", groupId = "sns-feed", containerFactory = "feedKafkaListenerContainerFactory")
+    @KafkaListener(topics = FEED_TOPIC, groupId = FEED_GROUPID, containerFactory = "feedKafkaListenerContainerFactory")
     public void receive(ConsumerRecord<String, Long> consumerRecord) {
         Long userId = Long.parseLong(consumerRecord.key());
         Long postId = consumerRecord.value();
@@ -28,7 +30,7 @@ public class FeedUpdateConsumer {
         // Redis에서 userId의 팔로워 ID 목록 가져오기
         Set<Object> followerIds = redisTemplate.opsForSet().members(FOLLOWER + userId);
         if (followerIds == null) {
-            log.info("====================== userID {}는 팔로워가 없습니다.", userId);
+            log.error("====================== userID {}는 팔로워가 없습니다.", userId);
             return;
         }
 
@@ -40,7 +42,7 @@ public class FeedUpdateConsumer {
         // 각 팔로워의 피드목록에 postId 넣기
         followerIds.forEach(
                 id -> {
-                    String feedKey = "feed:" + id;
+                    String feedKey = FEED + id;
                     redisTemplate.opsForList().leftPush(feedKey, postId);
                 });
         log.info("=========== feed push success!");
