@@ -1,7 +1,5 @@
 package com.outstagram.outstagram.controller;
 
-import static com.outstagram.outstagram.common.constant.SessionConst.LOGIN_USER;
-
 import com.outstagram.outstagram.common.api.ApiResponse;
 import com.outstagram.outstagram.controller.request.UserLoginReq;
 import com.outstagram.outstagram.controller.response.SearchUserInfoRes;
@@ -13,12 +11,15 @@ import com.outstagram.outstagram.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+import static com.outstagram.outstagram.common.constant.SessionConst.LOGIN_USER;
 
 @Slf4j
 @RestController
@@ -34,7 +35,7 @@ public class UserController {
 
         ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
             .message("해당 이메일 사용 가능합니다.").build();
-        return ResponseEntity.ok().body(response);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("check-duplicated-nickname")
@@ -43,7 +44,7 @@ public class UserController {
 
         ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
             .message("해당 닉네임이 사용 가능합니다.").build();
-        return ResponseEntity.ok().body(response);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/signup")
@@ -52,7 +53,7 @@ public class UserController {
 
         ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
             .message("회원가입 성공").build();
-        return ResponseEntity.ok().body(response);
+        return ResponseEntity.ok(response);
     }
 
 
@@ -80,7 +81,8 @@ public class UserController {
         ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
             .message("로그인 성공").build();
 
-        return ResponseEntity.ok().body(response);
+        return ResponseEntity.ok(response);
+
     }
 
     /**
@@ -90,14 +92,15 @@ public class UserController {
     public ResponseEntity<List<SearchUserInfoRes>> searchNickname(@RequestParam String search) {
         List<SearchUserInfoRes> response = userService.searchByNickname(search);
 
-        return ResponseEntity.ok().body(response);
+        return ResponseEntity.ok(response);
+
     }
 
     @GetMapping("{userId}")
     public ResponseEntity<UserInfoRes> getUser(@PathVariable Long userId) {
         UserInfoRes response = userService.getUser(userId);
 
-        return ResponseEntity.ok().body(response);
+        return ResponseEntity.ok(response);
     }
 
 }

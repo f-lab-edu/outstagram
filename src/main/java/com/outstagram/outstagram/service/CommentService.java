@@ -23,8 +23,8 @@ public class CommentService {
         return commentMapper.findByPostId(postId);
     }
 
-    public CommentDTO findById(Long commentId) {
-        return commentMapper.findById(commentId);
+    public CommentDTO findById(Long postId, Long commentId) {
+        return commentMapper.findById(postId, commentId);
     }
 
     public void updateContents(Long commentId, String contents) {
@@ -34,8 +34,8 @@ public class CommentService {
         }
     }
 
-    public void deleteComment(Long commentId) {
-        int result = commentMapper.deleteComment(commentId);
+    public void deleteComment(Long postId, Long commentId) {
+        int result = commentMapper.deleteComment(postId, commentId);
         if (result == 0) {
             throw new ApiException(ErrorCode.DELETE_ERROR);
         }

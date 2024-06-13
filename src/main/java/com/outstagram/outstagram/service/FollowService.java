@@ -7,6 +7,7 @@ import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.FollowMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -32,7 +33,11 @@ public class FollowService {
      * 동기적으로 follow 목록 관리하기
      */
     public void addFollowing(Long fromId, Long toId) {
-        followMapper.insertFollow(fromId, toId);
+        try {
+            followMapper.insertFollow(fromId, toId);
+        } catch (DuplicateKeyException e) {
+            throw new ApiException(ErrorCode.DUPLICATED_FOLLOW);
+        }
 
         // TODO: kafka 활용해 비동기적으로 처리하기...?
         // fromId의 팔로잉 목록에 toId 추가
@@ -79,9 +84,9 @@ public class FollowService {
         }
 
         // fromId(나)의 팔로잉 목록에서 toId 삭제
-        redisTemplate.opsForSet().remove(makeFollowingKey(fromId), String.valueOf(toId));
+        redisTemplate.opsForSet().remove(makeFollowingKey(fromId), toId);
         // toId의 팔로워 목록에서 fromId 삭제
-        redisTemplate.opsForSet().remove(makeFollowerKey(toId), String.valueOf(fromId));
+        redisTemplate.opsForSet().remove(makeFollowerKey(toId), fromId);
 
 
     }

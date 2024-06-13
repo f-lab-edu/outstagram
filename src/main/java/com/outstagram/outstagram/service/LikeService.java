@@ -10,6 +10,7 @@ import com.outstagram.outstagram.mapper.LikeMapper;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -25,7 +26,11 @@ public class LikeService {
             .createDate(LocalDateTime.now())
             .build();
 
-        likeMapper.insertLike(newLike);
+        try {
+            likeMapper.insertLike(newLike);
+        } catch (DuplicateKeyException e) {
+            throw new ApiException(ErrorCode.DUPLICATED_LIKE);
+        }
     }
 
     public Boolean existsLike(Long userId, Long postId) {

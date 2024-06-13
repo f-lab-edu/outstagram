@@ -1,40 +1,39 @@
 package com.outstagram.outstagram.service;
 
 
-import static com.outstagram.outstagram.common.constant.OptimisticLockConst.MAX_RETRIES;
-import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
-
 import com.outstagram.outstagram.common.constant.CacheNames;
 import com.outstagram.outstagram.controller.request.CreateCommentReq;
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditCommentReq;
 import com.outstagram.outstagram.controller.request.EditPostReq;
+import com.outstagram.outstagram.controller.response.FeedPost;
+import com.outstagram.outstagram.controller.response.FeedRes;
 import com.outstagram.outstagram.controller.response.MyPostsRes;
 import com.outstagram.outstagram.controller.response.PostRes;
-import com.outstagram.outstagram.dto.CommentDTO;
-import com.outstagram.outstagram.dto.ImageDTO;
-import com.outstagram.outstagram.dto.PostDTO;
-import com.outstagram.outstagram.dto.PostImageDTO;
-import com.outstagram.outstagram.dto.UserDTO;
+import com.outstagram.outstagram.dto.*;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.kafka.producer.FeedUpdateProducer;
 import com.outstagram.outstagram.kafka.producer.PostDeleteProducer;
 import com.outstagram.outstagram.mapper.PostMapper;
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.aop.framework.AopContext;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.outstagram.outstagram.common.constant.OptimisticLockConst.MAX_RETRIES;
+import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
 
 @Slf4j
 @Service
@@ -51,6 +50,8 @@ public class PostService {
 
     private final FeedUpdateProducer feedUpdateProducer;
     private final PostDeleteProducer postDeleteProducer;
+
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Transactional
     public void insertPost(CreatePostReq createPostReq, Long userId) {
@@ -101,7 +102,7 @@ public class PostService {
         }
 
         // 2. Post의 이미지 정보 가져오기
-        List<ImageDTO> imageList = imageService.getImages(post.getId());
+        List<ImageDTO> imageList = imageService.getImageInfos(post.getId());
 
         // 3. 로그인한 유저가 게시물 작성자인지 판단
         boolean isAuthor = post.getUserId().equals(userId);
@@ -112,21 +113,89 @@ public class PostService {
         // 5. 이미지 url 조합하기
         Map<Long, String> imageUrlMap = new HashMap<>();
         for (ImageDTO img : imageList) {
-            imageUrlMap.put(img.getId(), img.getImgPath() + "\\" + img.getSavedImgName());
+            imageUrlMap.put(img.getId(), img.getImgUrl());
         }
 
         return PostRes.builder()
-            .authorName(author.getNickname())
-            .authorImgUrl(author.getImgUrl())
-            .contents(post.getContents())
-            .postImgUrls(imageUrlMap)
-            .likes(post.getLikes())
-            .isLiked(likeService.existsLike(userId, post.getId()))
-            .isBookmarked(bookmarkService.existsBookmark(userId, post.getId()))
-            .isAuthor(isAuthor)
-            .comments(commentService.getComments(post.getId()))
-            .build();
+                .postId(postId)
+                .userId(author.getId())
+                .nickname(author.getNickname())
+                .userImgUrl(author.getImgUrl())
+                .contents(post.getContents())
+                .postImgUrls(imageUrlMap)
+                .likes(post.getLikes())
+                .likedByCurrentUser(likeService.existsLike(userId, post.getId()))
+                .bookmarkedByCurrentUser(bookmarkService.existsBookmark(userId, post.getId()))
+                .isCreatedByCurrentUser(isAuthor)
+                .comments(commentService.getComments(post.getId()))
+                .build();
     }
+
+    // 피드 목록은 영구 저장해야 돼
+    /**
+     * 피드 가져오기
+     */
+    public FeedRes getFeed(Long lastId, Long userId) {
+        // redis에서 userId의 피드 목록 가져오기
+        if (lastId == null) lastId = Long.MAX_VALUE;
+        List<Object> feedList = redisTemplate.opsForList().range("feed:" + userId, 0, -1);
+
+        if (feedList == null) {
+            return FeedRes.builder()
+                    .feedPostList(Collections.emptyList())
+                    .hasNext(false)
+                    .build();
+        }
+
+        // 피드 목록의 postId로 postService.getPost(postId)로 각 게시물 정보 가져오기
+        // 이렇게 가져오는 이유 : getPost가 캐싱되어 있으면 redis에서 없으면 mysql에서 가져옴
+        Long finalLastId = lastId;
+        List<Long> postIds = feedList.stream()
+                .map(postId -> {
+                    if (postId instanceof Integer) {
+                        return ((Integer) postId).longValue();
+                    } else {
+                        return (Long) postId;
+                    }
+                })
+                .filter(postId -> postId < finalLastId)
+                .limit(PAGE_SIZE+1L)        // 다음 페이지 있는지 확인하기 위해 1개 더 가져옴
+                .toList();
+        log.info("===== feed : {} 의 postId {}", userId, postIds);
+
+        // 아래 stream에서 getPost 가져올 때 @Cacheable 적용하기 위해서 필요
+        PostService proxy = (PostService) AopContext.currentProxy();
+
+        List<FeedPost> feedPostList = postIds.stream()
+                .limit(PAGE_SIZE)
+                .map(postId -> {
+                    PostRes post = proxy.getPost(postId, userId);
+                    return FeedPost.builder()
+                            .postId(post.getPostId())
+                            .postImgUrls(post.getPostImgUrls())
+                            .contents(post.getContents())
+                            .likeCount(post.getLikes())
+                            .commentCount(post.getComments().size())
+                            .likedByCurrentUser(post.getLikedByCurrentUser())
+                            .bookmarkedByCurrentUser(post.getBookmarkedByCurrentUser())
+                            .isCreatedByCurrentUser(post.getIsCreatedByCurrentUser())
+
+                            .userId(post.getUserId())
+                            .nickname(post.getNickname())
+                            .userImgUrl(post.getUserImgUrl())
+                            .build();
+                })
+                .toList();
+
+        Boolean hasNext = postIds.size() > PAGE_SIZE;
+        return FeedRes
+                .builder()
+                .feedPostList(feedPostList)
+                .hasNext(hasNext)
+                .build();
+
+    }
+
 
     @Transactional
     @Caching(evict = @CacheEvict(value = CacheNames.POST, key = "#postId"))
@@ -139,7 +208,7 @@ public class PostService {
 
         // 삭제할 이미지가 있다면 삭제하기(soft delete)
         if (editPostReq.getDeleteImgIds() != null && !editPostReq.getDeleteImgIds().isEmpty()) {
-            imageService.deleteByIds(editPostReq.getDeleteImgIds());
+            imageService.softDeleteByIds(editPostReq.getDeleteImgIds());
         }
 
         // 추가할 이미지가 있다면 추가하기
@@ -205,6 +274,8 @@ public class PostService {
 
                 // 재시도 횟수 증가
                 attempt++;
+            } catch (ApiException e) {
+                throw new ApiException(ErrorCode.DUPLICATED_LIKE);
             } catch (Exception e) {
                 try {
                     Thread.sleep(50);
@@ -248,7 +319,9 @@ public class PostService {
 
                 // 재시도 횟수 증가
                 attempt++;
-            } catch (Exception e) {
+            } catch (ApiException e) {
+                throw new ApiException(ErrorCode.DUPLICATED_LIKE, "이미 좋아요 취소했습니다.");
+            }catch (Exception e) {
                 try {
                     Thread.sleep(50);
                 } catch (InterruptedException ex) {
@@ -380,7 +453,7 @@ public class PostService {
     public void deleteComment(Long postId, Long commentId, Long userId) {
         validatePostCommentAndOwnership(postId, commentId, userId);
 
-        commentService.deleteComment(commentId);
+        commentService.deleteComment(postId, commentId);
 
     }
 
@@ -425,7 +498,7 @@ public class PostService {
         }
 
         // 댓글 존재 여부 검증
-        CommentDTO comment = commentService.findById(commentId);
+        CommentDTO comment = commentService.findById(postId, commentId);
         if (comment == null) {
             throw new ApiException(ErrorCode.COMMENT_NOT_FOUND);
         }

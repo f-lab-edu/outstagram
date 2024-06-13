@@ -90,13 +90,13 @@ class PostServiceTest {
         List<ImageDTO> imageList = Arrays.asList(ImageDTO.builder().postId(postId).build());
 
         when(postMapper.findById(postId)).thenReturn(post);
-        when(imageService.getImages(postId)).thenReturn(imageList);
+        when(imageService.getImageInfos(postId)).thenReturn(imageList);
         when(userService.findByUserId(userId)).thenReturn(user);
 
         PostRes foundPost = postService.getPost(postId, userId);
 
         assertNotNull(foundPost);
-        assertTrue(foundPost.getIsAuthor());
+        assertTrue(foundPost.getIsCreatedByCurrentUser());
         assertEquals("test post contents", foundPost.getContents());
         assertEquals(imageList.size(), foundPost.getPostImgUrls().size());
     }

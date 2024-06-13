@@ -56,6 +56,7 @@
     SELECT id, user_id
     FROM comment
     where id = #{commentId}
+      AND post_id = #{postId}
       AND is_deleted = 0
 
   </select>
@@ -71,7 +72,9 @@
     UPDATE comment
     SET is_deleted = 1,
         update_date = NOW()
-    WHERE id = #{commentId} AND is_deleted = 0
+    WHERE id = #{commentId}
+      AND post_id = #{postId}
+      AND is_deleted = 0
   </delete>
 
   <delete id="deleteByPostId">
