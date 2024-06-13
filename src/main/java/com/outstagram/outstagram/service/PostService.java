@@ -189,10 +189,11 @@ public class PostService {
         }
         List<Object> feedList = redisTemplate.opsForList().range("feed:" + userId, 0, -1);
 
-        // 피드 redis 캐시가 없다면
-        if (feedList == null) {
+        // 피드 redis 캐시가 없거나 캐시의 마지막 데이터까지 읽었다면(캐시의 feed 목록 다 읽음)
+        if (feedList == null || Long.parseLong(String.valueOf(feedList.get(feedList.size()-1))) == lastId) {
             // DB에서 만들어서 가져오기...
             // 내 게시물 + 나의 팔로잉 유저들의 게시물
+
             return Collections.emptyList();
         }
 
@@ -352,6 +353,7 @@ public class PostService {
         }
     }
 
+    // TODO : 메서드명 수정하기(11개 리턴한다는 내용 포함)
     public List<PostDetailsDTO> getLikePosts(Long userId, Long lastId) {
         // 먼저 캐시 좋아요 누른 기록 확인 후 -> 모자라면 DB에서 좋아요 ID 목록 가져오기 (캐시에 항상 최신 데이터)
         String userLikeKey = USER_LIKE_PREFIX + userId;
@@ -368,26 +370,18 @@ public class PostService {
         List<Long> idList = new ArrayList<>();
 
         if (lastId == null) {   // 첫 요청 : 캐시 -> DB
-            if (recentIdSize > PAGE_SIZE) {      // 짜른게 10개 초과 -> 캐시만으로 해결
+            if (recentIdSize > PAGE_SIZE) {      // 짜른게 11개 이상-> 캐시만으로 해결
                 recentLikeIdList.stream()
                     .limit(PAGE_SIZE + 1)
                     .forEach(record -> idList.add(record.getPostId()));
-            } else if (recentIdSize == 10) {   // 딱 10개면 hasNext 알기 위해 DB에 1개 추가 질의
+            } else {    // 11개 미만 -> 캐시 + DB로 해결
+                // 캐시에 있는 거 다 가져와 넣기
                 recentLikeIdList.forEach(record -> idList.add(record.getPostId()));
-
-                List<Long> likePostIds = likeService.getLikePostIds(userId, null, 1);
-
-                if (!likePostIds.isEmpty()) {    // DB에서 1개 조회해왔으면 그거 추가
-                    idList.add(likePostIds.get(0));
-                }
-            } else if (!recentLikeIdList.isEmpty()) { // 캐시에 1개 이상 10개 미만 있는 경우 -> 캐시 데이터 + DB 데이터 합쳐서 11개 가져오기
-                recentLikeIdList.forEach(record -> idList.add(record.getPostId()));
+                // 남은 개수 개산
                 int need = PAGE_SIZE + 1 - idList.size();
-
+                // 남은 개수만큼 DB에서 가져오기
                 List<Long> likePostIds = likeService.getLikePostIds(userId, null, need);
-                idList.addAll(likePostIds);
-            } else { // 캐시에 1개도 없음 -> DB에서만 11개 조회해서 반환하기
-                List<Long> likePostIds = likeService.getLikePostIds(userId, lastId, PAGE_SIZE + 1);
+                // DB에서 가져온거 넣기
                 idList.addAll(likePostIds);
             }
         } else {    // 첫 요청을 제외한 모든 요청
@@ -531,23 +525,10 @@ public class PostService {
                 recentBookmarkIdList.stream()
                     .limit(PAGE_SIZE + 1)
                     .forEach(record -> idList.add(record.getPostId()));
-            } else if (recentIdSize == 10) {   // 딱 10개면 hasNext 알기 위해 DB에 1개 추가 질의
-                recentBookmarkIdList.forEach(record -> idList.add(record.getPostId()));
-
-                List<Long> bookmarkIds = bookmarkService.getBookmarkedPostIds(userId, null, 1);
-
-                if (!bookmarkIds.isEmpty()) {    // DB에서 1개 조회해왔으면 그거 추가
-                    idList.add(bookmarkIds.get(0));
-                }
-            } else if (!recentBookmarkIdList.isEmpty()) { // 캐시에 1개 이상 10개 미만 있는 경우 -> 캐시 데이터 + DB 데이터 합쳐서 11개 가져오기
+            } else {
                 recentBookmarkIdList.forEach(record -> idList.add(record.getPostId()));
                 int need = PAGE_SIZE + 1 - idList.size();
-
                 List<Long> bookmarkIds = bookmarkService.getBookmarkedPostIds(userId, null, need);
-                idList.addAll(bookmarkIds);
-            } else { // 캐시에 1개도 없음 -> DB에서만 11개 조회해서 반환하기
-                List<Long> bookmarkIds = bookmarkService.getBookmarkedPostIds(userId, lastId,
-                    PAGE_SIZE + 1);
                 idList.addAll(bookmarkIds);
             }
         } else {    // 첫 요청을 제외한 모든 요청
