@@ -27,6 +27,7 @@ public class FollowService {
     private final RedisTemplate<String, Object> redisTemplate;
 
 
+
     /**
      * 동기적으로 follow 목록 관리하기
      */
@@ -59,6 +60,7 @@ public class FollowService {
 
         // 각 유저 정보 가져와 종합 following list 만들기
         return getFollowResList(memberId);
+
     }
 
     /**
@@ -86,6 +88,8 @@ public class FollowService {
         redisTemplate.opsForSet().remove(makeFollowingKey(fromId), toId);
         // toId의 팔로워 목록에서 fromId 삭제
         redisTemplate.opsForSet().remove(makeFollowerKey(toId), fromId);
+
+
     }
 
     private String makeFollowingKey(Long id) {
