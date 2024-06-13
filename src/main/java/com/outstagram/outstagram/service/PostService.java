@@ -5,6 +5,7 @@ import static com.outstagram.outstagram.common.constant.CacheConst.IN_CACHE;
 import static com.outstagram.outstagram.common.constant.CacheConst.NOT_FOUND;
 import static com.outstagram.outstagram.common.constant.CacheConst.POST;
 import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
+import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.FEED;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.LIKE_COUNT_PREFIX;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_BOOKMARK_PREFIX;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_LIKE_PREFIX;
@@ -33,7 +34,6 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -183,35 +183,75 @@ public class PostService {
      * 피드 가져오기
      */
     public List<PostDetailsDTO> getFeed(Long lastId, Long userId) {
-        // redis에서 userId의 피드 목록 가져오기
-        if (lastId == null) {
-            lastId = Long.MAX_VALUE;
-        }
-        List<Object> feedList = redisTemplate.opsForList().range("feed:" + userId, 0, -1);
 
-        // 피드 redis 캐시가 없거나 캐시의 마지막 데이터까지 읽었다면(캐시의 feed 목록 다 읽음)
-        if (feedList == null || Long.parseLong(String.valueOf(feedList.get(feedList.size()-1))) == lastId) {
-            // DB에서 만들어서 가져오기...
-            // 내 게시물 + 나의 팔로잉 유저들의 게시물
+        String userFeedKey = FEED + userId;
 
-            return Collections.emptyList();
-        }
-
-        // 피드 id 목록에서 lastId 기준으로 아래로 11개 가져오기
-        Long finalLastId = lastId;
-        List<Long> postIds = feedList.stream()
+        // 캐시에서 피드 목록 가져오기
+        List<Long> feedList = redisTemplate.opsForList()
+            .range(userFeedKey, 0, -1)
+            .stream()
             .map(Object::toString)
             .map(Long::parseLong)
-            .filter(postId -> postId < finalLastId)
-            .limit(PAGE_SIZE + 1)        // 다음 페이지 있는지 확인하기 위해 1개 더 가져옴
-            .collect(Collectors.toList());
+            .toList();
 
-        log.info("===== feed : {} 의 postId {}", userId, postIds);
+        int feedIdSize = feedList.size();
 
-        return postIds.stream()
-            .limit(PAGE_SIZE)
-            .map(postId -> getPostDetails(postId, userId))
-            .collect(Collectors.toList());
+        List<Long> idList = new ArrayList<>();
+
+        if (lastId == null) {
+            if (feedIdSize > PAGE_SIZE) {
+                idList.addAll(feedList.subList(0, PAGE_SIZE + 1));
+                log.info("========= 캐시에서 가져온 id List : {}", idList);
+            }
+            else {
+                idList.addAll(feedList);
+                log.info("========= 캐시에서 가져온 id List : {}", idList);
+
+                int need = PAGE_SIZE + 1 - idList.size();
+                List<Long> feedListFromDB = getFeedIdsFromDB(userId, idList.get(idList.size()-1), need);
+                log.info("========= DB에서 가져온 id List : {}", feedListFromDB);
+                idList.addAll(feedListFromDB);
+            }
+        }
+        else {
+            int startIdx = 0;
+            for (int i = 0; i < feedIdSize; i++) {
+                if (feedList.get(i).equals(lastId)) {
+                    startIdx = i + 1;
+                    break;
+                }
+            }
+
+            // lastId가 feed 목록에 없다 == DB에서 조회해야 함
+            if (startIdx == 0 || startIdx == feedIdSize) {
+                List<Long> feedListFromDB = getFeedIdsFromDB(userId, lastId, PAGE_SIZE + 1);
+                log.info("========= DB에서 가져온 id List : {}", feedListFromDB);
+                idList.addAll(feedListFromDB);
+            }
+            else {
+                int endIdx = Math.min((startIdx + PAGE_SIZE + 1), feedIdSize);
+                idList.addAll(feedList.subList(startIdx, endIdx));
+                log.info("========= 캐시에서 가져온 id List : {}", idList);
+                int need = PAGE_SIZE + 1 - idList.size();
+
+                if (need != 0) {
+                    List<Long> feedListFromDB = getFeedIdsFromDB(userId, idList.get(idList.size()-1), need);
+                    log.info("========= DB에서 가져온 id List : {}", feedListFromDB);
+                    idList.addAll(feedListFromDB);
+                }
+            }
+
+        }
+
+        PostService proxy = (PostService) AopContext.currentProxy();
+        List<PostDetailsDTO> postDetailList = new ArrayList<>(11);
+        idList.forEach(id -> postDetailList.add(proxy.getPostDetails(id, userId)));
+
+        return postDetailList;
+    }
+
+    private List<Long> getFeedIdsFromDB(Long userId, Long lastId, int size) {
+        return postMapper.getFeedIdsFromDB(userId, lastId, size);
     }
 
 

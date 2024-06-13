@@ -53,6 +53,23 @@
         #{size}
     </select>
 
+  <select id="getFeedIdsFromDB" resultType="Long">
+    SELECT p.id
+    FROM post AS p
+    WHERE (p.user_id IN (
+        SELECT f.to_id
+        FROM follow as f
+        WHERE f.from_id = #{userId})
+           OR p.user_id = #{userId}
+        )
+      AND p.is_deleted = 0
+      <if test="lastId != null">
+        AND p.id &lt; #{lastId}
+      </if>
+    ORDER BY p.id DESC
+    LIMIT #{size}
+  </select>
+
   <select id="findIdsByUserId" resultType="Long">
     SELECT id
     FROM post
