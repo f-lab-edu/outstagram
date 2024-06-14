@@ -730,7 +730,7 @@ public class PostService {
 //        }
 
         // 댓글 존재 여부 검증
-        CommentDTO comment = commentService.findById(postId, commentId);
+        CommentDTO comment = commentService.findByIdAndPostId(postId, commentId);
         if (comment == null) {
             throw new ApiException(ErrorCode.COMMENT_NOT_FOUND);
         }

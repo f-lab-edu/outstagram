@@ -24,6 +24,10 @@ public class NotificationService {
 
     private final ImageService imageService;
 
+    public void insertNotification(NotificationDTO notification) {
+        notificationMapper.insertNotification(notification);
+    }
+
     public List<NotificationDetailsDTO> getNotificationDetailsPlusOne(Long userId, Long lastId) {
         List<NotificationDTO> notificationList = notificationMapper.findByUserIdAndLastId(userId,
             lastId, PAGE_SIZE + 1);
