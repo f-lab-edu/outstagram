@@ -1,11 +1,14 @@
 package com.outstagram.outstagram.service;
 
+import static com.outstagram.outstagram.common.constant.KafkaConst.SEND_NOTIFICATION;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.FOLLOWER;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.FOLLOWING;
+import static com.outstagram.outstagram.dto.AlarmType.FOLLOW;
 
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
+import com.outstagram.outstagram.kafka.producer.NotificationProducer;
 import com.outstagram.outstagram.mapper.FollowMapper;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +29,7 @@ public class FollowService {
     private final FollowMapper followMapper;
     private final RedisTemplate<String, Object> redisTemplate;
 
+    private final NotificationProducer notificationProducer;
 
 
     /**
@@ -38,7 +42,6 @@ public class FollowService {
             throw new ApiException(ErrorCode.DUPLICATED_FOLLOW);
         }
 
-        // TODO: kafka 활용해 비동기적으로 처리하기...?
         // fromId의 팔로잉 목록에 toId 추가
         String followingKey = makeFollowingKey(fromId);
         redisTemplate.opsForSet().add(followingKey, toId);
@@ -46,6 +49,9 @@ public class FollowService {
         // toId의 팔로워 목록에 fromId 추가
         String followersKey = makeFollowerKey(toId);
         redisTemplate.opsForSet().add(followersKey, fromId);
+
+        // 알림 보내기
+        notificationProducer.send(SEND_NOTIFICATION, fromId, toId, FOLLOW);
     }
 
     /**

@@ -8,5 +8,6 @@ import lombok.Getter;
 public enum AlarmType {
     LIKE,
     COMMENT,
-    FOLLOW
+    FOLLOW,
+    REPLY
 }

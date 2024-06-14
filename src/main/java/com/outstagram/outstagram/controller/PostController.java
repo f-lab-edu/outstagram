@@ -137,7 +137,7 @@ public class PostController {
     @PostMapping("/{postId}/comment")
     public ResponseEntity<ApiResponse> addComment(@PathVariable Long postId, @Login UserDTO user,
         @RequestBody CreateCommentReq commentReq) {
-        postService.addComment(commentReq, postId, user);
+        postService.addComment(commentReq, postId, user.getId());
 
         return ResponseEntity.ok(
             ApiResponse.builder()
@@ -154,7 +154,7 @@ public class PostController {
         @PathVariable("commentId") Long commentId,
         @RequestBody CreateCommentReq commentReq, @Login UserDTO user)
     {
-        postService.addComment(commentReq, postId, commentId, user);
+        postService.addComment(commentReq, postId, commentId, user.getId());
 
         return ResponseEntity.ok(
             ApiResponse.builder()

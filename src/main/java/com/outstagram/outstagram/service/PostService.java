@@ -4,11 +4,15 @@ package com.outstagram.outstagram.service;
 import static com.outstagram.outstagram.common.constant.CacheConst.IN_CACHE;
 import static com.outstagram.outstagram.common.constant.CacheConst.NOT_FOUND;
 import static com.outstagram.outstagram.common.constant.CacheConst.POST;
+import static com.outstagram.outstagram.common.constant.KafkaConst.SEND_NOTIFICATION;
 import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.FEED;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.LIKE_COUNT_PREFIX;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_BOOKMARK_PREFIX;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_LIKE_PREFIX;
+import static com.outstagram.outstagram.dto.AlarmType.COMMENT;
+import static com.outstagram.outstagram.dto.AlarmType.LIKE;
+import static com.outstagram.outstagram.dto.AlarmType.REPLY;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,6 +32,7 @@ import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.kafka.producer.FeedUpdateProducer;
+import com.outstagram.outstagram.kafka.producer.NotificationProducer;
 import com.outstagram.outstagram.kafka.producer.PostDeleteProducer;
 import com.outstagram.outstagram.mapper.PostMapper;
 import java.time.Duration;
@@ -71,6 +76,7 @@ public class PostService {
 
     private final FeedUpdateProducer feedUpdateProducer;
     private final PostDeleteProducer postDeleteProducer;
+    private final NotificationProducer notificationProducer;
 
     private final RedisTemplate<String, Object> redisTemplate;
 
@@ -127,14 +133,7 @@ public class PostService {
      */
     public PostDetailsDTO getPostDetails(Long postId, Long userId) {
         // 내부 메서드 호출할 때, @Cacheable 적용되도록 하려면 프록시 객체를 통해서 메서드를 호출해야 함.
-        PostService proxy = (PostService) AopContext.currentProxy();
-
-        // 순수 게시물 정보 가져오기(캐시 사용)
-        PostDTO post = proxy.getPost(postId);
-
-        if (post == null) {
-            throw new ApiException(ErrorCode.POST_NOT_FOUND);
-        }
+        PostDTO post = validatePostExist(postId);
 
         // Post의 이미지 정보 가져오기(캐시 사용)
         List<ImageDTO> imageList = imageService.getImageInfos(post.getId());
@@ -356,6 +355,9 @@ public class PostService {
         } catch (RedisSystemException e) {
             throw new ApiException(e, ErrorCode.DUPLICATED_LIKE);
         }
+
+        // 알림 보내기
+        notificationProducer.send(SEND_NOTIFICATION, userId, postId, LIKE);
     }
 
 
@@ -483,13 +485,7 @@ public class PostService {
      */
     @Transactional
     public void addBookmark(Long postId, Long userId) {
-        PostService proxy = (PostService) AopContext.currentProxy();
-
-        // 게시물 존재 여부 검증
-        PostDTO post = proxy.getPost(postId);
-        if (post == null) {
-            throw new ApiException(ErrorCode.POST_NOT_FOUND);
-        }
+        validatePostExist(postId);
 
         String userBookmarkKey = USER_BOOKMARK_PREFIX + userId;
 
@@ -507,12 +503,7 @@ public class PostService {
      */
     @Transactional
     public void deleteBookmark(Long postId, Long userId) {
-        PostService proxy = (PostService) AopContext.currentProxy();
-
-        PostDTO post = proxy.getPost(postId);
-        if (post == null) {
-            throw new ApiException(ErrorCode.POST_NOT_FOUND);
-        }
+        validatePostExist(postId);
         String userBookmarkKey = USER_BOOKMARK_PREFIX + userId;
 
         int existBookmark = bookmarkService.existsBookmark(userId, postId);
@@ -613,16 +604,13 @@ public class PostService {
     /**
      * 댓글 저장하는 로직
      */
-    public void addComment(CreateCommentReq commentReq, Long postId, UserDTO user) {
-        // 존재하는 post인지 검증
-        PostDTO findPost = postMapper.findById(postId);
-        if (findPost == null) {
-            throw new ApiException(ErrorCode.POST_NOT_FOUND);
-        }
+    public void addComment(CreateCommentReq commentReq, Long postId, Long userId) {
+
+        validatePostExist(postId);
 
         // 댓글 객체 생성하기
         CommentDTO newComment = CommentDTO.builder()
-            .userId(user.getId())
+            .userId(userId)
             .postId(postId)
             .parentCommentId(null)
             .contents(commentReq.getContents())
@@ -634,21 +622,21 @@ public class PostService {
 
         // comment 테이블에 댓글 저장하기
         commentService.insertComment(newComment);
+
+        // 알림 보내기
+        notificationProducer.send(SEND_NOTIFICATION, userId, postId, COMMENT);
     }
 
     /**
      * 대댓글 저장하는 로직
      */
-    public void addComment(CreateCommentReq commentReq, Long postId, Long commentId, UserDTO user) {
+    public void addComment(CreateCommentReq commentReq, Long postId, Long commentId, Long userId) {
         // 존재하는 post인지 검증
-        PostDTO findPost = postMapper.findById(postId);
-        if (findPost == null) {
-            throw new ApiException(ErrorCode.POST_NOT_FOUND);
-        }
+        validatePostExist(postId);
 
         // 대댓글 객체 생성하기
         CommentDTO newComment = CommentDTO.builder()
-            .userId(user.getId())
+            .userId(userId)
             .postId(postId)
             .parentCommentId(commentId)
             .contents(commentReq.getContents())
@@ -660,6 +648,9 @@ public class PostService {
 
         // comment 테이블에 댓글 저장하기
         commentService.insertComment(newComment);
+
+        // 알림 보내기
+        notificationProducer.send(SEND_NOTIFICATION, userId, commentId, REPLY);
     }
 
     /**
@@ -682,16 +673,32 @@ public class PostService {
 
 
 
+
     /* ========================================================================================== */
+
+    /**
+     * 게시물 존재 여부 검증
+     */
+    private static PostDTO validatePostExist(Long postId) {
+        // 존재하는 post인지 검증
+        PostService proxy = (PostService) AopContext.currentProxy();
+        PostDTO post = proxy.getPost(postId);
+
+        if (post == null) {
+            throw new ApiException(ErrorCode.POST_NOT_FOUND);
+        }
+        return post;
+    }
 
     /**
      * 게시물 작성자인지 검증 -> 수정, 삭제 시 확인 필요
      */
     private void validatePostOwner(Long postId, Long userId) {
-        PostDTO post = postMapper.findById(postId);
-        if (post == null) {
-            throw new ApiException(ErrorCode.POST_NOT_FOUND);
-        }
+        PostDTO post = validatePostExist(postId);
+//        PostDTO post = postMapper.findById(postId);
+//        if (post == null) {
+//            throw new ApiException(ErrorCode.POST_NOT_FOUND);
+//        }
 
         // 게시물 작성자인지 확인
         if (!Objects.equals(post.getUserId(), userId)) {
@@ -715,10 +722,12 @@ public class PostService {
      */
     private void validatePostCommentAndOwnership(Long postId, Long commentId, Long userId) {
         // 게시물 존재 여부 검증
-        PostDTO post = postMapper.findById(postId);
-        if (post == null) {
-            throw new ApiException(ErrorCode.POST_NOT_FOUND);
-        }
+        validatePostExist(postId);
+
+//        PostDTO post = postMapper.findById(postId);
+//        if (post == null) {
+//            throw new ApiException(ErrorCode.POST_NOT_FOUND);
+//        }
 
         // 댓글 존재 여부 검증
         CommentDTO comment = commentService.findById(postId, commentId);

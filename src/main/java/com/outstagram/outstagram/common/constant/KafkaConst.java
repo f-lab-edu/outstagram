@@ -14,6 +14,9 @@ public class KafkaConst {
 
     public static final String DELETE_GROUPID = "post";
 
+    public static final String SEND_NOTIFICATION = "send-notification";
+    public static final String NOTIFICATION_GROUPID = "notification";
+
 
 
 }
