@@ -23,6 +23,8 @@ public class NotificationDetailsDTO {
 
     private AlarmType alarmType;
 
+    private boolean isRead;
+
     private LocalDateTime createDate;
 
     private String postImgUrl;

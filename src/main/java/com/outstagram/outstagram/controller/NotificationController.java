@@ -24,6 +24,9 @@ public class NotificationController {
 
     private final NotificationService notificationService;
 
+    /**
+     * 내 알림 목록 최신 순으로 조회
+     */
     @GetMapping
     public ResponseEntity<MyNotificationsRes> getNotifications(
         @RequestParam(required = false) Long lastId, @Login UserDTO user) {
@@ -37,5 +40,8 @@ public class NotificationController {
             .build());
     }
 
+    // TODO : 단건 알림 읽음 처리
+
+    // TODO : 모든 알림 읽음 처리
 
 }

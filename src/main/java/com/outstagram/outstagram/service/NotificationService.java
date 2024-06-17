@@ -46,7 +46,9 @@ public class NotificationService {
                     .fromNickname(user.getNickname())
                     .fromImgUrl(user.getImgUrl())
                     .targetId(dto.getTargetId())
+                    .isRead(dto.isRead())
                     .alarmType(dto.getAlarmType())
+                    .createDate(dto.getCreateDate())
                     .postImgUrl(image.getImgUrl())
                     .build();
             })
