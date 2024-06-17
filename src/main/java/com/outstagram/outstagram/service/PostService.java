@@ -5,6 +5,7 @@ import static com.outstagram.outstagram.common.constant.CacheConst.IN_CACHE;
 import static com.outstagram.outstagram.common.constant.CacheConst.NOT_FOUND;
 import static com.outstagram.outstagram.common.constant.CacheConst.POST;
 import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
+import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.FEED;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.LIKE_COUNT_PREFIX;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_BOOKMARK_PREFIX;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_LIKE_PREFIX;
@@ -33,7 +34,6 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -183,31 +183,75 @@ public class PostService {
      * 피드 가져오기
      */
     public List<PostDetailsDTO> getFeed(Long lastId, Long userId) {
-        // redis에서 userId의 피드 목록 가져오기
-        if (lastId == null) {
-            lastId = Long.MAX_VALUE;
-        }
-        List<Object> feedList = redisTemplate.opsForList().range("feed:" + userId, 0, -1);
 
-        if (feedList == null) {
-            return Collections.emptyList();
-        }
+        String userFeedKey = FEED + userId;
 
-        // 피드 id 목록에서 lastId 기준으로 아래로 11개 가져오기
-        Long finalLastId = lastId;
-        List<Long> postIds = feedList.stream()
+        // 캐시에서 피드 목록 가져오기
+        List<Long> feedList = redisTemplate.opsForList()
+            .range(userFeedKey, 0, -1)
+            .stream()
             .map(Object::toString)
             .map(Long::parseLong)
-            .filter(postId -> postId < finalLastId)
-            .limit(PAGE_SIZE + 1)        // 다음 페이지 있는지 확인하기 위해 1개 더 가져옴
-            .collect(Collectors.toList());
+            .toList();
 
-        log.info("===== feed : {} 의 postId {}", userId, postIds);
+        int feedIdSize = feedList.size();
 
-        return postIds.stream()
-            .limit(PAGE_SIZE)
-            .map(postId -> getPostDetails(postId, userId))
-            .collect(Collectors.toList());
+        List<Long> idList = new ArrayList<>();
+
+        if (lastId == null) {
+            if (feedIdSize > PAGE_SIZE) {
+                idList.addAll(feedList.subList(0, PAGE_SIZE + 1));
+                log.info("========= 캐시에서 가져온 id List : {}", idList);
+            }
+            else {
+                idList.addAll(feedList);
+                log.info("========= 캐시에서 가져온 id List : {}", idList);
+
+                int need = PAGE_SIZE + 1 - idList.size();
+                List<Long> feedListFromDB = getFeedIdsFromDB(userId, idList.get(idList.size()-1), need);
+                log.info("========= DB에서 가져온 id List : {}", feedListFromDB);
+                idList.addAll(feedListFromDB);
+            }
+        }
+        else {
+            int startIdx = 0;
+            for (int i = 0; i < feedIdSize; i++) {
+                if (feedList.get(i).equals(lastId)) {
+                    startIdx = i + 1;
+                    break;
+                }
+            }
+
+            // lastId가 feed 목록에 없다 == DB에서 조회해야 함
+            if (startIdx == 0 || startIdx == feedIdSize) {
+                List<Long> feedListFromDB = getFeedIdsFromDB(userId, lastId, PAGE_SIZE + 1);
+                log.info("========= DB에서 가져온 id List : {}", feedListFromDB);
+                idList.addAll(feedListFromDB);
+            }
+            else {
+                int endIdx = Math.min((startIdx + PAGE_SIZE + 1), feedIdSize);
+                idList.addAll(feedList.subList(startIdx, endIdx));
+                log.info("========= 캐시에서 가져온 id List : {}", idList);
+                int need = PAGE_SIZE + 1 - idList.size();
+
+                if (need != 0) {
+                    List<Long> feedListFromDB = getFeedIdsFromDB(userId, idList.get(idList.size()-1), need);
+                    log.info("========= DB에서 가져온 id List : {}", feedListFromDB);
+                    idList.addAll(feedListFromDB);
+                }
+            }
+
+        }
+
+        PostService proxy = (PostService) AopContext.currentProxy();
+        List<PostDetailsDTO> postDetailList = new ArrayList<>(11);
+        idList.forEach(id -> postDetailList.add(proxy.getPostDetails(id, userId)));
+
+        return postDetailList;
+    }
+
+    private List<Long> getFeedIdsFromDB(Long userId, Long lastId, int size) {
+        return postMapper.getFeedIdsFromDB(userId, lastId, size);
     }
 
 
@@ -349,7 +393,7 @@ public class PostService {
         }
     }
 
-    public List<PostDetailsDTO> getLikePosts(Long userId, Long lastId) {
+    public List<PostDetailsDTO> getLikePostsPlusOne(Long userId, Long lastId) {
         // 먼저 캐시 좋아요 누른 기록 확인 후 -> 모자라면 DB에서 좋아요 ID 목록 가져오기 (캐시에 항상 최신 데이터)
         String userLikeKey = USER_LIKE_PREFIX + userId;
 
@@ -365,26 +409,18 @@ public class PostService {
         List<Long> idList = new ArrayList<>();
 
         if (lastId == null) {   // 첫 요청 : 캐시 -> DB
-            if (recentIdSize > PAGE_SIZE) {      // 짜른게 10개 초과 -> 캐시만으로 해결
+            if (recentIdSize > PAGE_SIZE) {      // 짜른게 11개 이상-> 캐시만으로 해결
                 recentLikeIdList.stream()
                     .limit(PAGE_SIZE + 1)
                     .forEach(record -> idList.add(record.getPostId()));
-            } else if (recentIdSize == 10) {   // 딱 10개면 hasNext 알기 위해 DB에 1개 추가 질의
+            } else {    // 11개 미만 -> 캐시 + DB로 해결
+                // 캐시에 있는 거 다 가져와 넣기
                 recentLikeIdList.forEach(record -> idList.add(record.getPostId()));
-
-                List<Long> likePostIds = likeService.getLikePostIds(userId, null, 1);
-
-                if (!likePostIds.isEmpty()) {    // DB에서 1개 조회해왔으면 그거 추가
-                    idList.add(likePostIds.get(0));
-                }
-            } else if (!recentLikeIdList.isEmpty()) { // 캐시에 1개 이상 10개 미만 있는 경우 -> 캐시 데이터 + DB 데이터 합쳐서 11개 가져오기
-                recentLikeIdList.forEach(record -> idList.add(record.getPostId()));
+                // 남은 개수 개산
                 int need = PAGE_SIZE + 1 - idList.size();
-
+                // 남은 개수만큼 DB에서 가져오기
                 List<Long> likePostIds = likeService.getLikePostIds(userId, null, need);
-                idList.addAll(likePostIds);
-            } else { // 캐시에 1개도 없음 -> DB에서만 11개 조회해서 반환하기
-                List<Long> likePostIds = likeService.getLikePostIds(userId, lastId, PAGE_SIZE + 1);
+                // DB에서 가져온거 넣기
                 idList.addAll(likePostIds);
             }
         } else {    // 첫 요청을 제외한 모든 요청
@@ -508,7 +544,7 @@ public class PostService {
     /**
      * 로그인한 유저가 북마크한 모든 게시물 가져오기
      */
-    public List<PostDetailsDTO> getBookmarkedPosts(Long userId, Long lastId) {
+    public List<PostDetailsDTO> getBookmarkedPostsPlusOne(Long userId, Long lastId) {
         // 먼저 캐시 북마크 누른 기록 확인 후 -> 모자라면 DB에서 북마크 ID 목록 가져오기 (캐시에 항상 최신 데이터)
         String userBookmarkKey = USER_BOOKMARK_PREFIX + userId;
 
@@ -528,23 +564,10 @@ public class PostService {
                 recentBookmarkIdList.stream()
                     .limit(PAGE_SIZE + 1)
                     .forEach(record -> idList.add(record.getPostId()));
-            } else if (recentIdSize == 10) {   // 딱 10개면 hasNext 알기 위해 DB에 1개 추가 질의
-                recentBookmarkIdList.forEach(record -> idList.add(record.getPostId()));
-
-                List<Long> bookmarkIds = bookmarkService.getBookmarkedPostIds(userId, null, 1);
-
-                if (!bookmarkIds.isEmpty()) {    // DB에서 1개 조회해왔으면 그거 추가
-                    idList.add(bookmarkIds.get(0));
-                }
-            } else if (!recentBookmarkIdList.isEmpty()) { // 캐시에 1개 이상 10개 미만 있는 경우 -> 캐시 데이터 + DB 데이터 합쳐서 11개 가져오기
+            } else {
                 recentBookmarkIdList.forEach(record -> idList.add(record.getPostId()));
                 int need = PAGE_SIZE + 1 - idList.size();
-
                 List<Long> bookmarkIds = bookmarkService.getBookmarkedPostIds(userId, null, need);
-                idList.addAll(bookmarkIds);
-            } else { // 캐시에 1개도 없음 -> DB에서만 11개 조회해서 반환하기
-                List<Long> bookmarkIds = bookmarkService.getBookmarkedPostIds(userId, lastId,
-                    PAGE_SIZE + 1);
                 idList.addAll(bookmarkIds);
             }
         } else {    // 첫 요청을 제외한 모든 요청

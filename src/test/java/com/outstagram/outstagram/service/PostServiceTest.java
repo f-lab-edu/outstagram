@@ -255,7 +255,7 @@ class PostServiceTest {
 
         when(likeService.getLikePosts(userId, null)).thenReturn(mockPostImages);
 
-        List<PostDetailsDTO> likePosts = postService.getLikePosts(userId, 4L);
+        List<PostDetailsDTO> likePosts = postService.getLikePostsPlusOne(userId, 4L);
 
         assertNotNull(likePosts);
 //        assertEquals(
