@@ -36,6 +36,10 @@ public class FollowService {
      * 동기적으로 follow 목록 관리하기
      */
     public void addFollowing(Long fromId, Long toId) {
+        if (fromId.equals(toId)) {
+            throw new ApiException(ErrorCode.SELF_FOLLOW_NOT_ALLOWED);
+        }
+
         try {
             followMapper.insertFollow(fromId, toId);
         } catch (DuplicateKeyException e) {

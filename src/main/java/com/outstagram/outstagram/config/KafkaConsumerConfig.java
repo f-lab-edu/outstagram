@@ -1,6 +1,12 @@
 package com.outstagram.outstagram.config;
 
+import static com.outstagram.outstagram.common.constant.KafkaConst.DELETE_GROUPID;
+import static com.outstagram.outstagram.common.constant.KafkaConst.FEED_GROUPID;
+import static com.outstagram.outstagram.common.constant.KafkaConst.NOTIFICATION_GROUPID;
+
 import com.outstagram.outstagram.dto.NotificationDTO;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.LongDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -10,9 +16,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
-
-import java.util.HashMap;
-import java.util.Map;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 
@@ -27,7 +30,7 @@ public class KafkaConsumerConfig {
         Map<String, Object> configProps = new HashMap<>();
 
         configProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        configProps.put(ConsumerConfig.GROUP_ID_CONFIG, "sns-feed");
+        configProps.put(ConsumerConfig.GROUP_ID_CONFIG, FEED_GROUPID);
         configProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         configProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, LongDeserializer.class);
 
@@ -39,7 +42,7 @@ public class KafkaConsumerConfig {
         Map<String, Object> configProps = new HashMap<>();
 
         configProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        configProps.put(ConsumerConfig.GROUP_ID_CONFIG, "post");
+        configProps.put(ConsumerConfig.GROUP_ID_CONFIG, DELETE_GROUPID);
         configProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         configProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, LongDeserializer.class);
 
@@ -51,7 +54,7 @@ public class KafkaConsumerConfig {
         Map<String, Object> configProps = new HashMap<>();
 
         configProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        configProps.put(ConsumerConfig.GROUP_ID_CONFIG, "notification");
+        configProps.put(ConsumerConfig.GROUP_ID_CONFIG, NOTIFICATION_GROUPID);
         configProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         configProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class.getName());
         configProps.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class.getName());

@@ -51,6 +51,8 @@ public enum ErrorCode {
 
     // follow 관련 에러 코드
     DUPLICATED_FOLLOW(HttpStatus.CONFLICT, "이미 팔로우한 사용자 입니다."),
+    SELF_FOLLOW_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "자기 자신을 팔로우할 수 없습니다."),
+
 
     // like 관련 에러 코드
     DUPLICATED_LIKE(HttpStatus.CONFLICT, "이미 좋아요한 게시물입니다."),
