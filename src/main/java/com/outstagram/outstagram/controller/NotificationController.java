@@ -4,6 +4,7 @@ import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
 import static com.outstagram.outstagram.dto.AlarmType.FOLLOW;
 
 import com.outstagram.outstagram.common.annotation.Login;
+import com.outstagram.outstagram.common.api.ApiResponse;
 import com.outstagram.outstagram.controller.response.MyNotificationsRes;
 import com.outstagram.outstagram.controller.response.UserInfoRes;
 import com.outstagram.outstagram.dto.NotificationDTO;
@@ -16,6 +17,7 @@ import com.outstagram.outstagram.service.UserService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -51,7 +53,9 @@ public class NotificationController {
             .build());
     }
 
-    // TODO : 단건 알림 읽음 처리
+    /**
+     * 알림 단건 읽음 처리
+     */
     @PatchMapping("/{notiId}")
     public ResponseEntity<Object> readNotification(@PathVariable Long notiId,
         @Login UserDTO user) {
@@ -79,6 +83,20 @@ public class NotificationController {
         }
     }
 
-    // TODO : 모든 알림 읽음 처리
+    /**
+     * 알림 모두 읽음 처리
+     */
+    @PatchMapping("/read-all")
+    public ResponseEntity<ApiResponse> readAllNotification(@Login UserDTO user) {
+        notificationService.readAllNotification(user.getId());
+
+        return ResponseEntity.ok(
+            ApiResponse.builder()
+                .message("모든 알림을 읽음 처리 했습니다.")
+                .httpStatus(HttpStatus.OK)
+                .isSuccess(true)
+                .build()
+        );
+    }
 
 }

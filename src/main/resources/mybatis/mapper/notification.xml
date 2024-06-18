@@ -32,4 +32,6 @@
     SET is_read = 1, update_date = NOW()
     WHERE id = #{notiId} AND to_id = #{userId} AND is_read = 0
   </update>
+
+
 </mapper>

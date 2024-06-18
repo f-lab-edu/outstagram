@@ -13,6 +13,9 @@ import com.outstagram.outstagram.mapper.NotificationMapper;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.ibatis.session.ExecutorType;
+import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +30,8 @@ public class NotificationService {
     private final UserService userService;
 
     private final ImageService imageService;
+
+    private final SqlSessionFactory sqlSessionFactory;
 
     public void insertNotification(NotificationDTO notification) {
         notificationMapper.insertNotification(notification);
@@ -74,5 +79,20 @@ public class NotificationService {
         }
 
         return notification;
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public void readAllNotification(Long userId) {
+        // 해당 유저의 모든 알림 가져와서
+        List<NotificationDTO> notificationList = notificationMapper.findByUserIdAndLastId(userId,
+            null, Integer.MAX_VALUE);
+
+        // 모든 알림 읽음 처리(update 쿼리 모아서 배치 처리)
+        try (SqlSession session = sqlSessionFactory.openSession(ExecutorType.BATCH)) {
+            NotificationMapper mapper = session.getMapper(NotificationMapper.class);
+            notificationList.forEach(noti -> mapper.readNotification(noti.getId(), userId));
+            session.commit();
+        }
+
     }
 }

@@ -14,4 +14,5 @@ public interface NotificationMapper {
     void readNotification(Long notiId, Long userId);
 
     NotificationDTO findByIdAndUserId(Long notiId, Long userId);
+
 }
