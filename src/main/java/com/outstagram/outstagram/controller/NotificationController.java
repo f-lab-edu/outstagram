@@ -1,7 +1,6 @@
 package com.outstagram.outstagram.controller;
 
 import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
-import static com.outstagram.outstagram.dto.AlarmType.FOLLOW;
 
 import com.outstagram.outstagram.common.annotation.Login;
 import com.outstagram.outstagram.common.api.ApiResponse;
@@ -11,6 +10,8 @@ import com.outstagram.outstagram.dto.NotificationDTO;
 import com.outstagram.outstagram.dto.NotificationDetailsDTO;
 import com.outstagram.outstagram.dto.PostDetailsDTO;
 import com.outstagram.outstagram.dto.UserDTO;
+import com.outstagram.outstagram.exception.ApiException;
+import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.service.NotificationService;
 import com.outstagram.outstagram.service.PostService;
 import com.outstagram.outstagram.service.UserService;
@@ -62,24 +63,27 @@ public class NotificationController {
         NotificationDTO notification = notificationService.readNotification(notiId,
             user.getId());
 
-        // 팔로우 알림인 경우 -> 나를 팔로우한 유저 정보 리턴
-        if (notification.getAlarmType().equals(FOLLOW)) {
-            UserDTO dto = userService.getUser(notification.getFromId());
+        switch (notification.getAlarmType()) {
+            // 팔로우 알림인 경우 -> 나를 팔로우한 유저 정보 리턴
+            case FOLLOW -> {
+                UserDTO dto = userService.getUser(notification.getFromId());
 
-            UserInfoRes response = UserInfoRes.builder()
-                .userId(dto.getId())
-                .nickname(dto.getNickname())
-                .email(dto.getEmail())
-                .imgUrl(dto.getImgUrl())
-                .build();
-            return ResponseEntity.ok(response);
-        }
-        // 좋아요, 댓글, 대댓글 알림인 경우 -> 해당 게시물 정보 리턴
-        else {
-            PostDetailsDTO postDetailsDTO = postService.getPostDetails(notification.getTargetId(),
-                user.getId());
+                UserInfoRes response = UserInfoRes.builder()
+                    .userId(dto.getId())
+                    .nickname(dto.getNickname())
+                    .email(dto.getEmail())
+                    .imgUrl(dto.getImgUrl())
+                    .build();
+                return ResponseEntity.ok(response);
+            }
+            // 좋아요, 댓글, 대댓글 알림인 경우 -> 해당 게시물 정보 리턴
+            case LIKE, COMMENT, REPLY -> {
+                PostDetailsDTO postDetailsDTO = postService.getPostDetails(notification.getTargetId(),
+                    user.getId());
 
-            return ResponseEntity.ok(postDetailsDTO);
+                return ResponseEntity.ok(postDetailsDTO);
+            }
+            default -> throw new ApiException(ErrorCode.INVALID_NOTIFICATION_TYPE);
         }
     }
 

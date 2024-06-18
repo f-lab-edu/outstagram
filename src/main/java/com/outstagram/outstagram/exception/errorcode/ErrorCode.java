@@ -65,6 +65,8 @@ public enum ErrorCode {
     // notification 관련 에러 코드
     NOT_FOUND_NOTIFICATION(HttpStatus.BAD_REQUEST, "해당 알림은 없습니다."),
 
+    // alarmType 관련 에러코드
+    INVALID_NOTIFICATION_TYPE(HttpStatus.BAD_REQUEST, "부적절한 알림 타입입니다."),
     NULL_POINT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "null point error 입니다."),
     JSON_CONVERTING_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "json <-> String 변환 과정 중 에러가 발생했습니다."),
 

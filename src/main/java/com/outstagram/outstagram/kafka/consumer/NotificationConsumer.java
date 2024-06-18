@@ -2,12 +2,13 @@ package com.outstagram.outstagram.kafka.consumer;
 
 import static com.outstagram.outstagram.common.constant.KafkaConst.NOTIFICATION_GROUPID;
 import static com.outstagram.outstagram.common.constant.KafkaConst.SEND_NOTIFICATION;
-import static com.outstagram.outstagram.dto.AlarmType.*;
+import static com.outstagram.outstagram.dto.AlarmType.COMMENT;
 
-import com.outstagram.outstagram.dto.AlarmType;
 import com.outstagram.outstagram.dto.CommentDTO;
 import com.outstagram.outstagram.dto.NotificationDTO;
 import com.outstagram.outstagram.dto.PostDTO;
+import com.outstagram.outstagram.exception.ApiException;
+import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.service.CommentService;
 import com.outstagram.outstagram.service.NotificationService;
 import com.outstagram.outstagram.service.PostService;
@@ -35,39 +36,45 @@ public class NotificationConsumer {
     public void receive(@Payload NotificationDTO notification) {
         log.info("=========== send notification start!");
 
-        AlarmType alarmType = notification.getAlarmType();
         boolean shouldSendNoti = false;
 
-        if (alarmType == COMMENT || alarmType == LIKE ) {
-            PostDTO post = postService.getPost(notification.getTargetId());
-            if (!post.getUserId().equals(notification.getFromId())) {
-                notification.setToId(post.getUserId());
-                shouldSendNoti = true;
+        switch(notification.getAlarmType()) {
+            case COMMENT, LIKE -> {
+                PostDTO post = postService.getPost(notification.getTargetId());
+                if (!post.getUserId().equals(notification.getFromId())) {
+                    notification.setToId(post.getUserId());
+                    shouldSendNoti = true;
+                }
             }
-        }
-        else if (alarmType.equals(REPLY)) {
-            // 댓글 주인에게 대댓글 알림 보내기
-            CommentDTO comment = commentService.findById(notification.getTargetId());
-            // 자기 댓글에는 알림X
-            if (!comment.getUserId().equals(notification.getFromId())) {
-                notification.setToId(comment.getUserId());
-                shouldSendNoti = true;
+
+            case REPLY -> {
+                // 댓글 주인에게 대댓글 알림 보내기
+                CommentDTO comment = commentService.findById(notification.getTargetId());
+                // 자기 댓글에는 알림X
+                if (!comment.getUserId().equals(notification.getFromId())) {
+                    notification.setToId(comment.getUserId());
+                    shouldSendNoti = true;
+                }
+                // 게시물 주인에게 댓글 알림 보내기(자기 게시물에는 알림X)
+                PostDTO post = postService.getPost(comment.getPostId());
+                if (!post.getUserId().equals(notification.getFromId())) {
+                    notification.setToId(post.getUserId());
+                    notification.setTargetId(comment.getPostId());
+                    notification.setAlarmType(COMMENT);
+                    notificationService.insertNotification(notification);
+                    log.info("Notification sent: from user {} to user {}, type: {}\n",
+                        notification.getFromId(), notification.getToId(), notification.getAlarmType());
+                }
             }
-            // 게시물 주인에게 댓글 알림 보내기(자기 게시물에는 알림X)
-            PostDTO post = postService.getPost(comment.getPostId());
-            if (!post.getUserId().equals(notification.getFromId())) {
-                notification.setToId(post.getUserId());
-                notification.setTargetId(comment.getPostId());
-                notification.setAlarmType(COMMENT);
-                notificationService.insertNotification(notification);
-                log.info("Notification sent: from user {} to user {}, type: {}\n",
-                    notification.getFromId(), notification.getToId(), notification.getAlarmType());
+
+            case FOLLOW -> {
+                if (!notification.getTargetId().equals(notification.getFromId())) {
+                    notification.setToId(notification.getTargetId());
+                    shouldSendNoti = true;
+                }
             }
-        } else if (alarmType.equals(FOLLOW)) {
-            if (!notification.getTargetId().equals(notification.getFromId())) {
-                notification.setToId(notification.getTargetId());
-                shouldSendNoti = true;
-            }
+
+            default -> throw new ApiException(ErrorCode.INVALID_NOTIFICATION_TYPE);
         }
 
         if (shouldSendNoti) {

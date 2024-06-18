@@ -106,6 +106,8 @@ public class PostService {
 
         // kafka에 메시지 발행 : 팔로워들의 피드목록에 내가 작성한 게시물 ID 넣기
         feedUpdateProducer.send("feed", userId, newPostId);
+
+
     }
 
 
