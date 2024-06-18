@@ -29,7 +29,7 @@ public class NotificationDTO implements Serializable {
     // 좋아요, 댓글 -> 게시물 id, 팔로우 -> 팔로우한 유저 id
     private Long targetId;
 
-    private boolean isRead;
+    private Boolean isRead;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createDate;

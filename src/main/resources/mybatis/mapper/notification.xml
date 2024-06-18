@@ -19,4 +19,17 @@
     ORDER BY id DESC
     LIMIT #{size}
   </select>
+
+  <select id="findByIdAndUserId" resultType="com.outstagram.outstagram.dto.NotificationDTO">
+    SELECT *
+    FROM notification
+    WHERE id = #{notiId}
+    AND to_id = #{userId}
+  </select>
+
+  <update id="readNotification">
+    UPDATE notification
+    SET is_read = 1, update_date = NOW()
+    WHERE id = #{notiId} AND to_id = #{userId} AND is_read = 0
+  </update>
 </mapper>

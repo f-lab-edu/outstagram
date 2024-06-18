@@ -60,7 +60,10 @@ public enum ErrorCode {
 
     // bookmark 관련 에러 코드
     DUPLICATED_BOOKMARK(HttpStatus.CONFLICT, "이미 북마크한 게시물입니다."),
-    NOT_FOUND_BOOKMARK(HttpStatus.INTERNAL_SERVER_ERROR, "북마크 기록이 없습니다"),
+    NOT_FOUND_BOOKMARK(HttpStatus.BAD_REQUEST, "해당 북마크 기록이 없습니다"),
+
+    // notification 관련 에러 코드
+    NOT_FOUND_NOTIFICATION(HttpStatus.BAD_REQUEST, "해당 알림은 없습니다."),
 
     NULL_POINT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "null point error 입니다."),
     JSON_CONVERTING_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "json <-> String 변환 과정 중 에러가 발생했습니다."),

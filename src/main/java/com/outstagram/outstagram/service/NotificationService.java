@@ -7,11 +7,15 @@ import com.outstagram.outstagram.dto.ImageDTO;
 import com.outstagram.outstagram.dto.NotificationDTO;
 import com.outstagram.outstagram.dto.NotificationDetailsDTO;
 import com.outstagram.outstagram.dto.UserDTO;
+import com.outstagram.outstagram.exception.ApiException;
+import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.NotificationMapper;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -46,12 +50,29 @@ public class NotificationService {
                     .fromNickname(user.getNickname())
                     .fromImgUrl(user.getImgUrl())
                     .targetId(dto.getTargetId())
-                    .isRead(dto.isRead())
+                    .isRead(dto.getIsRead())
                     .alarmType(dto.getAlarmType())
                     .createDate(dto.getCreateDate())
                     .postImgUrl(image.getImgUrl())
                     .build();
             })
             .toList();
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public NotificationDTO readNotification(Long notiId, Long userId) {
+        // 알림 존재 여부 확인
+        NotificationDTO notification = notificationMapper.findByIdAndUserId(notiId, userId);
+        if (notification == null) {
+            throw new ApiException(ErrorCode.NOT_FOUND_NOTIFICATION);
+        }
+
+        // 알림 읽음 처리
+        if (!notification.getIsRead()) {
+            notificationMapper.readNotification(notiId, userId);
+            notification.setIsRead(true);
+        }
+
+        return notification;
     }
 }
