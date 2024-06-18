@@ -33,5 +33,9 @@
     WHERE id = #{notiId} AND to_id = #{userId} AND is_read = 0
   </update>
 
+  <delete id="deleteOlderThan30Days">
+    DELETE FROM notification
+    WHERE create_date &lt; DATE_SUB(NOW(), INTERVAL 30 DAY)
+  </delete>
 
 </mapper>

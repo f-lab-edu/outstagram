@@ -15,4 +15,5 @@ public interface NotificationMapper {
 
     NotificationDTO findByIdAndUserId(Long notiId, Long userId);
 
+    void deleteOlderThan30Days();
 }

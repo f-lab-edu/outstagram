@@ -18,8 +18,6 @@ public class DeleteImageScheduler {
 
     private final ImageService imageService;
 
-//    @Scheduled(fixedRate = 10000)
-//    @Scheduled(cron = "0 58 20 * * *")
     @Scheduled(cron = "0 0 2 * * *")    // 매일 오전 2시 정각에 실행
     public void deleteImageScheduler() {
         log.info("================== 이미지 삭제 스케쥴링 시작!!");

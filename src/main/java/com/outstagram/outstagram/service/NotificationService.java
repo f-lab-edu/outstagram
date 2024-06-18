@@ -95,4 +95,9 @@ public class NotificationService {
         }
 
     }
+
+    @Transactional
+    public void deleteOlderThan30Days() {
+        notificationMapper.deleteOlderThan30Days();
+    }
 }
