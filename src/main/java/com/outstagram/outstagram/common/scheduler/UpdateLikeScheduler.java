@@ -63,7 +63,7 @@ public class UpdateLikeScheduler {
      * like 테이블에 좋아요 기록 insert
      */
     @SchedulerLock(name = INSERT_LOCK, lockAtLeastFor = "10s", lockAtMostFor = "50s")
-    @Scheduled(fixedRate = 300000)
+    @Scheduled(fixedRate = 450000)
     public void insertUserLike() {
         log.info("=================== 좋아요 정보 DB에 insert 시작");
 

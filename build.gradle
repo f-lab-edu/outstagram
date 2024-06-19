@@ -50,6 +50,10 @@ dependencies {
 	testImplementation 'org.springframework.kafka:spring-kafka-test'
 	testImplementation 'org.springframework.batch:spring-batch-test'
 
+	testImplementation 'net.javacrumbs.shedlock:shedlock-provider-redis-spring'
+	testImplementation 'net.javacrumbs.shedlock:shedlock-spring'
+	testImplementation 'org.awaitility:awaitility'
+
 
 
 }
