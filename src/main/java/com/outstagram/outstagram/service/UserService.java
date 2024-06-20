@@ -1,20 +1,22 @@
 package com.outstagram.outstagram.service;
 
-import static com.outstagram.outstagram.common.constant.CacheConst.USER;
-import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
-
-import com.outstagram.outstagram.controller.response.SearchUserInfoRes;
 import com.outstagram.outstagram.dto.UserDTO;
+import com.outstagram.outstagram.dto.UserDocument;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
+import com.outstagram.outstagram.kafka.producer.UserProducer;
 import com.outstagram.outstagram.mapper.UserMapper;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+import static com.outstagram.outstagram.common.constant.CacheConst.USER;
+import static com.outstagram.outstagram.common.constant.KafkaConst.USER_SAVE_TOPIC;
+import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
 
 @Slf4j
 @Service
@@ -23,11 +25,15 @@ public class UserService {
 
     private final UserMapper userMapper;
 
+    private final UserElasticsearchService userElasticsearchService;
+
+    private final UserProducer userProducer;
+
     /**
      * 유저 회원가입 메서드 비밀번호는 sha256으로 암호화해 저장
      */
     public void insertUser(UserDTO userInfo) {
-        
+
         // 이메일, 닉네임 중 중복 체크
         validateUserInfo(userInfo);
 
@@ -36,7 +42,9 @@ public class UserService {
 
         userInfo.setPassword(encryptedPassword(userInfo.getPassword()));
 
-        userMapper.insertUser(userInfo);
+        userMapper.insertUser(userInfo);    // mysql에 저장
+
+        userProducer.save(USER_SAVE_TOPIC, userInfo); // elasticsearch db에 저장
     }
 
     /**
@@ -57,9 +65,8 @@ public class UserService {
     }
 
 
-
-
     //==validator method==//
+
     /**
      * 중복 -> true
      */
@@ -77,8 +84,14 @@ public class UserService {
         }
     }
 
+    public List<UserDocument> searchByNickname(String search) {
+        return userElasticsearchService.findByNickname(search);
+
+    }
+
 
     /* ========================================================================================== */
+
 
     /**
      * email, nickname 둘 다 중복되지 않을 경우 -> true
@@ -87,16 +100,4 @@ public class UserService {
         validateDuplicatedEmail(userInfo.getEmail());
         validateDuplicatedNickname(userInfo.getNickname());
     }
-
-    public List<SearchUserInfoRes> searchByNickname(String search) {
-        List<UserDTO> resultList = userMapper.findByNicknameContaining(search);
-
-        return resultList.stream()
-            .map(userDTO -> SearchUserInfoRes.builder()
-                .userId(userDTO.getId())
-                .nickname(userDTO.getNickname())
-                .build())
-            .collect(Collectors.toList());
-    }
-
 }

@@ -16,6 +16,8 @@ public class KafkaConst {
 
     public static final String SEND_NOTIFICATION = "send-notification";
     public static final String NOTIFICATION_GROUPID = "notification";
+    public static final String USER_SAVE_TOPIC = "user-save";
+    public static final String USER_GROUPID = "user";
 
 
 

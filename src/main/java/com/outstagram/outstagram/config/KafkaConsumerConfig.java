@@ -1,12 +1,10 @@
 package com.outstagram.outstagram.config;
 
-import static com.outstagram.outstagram.common.constant.KafkaConst.DELETE_GROUPID;
-import static com.outstagram.outstagram.common.constant.KafkaConst.FEED_GROUPID;
-import static com.outstagram.outstagram.common.constant.KafkaConst.NOTIFICATION_GROUPID;
-
 import com.outstagram.outstagram.dto.NotificationDTO;
 import java.util.HashMap;
 import java.util.Map;
+
+import com.outstagram.outstagram.dto.UserDTO;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.LongDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -18,6 +16,8 @@ import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
+
+import static com.outstagram.outstagram.common.constant.KafkaConst.*;
 
 @Configuration
 public class KafkaConsumerConfig {
@@ -64,6 +64,20 @@ public class KafkaConsumerConfig {
     }
 
     @Bean
+    public ConsumerFactory<String, UserDTO> userConsumerFactory() {
+        Map<String, Object> configProps = new HashMap<>();
+
+        configProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        configProps.put(ConsumerConfig.GROUP_ID_CONFIG, USER_GROUPID);
+        configProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        configProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class.getName());
+        configProps.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class.getName());
+        configProps.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+
+        return new DefaultKafkaConsumerFactory<>(configProps, new StringDeserializer(), new JsonDeserializer<>(UserDTO.class));
+    }
+
+    @Bean
     public ConcurrentKafkaListenerContainerFactory<String, Long> feedKafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, Long> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(feedConsumerFactory());
@@ -83,6 +97,14 @@ public class KafkaConsumerConfig {
     public ConcurrentKafkaListenerContainerFactory<String, NotificationDTO> notificationKafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, NotificationDTO> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(notificationConsumerFactory());
+
+        return factory;
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, UserDTO> userKafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, UserDTO> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(userConsumerFactory());
 
         return factory;
     }

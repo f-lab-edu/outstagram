@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.scheduling.annotation.EnableScheduling;
-@EnableAspectJAutoProxy(exposeProxy = true)	// postService의 getFeed()에서 getPost() 호출 시 getPost() 결과를 캐싱하기 위해서
+@EnableAspectJAutoProxy(exposeProxy = true)
 @EnableCaching
 @EnableScheduling
 @SpringBootApplication

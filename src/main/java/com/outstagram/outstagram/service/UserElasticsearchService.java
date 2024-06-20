@@ -1,7 +1,7 @@
 package com.outstagram.outstagram.service;
 
 import com.outstagram.outstagram.dto.UserDocument;
-import com.outstagram.outstagram.mapper.UserElasticsearchRepository;
+import com.outstagram.outstagram.repository.UserElasticsearchRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +14,7 @@ public class UserElasticsearchService {
     private final UserElasticsearchRepository userElasticsearchRepository;
 
     public void save(UserDocument document) {
+
         userElasticsearchRepository.save(document);
     }
 

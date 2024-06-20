@@ -5,6 +5,7 @@ import com.outstagram.outstagram.controller.request.UserLoginReq;
 import com.outstagram.outstagram.controller.response.SearchUserInfoRes;
 import com.outstagram.outstagram.controller.response.UserInfoRes;
 import com.outstagram.outstagram.dto.UserDTO;
+import com.outstagram.outstagram.dto.UserDocument;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.service.UserService;
@@ -18,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.outstagram.outstagram.common.constant.SessionConst.LOGIN_USER;
 
@@ -34,7 +36,7 @@ public class UserController {
         userService.validateDuplicatedEmail(email);
 
         ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
-            .message("해당 이메일 사용 가능합니다.").build();
+                .message("해당 이메일 사용 가능합니다.").build();
         return ResponseEntity.ok(response);
     }
 
@@ -43,7 +45,7 @@ public class UserController {
         userService.validateDuplicatedNickname(nickname);
 
         ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
-            .message("해당 닉네임이 사용 가능합니다.").build();
+                .message("해당 닉네임이 사용 가능합니다.").build();
         return ResponseEntity.ok(response);
     }
 
@@ -52,7 +54,7 @@ public class UserController {
         userService.insertUser(userInfo);
 
         ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
-            .message("회원가입 성공").build();
+                .message("회원가입 성공").build();
         return ResponseEntity.ok(response);
     }
 
@@ -62,7 +64,7 @@ public class UserController {
      */
     @PostMapping("/login")
     public ResponseEntity<ApiResponse> login(@RequestBody @Valid UserLoginReq userLoginReq,
-        HttpServletRequest request) {
+                                             HttpServletRequest request) {
 
         UserDTO user = userService.login(userLoginReq.getEmail(), userLoginReq.getPassword());
         log.info("loginUser = {}", user);
@@ -79,7 +81,7 @@ public class UserController {
         session.setAttribute(LOGIN_USER, user);
 
         ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
-            .message("로그인 성공").build();
+                .message("로그인 성공").build();
 
         return ResponseEntity.ok(response);
 
@@ -90,8 +92,14 @@ public class UserController {
      */
     @GetMapping("/nicknames")
     public ResponseEntity<List<SearchUserInfoRes>> searchNickname(@RequestParam String search) {
-        List<SearchUserInfoRes> response = userService.searchByNickname(search);
+        List<UserDocument> userDocumentList = userService.searchByNickname(search);
 
+        List<SearchUserInfoRes> response = userDocumentList.stream()
+                .map(doc -> SearchUserInfoRes.builder()
+                        .userId(doc.getId())
+                        .nickname(doc.getNickname())
+                        .build())
+                .collect(Collectors.toList());
         return ResponseEntity.ok(response);
 
     }
@@ -101,11 +109,11 @@ public class UserController {
         UserDTO user = userService.getUser(userId);
 
         UserInfoRes response = UserInfoRes.builder()
-            .userId(user.getId())
-            .nickname(user.getNickname())
-            .email(user.getEmail())
-            .imgUrl(user.getImgUrl())
-            .build();
+                .userId(user.getId())
+                .nickname(user.getNickname())
+                .email(user.getEmail())
+                .imgUrl(user.getImgUrl())
+                .build();
         return ResponseEntity.ok(response);
     }
 
