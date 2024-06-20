@@ -33,7 +33,17 @@
     <select id="findByNicknameContaining" resultType="com.outstagram.outstagram.dto.UserDTO">
         SELECT id, nickname
         FROM user
-        where lower(nickname) like concat('%', lower(#{search}), '%')
+        WHERE lower(nickname) like concat('%', lower(#{search}), '%')
     </select>
+
+    <update id="editProfile" parameterType="com.outstagram.outstagram.dto.UserDTO">
+        UPDATE user
+        SET
+            nickname = #{nickname},
+            password = #{password},
+            update_date = #{updateDate}
+        WHERE
+            id = #{id}
+    </update>
 
 </mapper>

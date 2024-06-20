@@ -1,6 +1,8 @@
 package com.outstagram.outstagram.controller;
 
+import com.outstagram.outstagram.common.annotation.Login;
 import com.outstagram.outstagram.common.api.ApiResponse;
+import com.outstagram.outstagram.controller.request.EditUserReq;
 import com.outstagram.outstagram.controller.request.UserLoginReq;
 import com.outstagram.outstagram.controller.response.SearchUserInfoRes;
 import com.outstagram.outstagram.controller.response.UserInfoRes;
@@ -22,6 +24,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static com.outstagram.outstagram.common.constant.SessionConst.LOGIN_USER;
+
 
 @Slf4j
 @RestController
@@ -117,4 +120,34 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * 내 정보 수정을 위한 내 정보 불러오기
+     */
+    @GetMapping("/profile")
+    public ResponseEntity<UserInfoRes> getProfile(@Login UserDTO user) {
+        UserInfoRes response = UserInfoRes.builder()
+                .userId(user.getId())
+                .nickname(user.getNickname())
+                .email(user.getEmail())
+                .imgUrl(user.getImgUrl())
+                .build();
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/profile")
+    public ResponseEntity<ApiResponse> editProfile(
+            @Login UserDTO user,
+            @RequestBody @Valid EditUserReq editUserReq
+    ) {
+        userService.editProfile(user, editUserReq);
+
+        return ResponseEntity.ok(
+                ApiResponse.builder()
+                        .isSuccess(true)
+                        .httpStatus(HttpStatus.OK)
+                        .message("게시물 수정 완료했습니다.")
+                        .build()
+        );
+    }
 }

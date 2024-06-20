@@ -15,7 +15,11 @@ public class UserProducer {
 
     public void save(String topic, UserDTO user) {
         log.info("========== SEND USER SAVE user : {}", user);
+        userKafkaTemplate.send(topic, user);
+    }
 
+    public void edit(String topic, UserDTO user) {
+        log.info("========== SEND USER EDIT user : {}", user);
         userKafkaTemplate.send(topic, user);
     }
 }

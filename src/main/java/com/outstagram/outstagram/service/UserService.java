@@ -1,5 +1,6 @@
 package com.outstagram.outstagram.service;
 
+import com.outstagram.outstagram.controller.request.EditUserReq;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.dto.UserDocument;
 import com.outstagram.outstagram.exception.ApiException;
@@ -10,11 +11,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 import static com.outstagram.outstagram.common.constant.CacheConst.USER;
+import static com.outstagram.outstagram.common.constant.KafkaConst.USER_EDIT_TOPIC;
 import static com.outstagram.outstagram.common.constant.KafkaConst.USER_SAVE_TOPIC;
 import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
 
@@ -26,12 +29,14 @@ public class UserService {
     private final UserMapper userMapper;
 
     private final UserElasticsearchService userElasticsearchService;
+    private final ImageService imageService;
 
     private final UserProducer userProducer;
 
     /**
      * 유저 회원가입 메서드 비밀번호는 sha256으로 암호화해 저장
      */
+    @Transactional
     public void insertUser(UserDTO userInfo) {
 
         // 이메일, 닉네임 중 중복 체크
@@ -99,5 +104,16 @@ public class UserService {
     private void validateUserInfo(UserDTO userInfo) {
         validateDuplicatedEmail(userInfo.getEmail());
         validateDuplicatedNickname(userInfo.getNickname());
+    }
+
+    @Transactional
+    public void editProfile(UserDTO currentUser, EditUserReq editUserReq) {
+        currentUser.setNickname(editUserReq.getNickname());
+        currentUser.setPassword(encryptedPassword(editUserReq.getPassword()));
+        currentUser.setUpdateDate(LocalDateTime.now());
+
+        userMapper.editProfile(currentUser);
+
+        userProducer.edit(USER_EDIT_TOPIC, currentUser);
     }
 }

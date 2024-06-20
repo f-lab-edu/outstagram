@@ -23,11 +23,23 @@ public class UserConsumer {
         log.info("========== START SAVING USER ==========");
         UserDocument document = UserDocument.builder()
                 .id(user.getId())
+                .nickname(user.getNickname())
                 .email(user.getEmail())
                 .imgUrl(user.getImgUrl())
                 .build();
         userElasticsearchService.save(document);
         log.info("========== END SAVING USER ==========");
+    }
+
+    @KafkaListener(topics = USER_EDIT_TOPIC, groupId = USER_GROUPID, containerFactory = "userKafkaListenerContainerFactory")
+    public void edit(@Payload UserDTO user) {
+        log.info("========== START EDITING USER ==========");
+        UserDocument document = UserDocument.builder()
+                .id(user.getId())
+                .nickname(user.getNickname())
+                .build();
+        userElasticsearchService.edit(document);
+        log.info("========== END EDITING USER ==========");
     }
 
 }
