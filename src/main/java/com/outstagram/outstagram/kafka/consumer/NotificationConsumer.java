@@ -1,9 +1,5 @@
 package com.outstagram.outstagram.kafka.consumer;
 
-import static com.outstagram.outstagram.common.constant.KafkaConst.NOTIFICATION_GROUPID;
-import static com.outstagram.outstagram.common.constant.KafkaConst.SEND_NOTIFICATION;
-import static com.outstagram.outstagram.dto.AlarmType.COMMENT;
-
 import com.outstagram.outstagram.dto.CommentDTO;
 import com.outstagram.outstagram.dto.NotificationDTO;
 import com.outstagram.outstagram.dto.PostDTO;
@@ -18,6 +14,13 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.outstagram.outstagram.common.constant.KafkaConst.NOTIFICATION_GROUPID;
+import static com.outstagram.outstagram.common.constant.KafkaConst.SEND_NOTIFICATION;
+import static com.outstagram.outstagram.dto.AlarmType.COMMENT;
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -28,22 +31,20 @@ public class NotificationConsumer {
     private final PostService postService;
 
     private final CommentService commentService;
-
-
-    // TODO : 자기 자신에게는 알림 안보내기
+    
     // TODO : toId에게 이메일 보내는걸로 리팩토링
     @KafkaListener(topics = SEND_NOTIFICATION, groupId = NOTIFICATION_GROUPID, containerFactory = "notificationKafkaListenerContainerFactory")
     public void receive(@Payload NotificationDTO notification) {
         log.info("=========== send notification start!");
 
-        boolean shouldSendNoti = false;
+        List<NotificationDTO> notificationsToSend = new ArrayList<>(2);
 
-        switch(notification.getAlarmType()) {
+        switch (notification.getAlarmType()) {
             case COMMENT, LIKE -> {
                 PostDTO post = postService.getPost(notification.getTargetId());
                 if (!post.getUserId().equals(notification.getFromId())) {
                     notification.setToId(post.getUserId());
-                    shouldSendNoti = true;
+                    notificationsToSend.add(notification);
                 }
             }
 
@@ -53,7 +54,7 @@ public class NotificationConsumer {
                 // 자기 댓글에는 알림X
                 if (!comment.getUserId().equals(notification.getFromId())) {
                     notification.setToId(comment.getUserId());
-                    shouldSendNoti = true;
+                    notificationsToSend.add(notification);
                 }
                 // 게시물 주인에게 댓글 알림 보내기(자기 게시물에는 알림X)
                 PostDTO post = postService.getPost(comment.getPostId());
@@ -61,31 +62,25 @@ public class NotificationConsumer {
                     notification.setToId(post.getUserId());
                     notification.setTargetId(comment.getPostId());
                     notification.setAlarmType(COMMENT);
-                    notificationService.insertNotification(notification);
-                    log.info("Notification sent: from user {} to user {}, type: {}\n",
-                        notification.getFromId(), notification.getToId(), notification.getAlarmType());
+                    notificationsToSend.add(notification);
                 }
             }
 
             case FOLLOW -> {
                 if (!notification.getTargetId().equals(notification.getFromId())) {
                     notification.setToId(notification.getTargetId());
-                    shouldSendNoti = true;
+                    notificationsToSend.add(notification);
                 }
             }
 
             default -> throw new ApiException(ErrorCode.INVALID_NOTIFICATION_TYPE);
         }
 
-        if (shouldSendNoti) {
-            notificationService.insertNotification(notification);
-            log.info("Notification sent: from user {} to user {}, type: {}\n",
-                notification.getFromId(), notification.getToId(), notification.getAlarmType());
+        for (NotificationDTO noti : notificationsToSend) {
+            notificationService.insertNotification(noti);
+            log.info("Notification sent: from user {} to user {}, type: {}\n", noti.getFromId(), noti.getToId(), noti.getAlarmType());
         }
 
         log.info("=========== send notification success!");
-
     }
-
-
 }

@@ -18,7 +18,7 @@ public class DeleteImageScheduler {
 
     private final ImageService imageService;
 
-    @Scheduled(cron = "0 0 2 * * *")    // 매일 오전 2시 정각에 실행
+    @Scheduled(cron = "0 0 2 * * *", zone = "Asia/Seoul")    // 매일 오전 2시 정각에 실행
     public void deleteImageScheduler() {
         log.info("================== 이미지 삭제 스케쥴링 시작!!");
         // image table에서 is_deleted = 1인 데이터 찾기

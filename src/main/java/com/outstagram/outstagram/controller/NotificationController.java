@@ -1,7 +1,5 @@
 package com.outstagram.outstagram.controller;
 
-import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
-
 import com.outstagram.outstagram.common.annotation.Login;
 import com.outstagram.outstagram.common.api.ApiResponse;
 import com.outstagram.outstagram.controller.response.MyNotificationsRes;
@@ -15,17 +13,15 @@ import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.service.NotificationService;
 import com.outstagram.outstagram.service.PostService;
 import com.outstagram.outstagram.service.UserService;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
 
 @Slf4j
 @RestController
@@ -43,15 +39,18 @@ public class NotificationController {
      */
     @GetMapping
     public ResponseEntity<MyNotificationsRes> getNotifications(
-        @RequestParam(required = false) Long lastId, @Login UserDTO user) {
+            @RequestParam(required = false) Long lastId, @Login UserDTO user) {
         List<NotificationDetailsDTO> response = notificationService.getNotificationDetailsPlusOne(
-            user.getId(), lastId);
+                user.getId(), lastId);
 
         boolean hasNext = response.size() > PAGE_SIZE;
+        if (hasNext) {
+            response = response.subList(0, PAGE_SIZE);
+        }
         return ResponseEntity.ok(MyNotificationsRes.builder()
-            .notificationList(response)
-            .hasNext(hasNext)
-            .build());
+                .notificationList(response)
+                .hasNext(hasNext)
+                .build());
     }
 
     /**
@@ -59,9 +58,9 @@ public class NotificationController {
      */
     @PatchMapping("/{notiId}")
     public ResponseEntity<Object> readNotification(@PathVariable Long notiId,
-        @Login UserDTO user) {
+                                                   @Login UserDTO user) {
         NotificationDTO notification = notificationService.readNotification(notiId,
-            user.getId());
+                user.getId());
 
         switch (notification.getAlarmType()) {
             // 팔로우 알림인 경우 -> 나를 팔로우한 유저 정보 리턴
@@ -69,17 +68,17 @@ public class NotificationController {
                 UserDTO dto = userService.getUser(notification.getFromId());
 
                 UserInfoRes response = UserInfoRes.builder()
-                    .userId(dto.getId())
-                    .nickname(dto.getNickname())
-                    .email(dto.getEmail())
-                    .imgUrl(dto.getImgUrl())
-                    .build();
+                        .userId(dto.getId())
+                        .nickname(dto.getNickname())
+                        .email(dto.getEmail())
+                        .imgUrl(dto.getImgUrl())
+                        .build();
                 return ResponseEntity.ok(response);
             }
             // 좋아요, 댓글, 대댓글 알림인 경우 -> 해당 게시물 정보 리턴
             case LIKE, COMMENT, REPLY -> {
                 PostDetailsDTO postDetailsDTO = postService.getPostDetails(notification.getTargetId(),
-                    user.getId());
+                        user.getId());
 
                 return ResponseEntity.ok(postDetailsDTO);
             }
@@ -95,11 +94,11 @@ public class NotificationController {
         notificationService.readAllNotification(user.getId());
 
         return ResponseEntity.ok(
-            ApiResponse.builder()
-                .message("모든 알림을 읽음 처리 했습니다.")
-                .httpStatus(HttpStatus.OK)
-                .isSuccess(true)
-                .build()
+                ApiResponse.builder()
+                        .message("모든 알림을 읽음 처리 했습니다.")
+                        .httpStatus(HttpStatus.OK)
+                        .isSuccess(true)
+                        .build()
         );
     }
 
