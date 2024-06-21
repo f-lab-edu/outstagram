@@ -31,8 +31,8 @@ public class UpdateBookmarkScheduler {
      */
     // lockAtLeastFor : lock이 유지되는 최소 시간 (Job 의 수행 시간이 매우 빠를 때 중복 실행이 일어나는 문제를 방지하기 위해)
     // lockAtMostFor : lock이 유지되는 최대 시간 (Job 의 수행 시간이 매우 길어지거나, 끝나지 않을 때 다음 순서의 Job 이 실행되지 않는 문제를 방지하기 위해)
-    @SchedulerLock(name = INSERT_LOCK, lockAtLeastFor = "10s", lockAtMostFor = "50s")
-    @Scheduled(fixedRate = 450000)
+    @SchedulerLock(name = INSERT_LOCK, lockAtLeastFor = "10s", lockAtMostFor = "20s")
+    @Scheduled(cron = "0 */7 * * * ?") // 매 7분마다 실행
     public void insertBookmarks() {
         log.info("=================== 북마크 정보 DB에 insert 시작");
 

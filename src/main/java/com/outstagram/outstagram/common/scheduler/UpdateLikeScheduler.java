@@ -35,7 +35,7 @@ public class UpdateLikeScheduler {
      * 게시물에 좋아요 개수 반영
      */
     @Transactional
-    @Scheduled(fixedRate = 300000)  // 5분마다 실행
+    @Scheduled(cron = "0 */5 * * * ?") // 매 5분마다 실행
     public void updateLikes() {
         log.info("=================== 좋아요 개수 DB에 반영 시작");
         // likeCount:{postId} 전부 가져오기
@@ -63,7 +63,7 @@ public class UpdateLikeScheduler {
      * like 테이블에 좋아요 기록 insert
      */
     @SchedulerLock(name = INSERT_LOCK, lockAtLeastFor = "10s", lockAtMostFor = "50s")
-    @Scheduled(fixedRate = 450000)
+    @Scheduled(cron = "0 */6 * * * ?") // 매 6분마다 실행
     public void insertUserLike() {
         log.info("=================== 좋아요 정보 DB에 insert 시작");
 
