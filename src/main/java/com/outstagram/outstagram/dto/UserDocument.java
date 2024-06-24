@@ -18,7 +18,7 @@ public class UserDocument {
     @Id
     private Long id;
 
-    @Field(type = FieldType.Text)
+    @Field(type = FieldType.Text, analyzer = "korean_analyzer")
     private String nickname;
 
     @Field(type = FieldType.Text)
