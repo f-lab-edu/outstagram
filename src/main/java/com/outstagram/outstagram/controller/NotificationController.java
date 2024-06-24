@@ -28,9 +28,7 @@ import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
 @RequiredArgsConstructor
 @RequestMapping("/api/notifications")
 public class NotificationController {
-
     private final NotificationService notificationService;
-
     private final UserService userService;
     private final PostService postService;
 
