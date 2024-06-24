@@ -42,4 +42,11 @@ public class UserConsumer {
         log.info("========== END EDITING USER ==========");
     }
 
+    @KafkaListener(topics = USER_DELETE_TOPIC, groupId = USER_GROUPID, containerFactory = "userKafkaListenerContainerFactory")
+    public void delete(@Payload UserDTO user) {
+        log.info("========== START DELETING USER ==========");
+        userElasticsearchService.deleteById(user.getId());
+        log.info("========== END DELETING USER ==========");
+    }
+
 }

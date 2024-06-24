@@ -2,7 +2,6 @@ package com.outstagram.outstagram.service;
 
 import com.outstagram.outstagram.controller.request.EditUserReq;
 import com.outstagram.outstagram.dto.UserDTO;
-import com.outstagram.outstagram.dto.UserDocument;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.kafka.producer.UserProducer;
@@ -17,8 +16,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static com.outstagram.outstagram.common.constant.CacheConst.USER;
-import static com.outstagram.outstagram.common.constant.KafkaConst.USER_EDIT_TOPIC;
-import static com.outstagram.outstagram.common.constant.KafkaConst.USER_SAVE_TOPIC;
+import static com.outstagram.outstagram.common.constant.KafkaConst.*;
 import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
 
 @Slf4j
@@ -89,9 +87,8 @@ public class UserService {
         }
     }
 
-    public List<UserDocument> searchByNickname(String search) {
-        return userElasticsearchService.findByNickname(search);
-
+    public List<UserDTO> searchByNickname(String search) {
+        return userMapper.findByNicknameContaining(search);
     }
 
 
@@ -115,5 +112,11 @@ public class UserService {
         userMapper.editProfile(currentUser);
 
         userProducer.edit(USER_EDIT_TOPIC, currentUser);
+    }
+
+    @Transactional
+    public void deleteUser(UserDTO user) {
+        userMapper.deleteById(user.getId());
+        userProducer.delete(USER_DELETE_TOPIC, user);
     }
 }

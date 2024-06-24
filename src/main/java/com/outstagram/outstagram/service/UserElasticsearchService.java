@@ -35,4 +35,21 @@ public class UserElasticsearchService {
         return userElasticsearchRepository.findByNicknameContaining(keyword);
     }
 
+    public UserDocument findById(Long userId) {
+        UserDocument userDocument = userElasticsearchRepository.findById(userId).orElse(null);
+        if (userDocument == null) {
+            throw new ApiException(ErrorCode.USER_NOT_FOUND_ESDB);
+        }
+
+        return userDocument;
+    }
+
+    public Iterable<UserDocument> findAll() {
+        return userElasticsearchRepository.findAll();
+    }
+
+    public void deleteById(Long userId) {
+        userElasticsearchRepository.deleteById(userId);
+    }
+
 }

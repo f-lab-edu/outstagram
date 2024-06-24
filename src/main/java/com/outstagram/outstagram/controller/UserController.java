@@ -7,7 +7,6 @@ import com.outstagram.outstagram.controller.request.UserLoginReq;
 import com.outstagram.outstagram.controller.response.SearchUserInfoRes;
 import com.outstagram.outstagram.controller.response.UserInfoRes;
 import com.outstagram.outstagram.dto.UserDTO;
-import com.outstagram.outstagram.dto.UserDocument;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.service.UserService;
@@ -95,9 +94,9 @@ public class UserController {
      */
     @GetMapping("/nicknames")
     public ResponseEntity<List<SearchUserInfoRes>> searchNickname(@RequestParam String search) {
-        List<UserDocument> userDocumentList = userService.searchByNickname(search);
+        List<UserDTO> userList = userService.searchByNickname(search);
 
-        List<SearchUserInfoRes> response = userDocumentList.stream()
+        List<SearchUserInfoRes> response = userList.stream()
                 .map(doc -> SearchUserInfoRes.builder()
                         .userId(doc.getId())
                         .nickname(doc.getNickname())
@@ -146,7 +145,38 @@ public class UserController {
                 ApiResponse.builder()
                         .isSuccess(true)
                         .httpStatus(HttpStatus.OK)
-                        .message("게시물 수정 완료했습니다.")
+                        .message("유저 프로필 수정 완료했습니다.")
+                        .build()
+        );
+    }
+
+    @DeleteMapping("/logout")
+    public ResponseEntity<ApiResponse> logout(HttpSession session) {
+        // 세션에서 사용자 정보 제거 후, 세션 완전히 종료
+        session.removeAttribute(LOGIN_USER);
+        session.invalidate();
+
+        return ResponseEntity.ok(
+                ApiResponse.builder()
+                        .isSuccess(true)
+                        .httpStatus(HttpStatus.OK)
+                        .message("정상적으로 로그아웃 되었습니다.")
+                        .build()
+        );
+    }
+
+    @DeleteMapping()
+    public ResponseEntity<ApiResponse> deleteUser(@Login UserDTO user, HttpSession session) {
+        userService.deleteUser(user);
+
+        session.removeAttribute(LOGIN_USER);
+        session.invalidate();
+
+        return ResponseEntity.ok(
+                ApiResponse.builder()
+                        .isSuccess(true)
+                        .httpStatus(HttpStatus.OK)
+                        .message("유저 탈퇴 처리 완료되었습니다.")
                         .build()
         );
     }

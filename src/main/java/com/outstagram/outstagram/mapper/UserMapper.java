@@ -24,4 +24,6 @@ public interface UserMapper {
     List<UserDTO> findByNicknameContaining(String search);
 
     void editProfile(UserDTO currentUser);
+
+    void deleteById(Long userId);
 }

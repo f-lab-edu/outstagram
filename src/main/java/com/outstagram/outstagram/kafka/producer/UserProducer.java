@@ -22,4 +22,9 @@ public class UserProducer {
         log.info("========== SEND USER EDIT user : {}", user);
         userKafkaTemplate.send(topic, user);
     }
+
+    public void delete(String topic, UserDTO user) {
+        log.info("========== SEND USER DELETE user : {}", user);
+        userKafkaTemplate.send(topic, user);
+    }
 }
