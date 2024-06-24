@@ -15,8 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.INSERT_LOCK;
-import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_BOOKMARK_PREFIX;
+import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.*;
 
 @Slf4j
 @Component
@@ -29,7 +28,7 @@ public class UpdateBookmarkScheduler {
     /**
      * like 테이블에 좋아요 기록 insert
      */
-    @SchedulerLock(name = INSERT_LOCK, lockAtLeastFor = "10s", lockAtMostFor = "20s")
+    @SchedulerLock(name = INSERT_BOOKMARK_LOCK, lockAtLeastFor = "10s", lockAtMostFor = "20s")
     @Scheduled(cron = "0 */7 * * * ?") // 매 7분마다 실행
     public void insertBookmarks() {
         log.info("=================== 북마크 정보 DB에 insert 시작");

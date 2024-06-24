@@ -1,9 +1,5 @@
 package com.outstagram.outstagram.common.scheduler;
 
-import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.INSERT_LOCK;
-import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.LIKE_COUNT_PREFIX;
-import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_LIKE_PREFIX;
-
 import com.outstagram.outstagram.dto.LikeCountDTO;
 import com.outstagram.outstagram.dto.LikeDTO;
 import com.outstagram.outstagram.dto.LikeRecordDTO;
@@ -20,6 +16,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.*;
 
 @Slf4j
 @Component
@@ -62,7 +60,7 @@ public class UpdateLikeScheduler {
     /**
      * like 테이블에 좋아요 기록 insert
      */
-    @SchedulerLock(name = INSERT_LOCK, lockAtLeastFor = "10s", lockAtMostFor = "50s")
+    @SchedulerLock(name = INSERT_USERLIKE_LOCK, lockAtLeastFor = "10s", lockAtMostFor = "50s")
     @Scheduled(cron = "0 */6 * * * ?") // 매 6분마다 실행
     public void insertUserLike() {
         log.info("=================== 좋아요 정보 DB에 insert 시작");
