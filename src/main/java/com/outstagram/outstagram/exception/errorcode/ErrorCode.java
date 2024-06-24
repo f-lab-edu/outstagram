@@ -51,6 +51,8 @@ public enum ErrorCode {
 
     // follow 관련 에러 코드
     DUPLICATED_FOLLOW(HttpStatus.CONFLICT, "이미 팔로우한 사용자 입니다."),
+    SELF_FOLLOW_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "자기 자신을 팔로우할 수 없습니다."),
+
 
     // like 관련 에러 코드
     DUPLICATED_LIKE(HttpStatus.CONFLICT, "이미 좋아요한 게시물입니다."),
@@ -58,8 +60,13 @@ public enum ErrorCode {
 
     // bookmark 관련 에러 코드
     DUPLICATED_BOOKMARK(HttpStatus.CONFLICT, "이미 북마크한 게시물입니다."),
-    NOT_FOUND_BOOKMARK(HttpStatus.INTERNAL_SERVER_ERROR, "북마크 기록이 없습니다"),
+    NOT_FOUND_BOOKMARK(HttpStatus.BAD_REQUEST, "해당 북마크 기록이 없습니다"),
 
+    // notification 관련 에러 코드
+    NOT_FOUND_NOTIFICATION(HttpStatus.BAD_REQUEST, "해당 알림은 없습니다."),
+
+    // alarmType 관련 에러코드
+    INVALID_NOTIFICATION_TYPE(HttpStatus.BAD_REQUEST, "부적절한 알림 타입입니다."),
     NULL_POINT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "null point error 입니다."),
     JSON_CONVERTING_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "json <-> String 변환 과정 중 에러가 발생했습니다."),
 

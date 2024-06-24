@@ -12,7 +12,8 @@ public interface CommentMapper {
 
     List<CommentUserDTO> findByPostId(Long postId);
 
-    CommentDTO findById(Long postId, Long commentId);
+    CommentDTO findByIdAndPostID(Long postId, Long commentId);
+    CommentDTO findById(Long commentId);
 
     int updateContentsById(Long postId, Long commentId, String contents);
 

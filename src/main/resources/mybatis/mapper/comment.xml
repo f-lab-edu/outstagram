@@ -67,15 +67,20 @@
     ORDER BY c1.id, c2.id
   </select>
 
-  <select id="findById" resultType="com.outstagram.outstagram.dto.CommentDTO">
+  <select id="findByIdAndPostID" resultType="com.outstagram.outstagram.dto.CommentDTO">
     SELECT id, user_id
     FROM comment
     where id = #{commentId}
       AND post_id = #{postId}
       AND is_deleted = 0
-
   </select>
 
+  <select id="findById" resultType="com.outstagram.outstagram.dto.CommentDTO">
+    SELECT id, user_id, post_id
+    FROM comment
+    where id = #{commentId}
+      AND is_deleted = 0
+  </select>
   <update id="updateContentsById">
     UPDATE comment
     SET contents = #{contents},

@@ -12,7 +12,7 @@ public class FeedUpdateProducer {
     private final KafkaTemplate<String, Long> kafkaTemplate;
 
     public void send(String topic, Long userId, Long postId) {
-        log.info("sending postId = {} to topic = {}", postId, topic);
+        log.info("sending notification = {} to topic = {}", postId, topic);
         kafkaTemplate.send(topic, userId.toString(), postId);
     }
 }

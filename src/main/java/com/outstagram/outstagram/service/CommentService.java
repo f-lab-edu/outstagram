@@ -29,8 +29,12 @@ public class CommentService {
         return commentMapper.findByPostId(postId);
     }
 
-    public CommentDTO findById(Long postId, Long commentId) {
-        return commentMapper.findById(postId, commentId);
+    public CommentDTO findByIdAndPostId(Long postId, Long commentId) {
+        return commentMapper.findByIdAndPostID(postId, commentId);
+    }
+
+    public CommentDTO findById(Long commentId) {
+        return commentMapper.findById(commentId);
     }
 
     @Caching(evict = @CacheEvict(value = COMMENT, key = "#postId"))

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.outstagram.outstagram.mapper.NotificationMapper">
+
+  <insert id="insertNotification" parameterType="com.outstagram.outstagram.dto.NotificationDTO">
+    INSERT INTO notification (alarm_type, from_id, to_id, target_id, is_read, create_date, update_date)
+    VALUES (#{alarmType}, #{fromId}, #{toId}, #{targetId}, #{isRead}, #{createDate}, #{updateDate})
+  </insert>
+
+
+  <select id="findByUserIdAndLastId" resultType="com.outstagram.outstagram.dto.NotificationDTO">
+    SELECT *
+    FROM notification
+    WHERE to_id = #{userId}
+      <if test="lastId != null">
+        AND id &lt; #{lastId}
+      </if>
+    ORDER BY id DESC
+    LIMIT #{size}
+  </select>
+
+  <select id="findByIdAndUserId" resultType="com.outstagram.outstagram.dto.NotificationDTO">
+    SELECT *
+    FROM notification
+    WHERE id = #{notiId}
+    AND to_id = #{userId}
+  </select>
+
+  <update id="readNotification">
+    UPDATE notification
+    SET is_read = 1, update_date = NOW()
+    WHERE id = #{notiId} AND to_id = #{userId} AND is_read = 0
+  </update>
+
+  <delete id="deleteOlderThan30Days">
+    DELETE FROM notification
+    WHERE create_date &lt; DATE_SUB(NOW(), INTERVAL 30 DAY)
+  </delete>
+
+</mapper>
