@@ -1,33 +1,37 @@
 package com.outstagram.outstagram.service;
 
-import static com.outstagram.outstagram.common.constant.CacheConst.USER;
-import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
-
-import com.outstagram.outstagram.controller.response.SearchUserInfoRes;
+import com.outstagram.outstagram.controller.request.EditUserReq;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
+import com.outstagram.outstagram.kafka.producer.UserProducer;
 import com.outstagram.outstagram.mapper.UserMapper;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+import static com.outstagram.outstagram.common.constant.CacheConst.USER;
+import static com.outstagram.outstagram.common.constant.KafkaConst.*;
+import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService {
-
     private final UserMapper userMapper;
+    private final UserProducer userProducer;
 
     /**
      * 유저 회원가입 메서드 비밀번호는 sha256으로 암호화해 저장
      */
+    @Transactional
     public void insertUser(UserDTO userInfo) {
-        
+
         // 이메일, 닉네임 중 중복 체크
         validateUserInfo(userInfo);
 
@@ -36,7 +40,9 @@ public class UserService {
 
         userInfo.setPassword(encryptedPassword(userInfo.getPassword()));
 
-        userMapper.insertUser(userInfo);
+        userMapper.insertUser(userInfo);    // mysql에 저장
+
+        userProducer.save(USER_SAVE_TOPIC, userInfo); // elasticsearch db에 저장
     }
 
     /**
@@ -56,10 +62,8 @@ public class UserService {
         return userMapper.findByEmailAndPassword(email, cryptoPassword);
     }
 
-
-
-
     //==validator method==//
+
     /**
      * 중복 -> true
      */
@@ -77,6 +81,10 @@ public class UserService {
         }
     }
 
+    public List<UserDTO> searchByNickname(String search) {
+        return userMapper.findByNicknameContaining(search);
+    }
+
 
     /* ========================================================================================== */
 
@@ -88,15 +96,20 @@ public class UserService {
         validateDuplicatedNickname(userInfo.getNickname());
     }
 
-    public List<SearchUserInfoRes> searchByNickname(String search) {
-        List<UserDTO> resultList = userMapper.findByNicknameContaining(search);
+    @Transactional
+    public void editProfile(UserDTO currentUser, EditUserReq editUserReq) {
+        currentUser.setNickname(editUserReq.getNickname());
+        currentUser.setPassword(encryptedPassword(editUserReq.getPassword()));
+        currentUser.setUpdateDate(LocalDateTime.now());
 
-        return resultList.stream()
-            .map(userDTO -> SearchUserInfoRes.builder()
-                .userId(userDTO.getId())
-                .nickname(userDTO.getNickname())
-                .build())
-            .collect(Collectors.toList());
+        userMapper.editProfile(currentUser);
+
+        userProducer.edit(USER_EDIT_TOPIC, currentUser);
     }
 
+    @Transactional
+    public void deleteUser(UserDTO user) {
+        userMapper.deleteById(user.getId());
+        userProducer.delete(USER_DELETE_TOPIC, user);
+    }
 }
