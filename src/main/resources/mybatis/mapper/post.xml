@@ -195,4 +195,11 @@
             LIMIT #{size}
     </select>
 
+    <select id="findByKeyword" resultType="com.outstagram.outstagram.dto.PostDTO">
+        SELECT *
+        FROM post
+        WHERE is_deleted = 0
+          AND LOWER(contents) like concat('%', lower(#{search}), '%')
+    </select>
+
 </mapper>

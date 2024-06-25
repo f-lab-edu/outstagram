@@ -106,8 +106,6 @@ public class PostService {
 
         // kafka에 메시지 발행 : 팔로워들의 피드목록에 내가 작성한 게시물 ID 넣기
         feedUpdateProducer.send("feed", userId, newPostId);
-
-
     }
 
 
@@ -120,6 +118,10 @@ public class PostService {
         return ids.stream()
             .map(id -> proxy.getPostDetails(id, userId))
             .collect(Collectors.toList());
+    }
+
+    public List<PostDTO> findByKeyword(String keyword) {
+        return postMapper.findByKeyword(keyword);
     }
 
     /**
@@ -136,7 +138,7 @@ public class PostService {
     public PostDetailsDTO getPostDetails(Long postId, Long userId) {
         // 내부 메서드 호출할 때, @Cacheable 적용되도록 하려면 프록시 객체를 통해서 메서드를 호출해야 함.
         PostDTO post = validatePostExist(postId);
-
+        System.out.println(post.getCreateDate());
         // Post의 이미지 정보 가져오기(캐시 사용)
         List<ImageDTO> imageList = imageService.getImageInfos(post.getId());
 
