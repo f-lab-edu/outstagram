@@ -1,12 +1,8 @@
 package com.outstagram.outstagram.kafka.producer;
 
 import com.outstagram.outstagram.dto.PostDTO;
-import com.outstagram.outstagram.dto.PostDocument;
-import com.outstagram.outstagram.dto.UserDTO;
-import com.outstagram.outstagram.service.PostService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 

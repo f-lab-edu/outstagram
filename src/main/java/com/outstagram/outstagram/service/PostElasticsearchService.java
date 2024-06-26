@@ -1,7 +1,6 @@
 package com.outstagram.outstagram.service;
 
 import com.outstagram.outstagram.dto.PostDocument;
-import com.outstagram.outstagram.dto.UserDocument;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.repository.PostElasticsearchRepository;

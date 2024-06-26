@@ -23,7 +23,6 @@ public class KafkaConst {
 
     public static final String POST_SAVE_TOPIC = "post-save";
     public static final String POST_EDIT_TOPIC = "post-edit";
-    public static final String POST_DELETE_TOPIC = "post-delete";
     public static final String POST_GROUPID = "post";
 
 
