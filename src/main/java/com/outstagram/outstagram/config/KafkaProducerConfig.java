@@ -1,6 +1,7 @@
 package com.outstagram.outstagram.config;
 
 import com.outstagram.outstagram.dto.NotificationDTO;
+import com.outstagram.outstagram.dto.PostDTO;
 import com.outstagram.outstagram.dto.UserDTO;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.LongSerializer;
@@ -67,5 +68,19 @@ public class KafkaProducerConfig {
         return new KafkaTemplate<>(userProducerFactory());
     }
 
+    @Bean
+    public ProducerFactory<String, PostDTO> postProducerFactory() {
+        Map<String, Object> configProps = new HashMap<>();
+        configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+
+        return new DefaultKafkaProducerFactory<>(configProps);
+    }
+
+    @Bean
+    public KafkaTemplate<String, PostDTO> postKafkaTemplate() {
+        return new KafkaTemplate<>(postProducerFactory());
+    }
 
 }

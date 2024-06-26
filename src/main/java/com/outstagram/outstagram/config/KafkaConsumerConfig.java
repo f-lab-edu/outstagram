@@ -4,6 +4,7 @@ import com.outstagram.outstagram.dto.NotificationDTO;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.outstagram.outstagram.dto.PostDTO;
 import com.outstagram.outstagram.dto.UserDTO;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.LongDeserializer;
@@ -51,30 +52,23 @@ public class KafkaConsumerConfig {
 
     @Bean
     public ConsumerFactory<String, NotificationDTO> notificationConsumerFactory() {
-        Map<String, Object> configProps = new HashMap<>();
-
-        configProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        configProps.put(ConsumerConfig.GROUP_ID_CONFIG, NOTIFICATION_GROUPID);
-        configProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        configProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class.getName());
-        configProps.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class.getName());
-        configProps.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+        Map<String, Object> configProps = getConfigProps(NOTIFICATION_GROUPID);
 
         return new DefaultKafkaConsumerFactory<>(configProps, new StringDeserializer(), new JsonDeserializer<>(NotificationDTO.class));
     }
 
     @Bean
     public ConsumerFactory<String, UserDTO> userConsumerFactory() {
-        Map<String, Object> configProps = new HashMap<>();
-
-        configProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        configProps.put(ConsumerConfig.GROUP_ID_CONFIG, USER_GROUPID);
-        configProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        configProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class.getName());
-        configProps.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class.getName());
-        configProps.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+        Map<String, Object> configProps = getConfigProps(USER_GROUPID);
 
         return new DefaultKafkaConsumerFactory<>(configProps, new StringDeserializer(), new JsonDeserializer<>(UserDTO.class));
+    }
+
+    @Bean
+    public ConsumerFactory<String, PostDTO> postConsumerFactory() {
+        Map<String, Object> configProps = getConfigProps(POST_GROUPID);
+
+        return new DefaultKafkaConsumerFactory<>(configProps, new StringDeserializer(), new JsonDeserializer<>(PostDTO.class));
     }
 
     @Bean
@@ -107,6 +101,26 @@ public class KafkaConsumerConfig {
         factory.setConsumerFactory(userConsumerFactory());
 
         return factory;
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, PostDTO> postKafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, PostDTO> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(postConsumerFactory());
+
+        return factory;
+    }
+
+    private Map<String, Object> getConfigProps(String groupId) {
+        Map<String, Object> configProps = new HashMap<>();
+
+        configProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        configProps.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+        configProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        configProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class.getName());
+        configProps.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class.getName());
+        configProps.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+        return configProps;
     }
 
 

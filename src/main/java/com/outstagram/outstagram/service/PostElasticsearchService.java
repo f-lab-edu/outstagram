@@ -22,14 +22,15 @@ public class PostElasticsearchService {
     }
 
     @Transactional
-    public void edit(UserDocument user) {
-        PostDocument post = postElasticsearchRepository.findById(user.getId()).orElse(null);
-
-        if (post == null) {
+    public void edit(PostDocument post) {
+        PostDocument findPost = postElasticsearchRepository.findById(post.getId()).orElse(null);
+        if (findPost == null) {
             throw new ApiException(ErrorCode.POST_NOT_FOUND_ESDB);
         }
 
-        postElasticsearchRepository.save(post);
+        findPost.setContents(post.getContents());
+        findPost.setUpdateDate(post.getUpdateDate());
+        postElasticsearchRepository.save(findPost);
     }
 
     public PostDocument findById(Long postId) {
@@ -49,8 +50,8 @@ public class PostElasticsearchService {
         return postElasticsearchRepository.findByContentsContaining(keyword);
     }
 
-    public void deleteById(Long userId) {
-        postElasticsearchRepository.deleteById(userId);
+    public void deleteById(Long postId) {
+        postElasticsearchRepository.deleteById(postId);
     }
 
 }
