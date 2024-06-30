@@ -17,20 +17,12 @@ import static com.outstagram.outstagram.common.constant.KafkaConst.*;
 public class PostConsumer {
 
     private final PostElasticsearchService postElasticsearchService;
-    @KafkaListener(topics = POST_SAVE_TOPIC, groupId = POST_GROUPID, containerFactory = "postKafkaListenerContainerFactory")
-    public void save(@Payload PostDTO post) {
-        log.info("========== START SAVING POST ==========");
+    @KafkaListener(topics = POST_UPSERT_TOPIC, groupId = POST_GROUPID, containerFactory = "postKafkaListenerContainerFactory")
+    public void upsert(@Payload PostDTO post) {
+        log.info("========== START UPSERTING POST ==========");
         PostDocument document = convertPostDTOtoPostDocument(post);
         postElasticsearchService.save(document);
-        log.info("========== END SAVING POST ==========");
-    }
-
-    @KafkaListener(topics = POST_EDIT_TOPIC, groupId = POST_GROUPID, containerFactory = "postKafkaListenerContainerFactory")
-    public void edit(@Payload PostDTO post) {
-        log.info("========== START EDITING POST ==========");
-        PostDocument document = convertPostDTOtoPostDocument(post);
-        postElasticsearchService.edit(document);
-        log.info("========== END EDITING POST ==========");
+        log.info("========== END UPSERTING POST ==========");
     }
 
     /**

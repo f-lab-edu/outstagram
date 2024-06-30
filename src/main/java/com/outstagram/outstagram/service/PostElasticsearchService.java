@@ -6,7 +6,6 @@ import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.repository.PostElasticsearchRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -18,18 +17,6 @@ public class PostElasticsearchService {
 
     public void save(PostDocument post) {
         postElasticsearchRepository.save(post);
-    }
-
-    @Transactional
-    public void edit(PostDocument post) {
-        PostDocument findPost = postElasticsearchRepository.findById(post.getId()).orElse(null);
-        if (findPost == null) {
-            throw new ApiException(ErrorCode.POST_NOT_FOUND_ESDB);
-        }
-
-        findPost.setContents(post.getContents());
-        findPost.setUpdateDate(post.getUpdateDate());
-        postElasticsearchRepository.save(findPost);
     }
 
     public PostDocument findById(Long postId) {
@@ -52,5 +39,4 @@ public class PostElasticsearchService {
     public void deleteById(Long postId) {
         postElasticsearchRepository.deleteById(postId);
     }
-
 }

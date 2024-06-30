@@ -110,7 +110,7 @@ public class PostService {
         feedUpdateProducer.send("feed", userId, newPostId);
 
         // ES DB에도 저장
-        postProducer.save(POST_SAVE_TOPIC, newPost);
+        postProducer.save(POST_UPSERT_TOPIC, newPost);
     }
 
 
@@ -290,7 +290,7 @@ public class PostService {
                 throw new ApiException(ErrorCode.UPDATE_ERROR, "게시물 내용 수정 오류!!");
             }
             PostDTO updatePost = postMapper.findById(postId);
-            postProducer.edit(POST_EDIT_TOPIC, updatePost);
+            postProducer.edit(POST_UPSERT_TOPIC, updatePost);
         }
 
     }
