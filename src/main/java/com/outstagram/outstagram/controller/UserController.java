@@ -152,8 +152,6 @@ public class UserController {
 
     @DeleteMapping("/logout")
     public ResponseEntity<ApiResponse> logout(HttpSession session) {
-        // 세션에서 사용자 정보 제거 후, 세션 완전히 종료
-        session.removeAttribute(LOGIN_USER);
         session.invalidate();
 
         return ResponseEntity.ok(
@@ -168,8 +166,6 @@ public class UserController {
     @DeleteMapping()
     public ResponseEntity<ApiResponse> deleteUser(@Login UserDTO user, HttpSession session) {
         userService.deleteUser(user);
-
-        session.removeAttribute(LOGIN_USER);
         session.invalidate();
 
         return ResponseEntity.ok(

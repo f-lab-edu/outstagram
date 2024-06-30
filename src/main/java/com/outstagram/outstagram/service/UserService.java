@@ -23,12 +23,7 @@ import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
 @Service
 @RequiredArgsConstructor
 public class UserService {
-
     private final UserMapper userMapper;
-
-    private final UserElasticsearchService userElasticsearchService;
-    private final ImageService imageService;
-
     private final UserProducer userProducer;
 
     /**
@@ -47,7 +42,7 @@ public class UserService {
 
         userMapper.insertUser(userInfo);    // mysql에 저장
 
-        userProducer.save(USER_SAVE_TOPIC, userInfo); // elasticsearch db에 저장
+        userProducer.save(USER_UPSERT_TOPIC, userInfo); // elasticsearch db에 저장
     }
 
     /**
@@ -71,7 +66,6 @@ public class UserService {
         return userMapper.findByEmailAndPassword(email, cryptoPassword);
     }
 
-
     //==validator method==//
 
     /**
@@ -91,13 +85,12 @@ public class UserService {
         }
     }
 
-    public List<UserDTO> searchByNickname(String search) {
-        return userMapper.findByNicknameContaining(search);
+    public List<UserDTO> searchByNickname(String searchText) {
+        return userMapper.findByNicknameContaining(searchText);
     }
 
 
     /* ========================================================================================== */
-
 
     /**
      * email, nickname 둘 다 중복되지 않을 경우 -> true
@@ -115,7 +108,7 @@ public class UserService {
 
         userMapper.editProfile(currentUser);
 
-        userProducer.edit(USER_EDIT_TOPIC, currentUser);
+        userProducer.edit(USER_UPSERT_TOPIC, currentUser);
     }
 
     @Transactional
