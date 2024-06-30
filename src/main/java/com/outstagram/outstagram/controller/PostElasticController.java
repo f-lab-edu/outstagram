@@ -27,8 +27,8 @@ public class PostElasticController {
     }
 
     @GetMapping()
-    public ResponseEntity<List<PostDocument>> searchContentByKeyword(@RequestParam String searchTerm) {
-        List<PostDocument> result = postElasticsearchService.findByKeyword(searchTerm);
+    public ResponseEntity<List<PostDocument>> searchContentByKeyword(@RequestParam String searchText) {
+        List<PostDocument> result = postElasticsearchService.findByKeyword(searchText);
         return ResponseEntity.ok(result);
     }
 

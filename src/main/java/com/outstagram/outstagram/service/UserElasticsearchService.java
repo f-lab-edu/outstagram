@@ -19,8 +19,8 @@ public class UserElasticsearchService {
         userElasticsearchRepository.save(user);
     }
 
-    public List<UserDocument> findByNickname(String keyword) {
-        return userElasticsearchRepository.findByNicknameContaining(keyword);
+    public List<UserDocument> findByNickname(String searchText) {
+        return userElasticsearchRepository.findByNicknameContaining(searchText);
     }
 
     public UserDocument findById(Long userId) {

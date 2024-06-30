@@ -24,8 +24,8 @@ public class UserElasticController {
      * 닉네임으로 유저 검색
      */
     @GetMapping("/nicknames")
-    public ResponseEntity<List<SearchUserInfoRes>> searchNicknameWithElastic(@RequestParam String search) {
-        List<UserDocument> userDocumentList = userElasticsearchService.findByNickname(search);
+    public ResponseEntity<List<SearchUserInfoRes>> searchNicknameWithElastic(@RequestParam String searchText) {
+        List<UserDocument> userDocumentList = userElasticsearchService.findByNickname(searchText);
 
         List<SearchUserInfoRes> response = userDocumentList.stream()
                 .map(doc -> SearchUserInfoRes.builder()
