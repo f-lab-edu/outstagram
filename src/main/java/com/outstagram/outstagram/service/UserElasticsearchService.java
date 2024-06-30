@@ -15,6 +15,7 @@ import java.util.List;
 public class UserElasticsearchService {
 
     private final UserElasticsearchRepository userElasticsearchRepository;
+
     public void save(UserDocument user) {
         userElasticsearchRepository.save(user);
     }
