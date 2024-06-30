@@ -81,8 +81,8 @@ public class UserService {
         }
     }
 
-    public List<UserDTO> searchByNickname(String search) {
-        return userMapper.findByNicknameContaining(search);
+    public List<UserDTO> searchByNickname(String searchText) {
+        return userMapper.findByNicknameContaining(searchText);
     }
 
 
