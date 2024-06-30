@@ -32,8 +32,8 @@ public class PostElasticsearchService {
         return postElasticsearchRepository.findAll();
     }
 
-    public List<PostDocument> findByKeyword(String keyword) {
-        return postElasticsearchRepository.findByContentsContaining(keyword);
+    public List<PostDocument> findByKeyword(String searchTerm) {
+        return postElasticsearchRepository.findByContentsContaining(searchTerm);
     }
 
     public void deleteById(Long postId) {
