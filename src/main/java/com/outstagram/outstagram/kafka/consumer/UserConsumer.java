@@ -18,9 +18,9 @@ public class UserConsumer {
 
     private final UserElasticsearchService userElasticsearchService;
 
-    @KafkaListener(topics = USER_SAVE_TOPIC, groupId = USER_GROUPID, containerFactory = "userKafkaListenerContainerFactory")
-    public void save(@Payload UserDTO user) {
-        log.info("========== START SAVING USER ==========");
+    @KafkaListener(topics = USER_UPSERT_TOPIC, groupId = USER_GROUPID, containerFactory = "userKafkaListenerContainerFactory")
+    public void upsert(@Payload UserDTO user) {
+        log.info("========== START UPSERTING USER ==========");
         UserDocument document = UserDocument.builder()
                 .id(user.getId())
                 .nickname(user.getNickname())
@@ -28,18 +28,7 @@ public class UserConsumer {
                 .imgUrl(user.getImgUrl())
                 .build();
         userElasticsearchService.save(document);
-        log.info("========== END SAVING USER ==========");
-    }
-
-    @KafkaListener(topics = USER_EDIT_TOPIC, groupId = USER_GROUPID, containerFactory = "userKafkaListenerContainerFactory")
-    public void edit(@Payload UserDTO user) {
-        log.info("========== START EDITING USER ==========");
-        UserDocument document = UserDocument.builder()
-                .id(user.getId())
-                .nickname(user.getNickname())
-                .build();
-        userElasticsearchService.edit(document);
-        log.info("========== END EDITING USER ==========");
+        log.info("========== END UPSERTING USER ==========");
     }
 
     @KafkaListener(topics = USER_DELETE_TOPIC, groupId = USER_GROUPID, containerFactory = "userKafkaListenerContainerFactory")

@@ -42,7 +42,7 @@ public class UserService {
 
         userMapper.insertUser(userInfo);    // mysql에 저장
 
-        userProducer.save(USER_SAVE_TOPIC, userInfo); // elasticsearch db에 저장
+        userProducer.save(USER_UPSERT_TOPIC, userInfo); // elasticsearch db에 저장
     }
 
     /**
@@ -104,7 +104,7 @@ public class UserService {
 
         userMapper.editProfile(currentUser);
 
-        userProducer.edit(USER_EDIT_TOPIC, currentUser);
+        userProducer.edit(USER_UPSERT_TOPIC, currentUser);
     }
 
     @Transactional
