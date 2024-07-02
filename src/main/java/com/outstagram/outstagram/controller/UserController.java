@@ -93,8 +93,8 @@ public class UserController {
      * 닉네임으로 유저 검색
      */
     @GetMapping("/nicknames")
-    public ResponseEntity<List<SearchUserInfoRes>> searchNickname(@RequestParam String search) {
-        List<UserDTO> userList = userService.searchByNickname(search);
+    public ResponseEntity<List<SearchUserInfoRes>> searchNickname(@RequestParam String searchText) {
+        List<UserDTO> userList = userService.searchByNickname(searchText);
 
         List<SearchUserInfoRes> response = userList.stream()
                 .map(doc -> SearchUserInfoRes.builder()

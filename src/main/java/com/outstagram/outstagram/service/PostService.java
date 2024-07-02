@@ -4,7 +4,7 @@ package com.outstagram.outstagram.service;
 import static com.outstagram.outstagram.common.constant.CacheConst.IN_CACHE;
 import static com.outstagram.outstagram.common.constant.CacheConst.NOT_FOUND;
 import static com.outstagram.outstagram.common.constant.CacheConst.POST;
-import static com.outstagram.outstagram.common.constant.KafkaConst.SEND_NOTIFICATION;
+import static com.outstagram.outstagram.common.constant.KafkaConst.*;
 import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.FEED;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.LIKE_COUNT_PREFIX;
@@ -34,6 +34,7 @@ import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.kafka.producer.FeedUpdateProducer;
 import com.outstagram.outstagram.kafka.producer.NotificationProducer;
 import com.outstagram.outstagram.kafka.producer.PostDeleteProducer;
+import com.outstagram.outstagram.kafka.producer.PostProducer;
 import com.outstagram.outstagram.mapper.PostMapper;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -77,6 +78,7 @@ public class PostService {
     private final FeedUpdateProducer feedUpdateProducer;
     private final PostDeleteProducer postDeleteProducer;
     private final NotificationProducer notificationProducer;
+    private final PostProducer postProducer;
 
     private final RedisTemplate<String, Object> redisTemplate;
 
@@ -107,7 +109,8 @@ public class PostService {
         // kafka에 메시지 발행 : 팔로워들의 피드목록에 내가 작성한 게시물 ID 넣기
         feedUpdateProducer.send("feed", userId, newPostId);
 
-
+        // ES DB에도 저장
+        postProducer.save(POST_UPSERT_TOPIC, newPost);
     }
 
 
@@ -120,6 +123,10 @@ public class PostService {
         return ids.stream()
             .map(id -> proxy.getPostDetails(id, userId))
             .collect(Collectors.toList());
+    }
+
+    public List<PostDTO> findByKeyword(String keyword) {
+        return postMapper.findByKeyword(keyword);
     }
 
     /**
@@ -136,7 +143,7 @@ public class PostService {
     public PostDetailsDTO getPostDetails(Long postId, Long userId) {
         // 내부 메서드 호출할 때, @Cacheable 적용되도록 하려면 프록시 객체를 통해서 메서드를 호출해야 함.
         PostDTO post = validatePostExist(postId);
-
+        System.out.println(post.getCreateDate());
         // Post의 이미지 정보 가져오기(캐시 사용)
         List<ImageDTO> imageList = imageService.getImageInfos(post.getId());
 
@@ -255,12 +262,12 @@ public class PostService {
         return postMapper.getFeedIdsFromDB(userId, lastId, size);
     }
 
-
-    @Transactional
-    @Caching(evict = @CacheEvict(value = POST, key = "#postId"))
+    @Transactional(rollbackFor = Exception.class)   // 해당 transaction 안에서 Exception 발생하면 무조건 rollback 실행
+    @Caching(evict = @CacheEvict(value = POST, key = "#postId"))    // editPost() 수행 후 캐시에서 삭제
     public void editPost(Long postId, EditPostReq editPostReq, Long userId) {
         // 수정할 게시물 가져오기
-        PostDTO post = postMapper.findById(postId);
+        PostService proxy = (PostService) AopContext.currentProxy();
+        PostDTO post = proxy.getPost(postId);
 
         // 게시물 작성자인지 검증
         validatePostOwner(post, userId);
@@ -282,6 +289,8 @@ public class PostService {
             if (result == 0) {
                 throw new ApiException(ErrorCode.UPDATE_ERROR, "게시물 내용 수정 오류!!");
             }
+            PostDTO updatePost = postMapper.findById(postId);
+            postProducer.edit(POST_UPSERT_TOPIC, updatePost);
         }
 
     }

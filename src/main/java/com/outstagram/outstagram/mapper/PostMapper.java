@@ -26,4 +26,6 @@ public interface PostMapper {
     void updateLikeCountAll(List<LikeCountDTO> likeCountDTOList);
 
     List<Long> getFeedIdsFromDB(Long userId, Long lastId, int size);
+
+    List<PostDTO> findByKeyword(String search);
 }

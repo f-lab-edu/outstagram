@@ -10,10 +10,7 @@ import com.outstagram.outstagram.controller.request.EditCommentReq;
 import com.outstagram.outstagram.controller.request.EditPostReq;
 import com.outstagram.outstagram.controller.response.FeedRes;
 import com.outstagram.outstagram.controller.response.MyPostsRes;
-import com.outstagram.outstagram.dto.FeedPostDTO;
-import com.outstagram.outstagram.dto.MyPostDTO;
-import com.outstagram.outstagram.dto.PostDetailsDTO;
-import com.outstagram.outstagram.dto.UserDTO;
+import com.outstagram.outstagram.dto.*;
 import com.outstagram.outstagram.service.PostService;
 import jakarta.validation.Valid;
 import java.util.stream.Collectors;
@@ -58,6 +55,12 @@ public class PostController {
         PostDetailsDTO postDetailsDTO = postService.getPostDetails(postId, user.getId());
 
         return ResponseEntity.ok(postDetailsDTO);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<PostDTO>> searchByKeyword(@RequestParam String keyword) {
+        List<PostDTO> result = postService.findByKeyword(keyword);
+        return ResponseEntity.ok(result);
     }
 
     @PatchMapping("/{postId}")
