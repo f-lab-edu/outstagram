@@ -13,6 +13,7 @@ public enum ErrorCode {
 
     // user 관련 에러 코드
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 유저는 존재하지 않습니다."),
+    USER_NOT_FOUND_ESDB(HttpStatus.NOT_FOUND, "Elasticsearch DB에 해당 유저가 존재하지 않습니다."),
     DUPLICATED(HttpStatus.CONFLICT, "중복됩니다."),
 
     // 암호화 관련 에러 코드,

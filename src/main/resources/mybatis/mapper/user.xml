@@ -11,7 +11,7 @@
     </select>
 
     <insert id="insertUser" parameterType="com.outstagram.outstagram.dto.UserDTO" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO USER(email, password, nickname, create_date, update_date)
+        INSERT INTO user(email, password, nickname, create_date, update_date)
         VALUES(#{email}, #{password}, #{nickname}, #{createDate}, #{updateDate})
     </insert>
 
@@ -33,7 +33,22 @@
     <select id="findByNicknameContaining" resultType="com.outstagram.outstagram.dto.UserDTO">
         SELECT id, nickname
         FROM user
-        where lower(nickname) like concat('%', lower(#{search}), '%')
+        WHERE lower(nickname) like concat('%', lower(#{search}), '%')
     </select>
+
+    <update id="editProfile" parameterType="com.outstagram.outstagram.dto.UserDTO">
+        UPDATE user
+        SET
+            nickname = #{nickname},
+            password = #{password},
+            update_date = #{updateDate}
+        WHERE
+            id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM user
+        WHERE id = #{userId}
+    </delete>
 
 </mapper>

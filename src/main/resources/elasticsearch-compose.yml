@@ -1,0 +1,21 @@
+version: '3.7'
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.0.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    command: >
+      sh -c "
+        bin/elasticsearch-plugin install analysis-nori &&
+        bin/elasticsearch
+      "
+volumes:
+  esdata:
+    driver: local
