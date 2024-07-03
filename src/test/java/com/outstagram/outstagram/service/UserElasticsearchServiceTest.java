@@ -49,14 +49,9 @@ public class UserElasticsearchServiceTest {
 
     @Test
     public void testSaveUser_Success() {
-        // given
-        given(userElasticsearchRepository.save(user)).willReturn(user);
-
-        // when
         userElasticsearchService.save(user);
 
-        // then
-        verify(userElasticsearchRepository).save(user);
+        verify(userElasticsearchRepository, times(1)).save(user);
     }
 
     @Test
@@ -93,7 +88,6 @@ public class UserElasticsearchServiceTest {
 
     @Test
     public void testFindById_Fail_UserNotFound() {
-
         long userId = 3L;
         when(userElasticsearchRepository.findById(userId)).thenReturn(Optional.empty());
 

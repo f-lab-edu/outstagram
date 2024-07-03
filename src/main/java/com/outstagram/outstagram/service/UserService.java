@@ -50,7 +50,11 @@ public class UserService {
      */
     @Cacheable(value = USER, key = "#userId")
     public UserDTO getUser(Long userId) {
-        return userMapper.findById(userId);
+        UserDTO user = userMapper.findById(userId);
+        if (user == null) {
+            throw new ApiException(ErrorCode.USER_NOT_FOUND);
+        }
+        return user;
     }
 
 
