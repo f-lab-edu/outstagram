@@ -1,7 +1,5 @@
 package com.outstagram.outstagram.service;
 
-import static com.outstagram.outstagram.common.constant.CacheConst.COMMENT;
-
 import com.outstagram.outstagram.dto.CommentDTO;
 import com.outstagram.outstagram.dto.CommentUserDTO;
 import com.outstagram.outstagram.exception.ApiException;
@@ -9,9 +7,6 @@ import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.CommentMapper;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -24,7 +19,6 @@ public class CommentService {
         commentMapper.insertComment(comment);
     }
 
-    @Cacheable(cacheNames = COMMENT, key = "#postId")
     public List<CommentUserDTO> getComments(Long postId) {
         return commentMapper.findByPostId(postId);
     }
@@ -37,7 +31,6 @@ public class CommentService {
         return commentMapper.findById(commentId);
     }
 
-    @Caching(evict = @CacheEvict(value = COMMENT, key = "#postId"))
     public void updateContents(Long postId, Long commentId, String contents) {
         int result = commentMapper.updateContentsById(postId, commentId, contents);
         if (result == 0) {
@@ -45,7 +38,6 @@ public class CommentService {
         }
     }
 
-    @Caching(evict = @CacheEvict(value = COMMENT, key = "#postId"))
     public void deleteComment(Long postId, Long commentId) {
         int result = commentMapper.deleteComment(postId, commentId);
         if (result == 0) {
