@@ -1,23 +1,21 @@
 package com.outstagram.outstagram.service;
 
+import static com.outstagram.outstagram.common.constant.KafkaConst.USER_DELETE_TOPIC;
+import static com.outstagram.outstagram.common.constant.KafkaConst.USER_UPSERT_TOPIC;
+import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
+
 import com.outstagram.outstagram.controller.request.EditUserReq;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.kafka.producer.UserProducer;
 import com.outstagram.outstagram.mapper.UserMapper;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDateTime;
 import java.util.List;
-
-import static com.outstagram.outstagram.common.constant.CacheConst.USER;
-import static com.outstagram.outstagram.common.constant.KafkaConst.*;
-import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -48,7 +46,6 @@ public class UserService {
     /**
      * userId로 유저 찾기
      */
-    @Cacheable(value = USER, key = "#userId")
     public UserDTO getUser(Long userId) {
         UserDTO user = userMapper.findById(userId);
         if (user == null) {

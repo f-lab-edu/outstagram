@@ -1,13 +1,8 @@
 package com.outstagram.outstagram.service;
 
-import static com.outstagram.outstagram.common.constant.CacheConst.NOT_FOUND;
-import static com.outstagram.outstagram.common.constant.CacheConst.IN_CACHE;
-import static com.outstagram.outstagram.common.constant.CacheConst.IN_DB;
 import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
-import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_LIKE_PREFIX;
 
 import com.outstagram.outstagram.dto.LikeDTO;
-import com.outstagram.outstagram.dto.LikeRecordDTO;
 import com.outstagram.outstagram.dto.PostImageDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
@@ -53,20 +48,9 @@ public class LikeService {
     /**
      * 캐시에 있음 -> 2 DB에 있음 -> 1 없음 -> 0
      */
-    public int existsLike(Long userId, Long postId) {
-        String userLikeKey = USER_LIKE_PREFIX + userId;
+    public boolean existsLike(Long userId, Long postId) {
+        return likeMapper.existsUserLike(userId, postId);
 
-        List<Object> likedPost = redisTemplate.opsForList().range(userLikeKey, 0, -1);
-        boolean isLikeRecordInCache = likedPost.stream()
-            .map(record -> (LikeRecordDTO) record)
-            .anyMatch(record -> record.getPostId().equals(postId));
-
-        // 캐시에 좋아요 누른 기록 있을 때
-        if (isLikeRecordInCache) {
-            return IN_CACHE;
-        }
-
-        return likeMapper.existsUserLike(userId, postId) ? IN_DB : NOT_FOUND;
     }
 
 

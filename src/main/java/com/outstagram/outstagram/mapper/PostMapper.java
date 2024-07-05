@@ -21,7 +21,7 @@ public interface PostMapper {
 
     List<Long> findIdsByUserId(Long userId, Long lastId, int size);
 
-    void updateLikeCount(Long postId, int count);
+    int updateLikeCount(Long postId, int count, int currentVersion);
 
     void updateLikeCountAll(List<LikeCountDTO> likeCountDTOList);
 

@@ -1,13 +1,8 @@
 package com.outstagram.outstagram.service;
 
-import static com.outstagram.outstagram.common.constant.CacheConst.IN_CACHE;
-import static com.outstagram.outstagram.common.constant.CacheConst.IN_DB;
-import static com.outstagram.outstagram.common.constant.CacheConst.NOT_FOUND;
 import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
-import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_BOOKMARK_PREFIX;
 
 import com.outstagram.outstagram.dto.BookmarkDTO;
-import com.outstagram.outstagram.dto.BookmarkRecordDTO;
 import com.outstagram.outstagram.dto.PostImageDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
@@ -55,26 +50,8 @@ public class BookmarkService {
         }
     }
 
-    /**
-     * 캐시에 있음 -> 2
-     * DB에 있음 -> 1
-     * 없음 -> 0
-     */
-    public int existsBookmark(Long userId, Long postId) {
-        String userBookmarkKey = USER_BOOKMARK_PREFIX + userId;
-
-        List<Object> likedPost = redisTemplate.opsForList().range(userBookmarkKey, 0, -1);
-        boolean isBookmarkRecordInCache = likedPost.stream()
-            .map(record -> (BookmarkRecordDTO) record)
-            .anyMatch(record -> record.getPostId().equals(postId));
-
-        // 캐시에 북마크 누른 기록 있을 때
-        if (isBookmarkRecordInCache) {
-            return IN_CACHE;
-        }
-
-        // 캐시에 없어서 DB 조회
-        return bookmarkMapper.existsUserBookmark(userId, postId) ? IN_DB : NOT_FOUND;
+    public boolean existsBookmark(Long userId, Long postId) {
+        return bookmarkMapper.existsUserBookmark(userId, postId);
     }
 
     public void deleteBookmark(Long userId, Long postId) {
