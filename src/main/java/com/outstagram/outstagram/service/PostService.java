@@ -162,11 +162,11 @@ public class PostService {
         // Redis에서 게시물의 좋아요 개수 가져오기(캐시 사용)
         int likeCount = loadLikeCountIfAbsent(postId);
 
-        // 현재 유저가 해당 게시물 좋아요 눌렀는지(1:DB에 있음, 2:cache에 있음)
-        boolean existLike = likeService.existsLike(userId, post.getId()) > 0;
-
-        // 현재 유저가 해당 게시물 북마크 했는지
-        boolean existBookmark = bookmarkService.existsBookmark(userId, post.getId()) > 0;
+//        // 현재 유저가 해당 게시물 좋아요 눌렀는지(1:DB에 있음, 2:cache에 있음)
+//        boolean existLike = likeService.existsLike(userId, post.getId()) > 0;
+//
+//        // 현재 유저가 해당 게시물 북마크 했는지
+//        boolean existBookmark = bookmarkService.existsBookmark(userId, post.getId()) > 0;
 
         // 게시물의 모든 댓글들(캐시 사용)
         List<CommentUserDTO> comments = commentService.getComments(post.getId());
@@ -180,8 +180,6 @@ public class PostService {
             .contents(post.getContents())
             .postImgUrls(imageUrlMap)
             .likes(likeCount)
-            .likedByCurrentUser(existLike)
-            .bookmarkedByCurrentUser(existBookmark)
             .isCreatedByCurrentUser(isAuthor)
             .comments(comments)
             .build();
