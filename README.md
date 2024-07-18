@@ -26,6 +26,7 @@ instagram을 모티브로 만든 SNS API 서버 프로젝트
 7. [같은 클래스에서 @Cacheable 달린 메서드 호출하면 왜 안 적용될까...](https://velog.io/@nick9999/Outstagram-Cacheable%EC%9D%B4-%EB%9F%B0%ED%83%80%EC%9E%84-%EC%8B%9C%EC%97%90-%EB%AC%B4%EC%8B%9C%EB%90%98%EB%8A%94-%EB%AC%B8%EC%A0%9C-%ED%95%B4%EA%B2%B0)
 8. [이미지 처리2 - 템플릿 메서드 패턴 적용](https://velog.io/@nick9999/Outstagram-%ED%85%9C%ED%94%8C%EB%A6%BF-%EB%A9%94%EC%84%9C%EB%93%9C-%ED%8C%A8%ED%84%B4%EC%9D%84-%EC%8B%A4%EC%A0%9C-%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%EC%97%90-%EC%A0%81%EC%9A%A9%ED%95%B4%EB%B3%B4%EA%B8%B0)
 9. [lua script를 통한 Redis 동시성 이슈 해결](https://velog.io/@nick9999/Outstagram-Redis%EC%97%90%EC%84%9C%EB%8F%84-%EB%8F%99%EC%8B%9C%EC%84%B1-%EC%9D%B4%EC%8A%88%EA%B0%80-%EB%B0%9C%EC%83%9D%ED%95%9C%EB%8B%A4%EA%B3%A0...-lua-script-%EC%A0%81%EC%9A%A9%EA%B8%B0)
+10. [nGrinder를 활용해 부하 테스트 후 성능 튜닝](https://velog.io/@nick9999/Outstagram-nGrinder%EB%A5%BC-%ED%99%9C%EC%9A%A9%ED%95%9C-%EB%B6%80%ED%95%98-%ED%85%8C%EC%8A%A4%ED%8A%B8-%ED%9B%84-%EC%84%B1%EB%8A%A5-%ED%8A%9C%EB%8B%9D)
 
     
 ## 🖥 프로토타입 
