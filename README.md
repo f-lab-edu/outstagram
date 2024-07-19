@@ -15,7 +15,7 @@ instagram을 모티브로 만든 SNS API 서버 프로젝트
 
 ### 💥 동시에 여러 유저가 좋아요 눌렀을 때 발생할 수 있는 Race Condition은 어떻게 해결하는지
 
-- [x] 각종 DB Lock 조사 후, 상황에 맞는 Lock 적용(적용 완료)
+- [x] 각종 DB Lock 조사 후, 상황에 맞는 Lock 적용
 
 - [X] Redis에서도 발생할 수 있는 Race Condition 문제를 **Lua Script**를 통해 **Atomic하게 처리**
 
@@ -23,7 +23,7 @@ instagram을 모티브로 만든 SNS API 서버 프로젝트
 
 ### 💥 분산 DB 환경에서 커서 기반 페이지네이션을 어떻게 구현하는지
 
-- [x] 분산 환경에서 ID로 정렬하기 위해서 Snowflake ID 구현(구현 완료)
+- [x] 분산 환경에서 ID로 정렬하기 위해서 Snowflake ID 구현
 
 <br>
 
