@@ -98,8 +98,7 @@ public class PostService {
         postMapper.insertPost(newPost);
 
         // 로컬 디렉토리에 이미지 저장 후, DB에 이미지 정보 저장
-        imageService.saveImages(createPostReq.getImgFiles(),
-                postId, userId);
+        imageService.saveImages(createPostReq.getImgFiles(), postId, userId);
 
         // kafka에 메시지 발행 : 팔로워들의 피드목록에 내가 작성한 게시물 ID 넣기
         feedUpdateProducer.send("feed", userId, postId);
