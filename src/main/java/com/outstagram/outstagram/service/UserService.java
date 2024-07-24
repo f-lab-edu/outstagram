@@ -6,6 +6,7 @@ import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.kafka.producer.UserProducer;
 import com.outstagram.outstagram.mapper.UserMapper;
+import com.outstagram.outstagram.util.Snowflake;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -16,28 +17,48 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static com.outstagram.outstagram.common.constant.CacheConst.USER;
-import static com.outstagram.outstagram.common.constant.KafkaConst.*;
+import static com.outstagram.outstagram.common.constant.KafkaConst.USER_DELETE_TOPIC;
+import static com.outstagram.outstagram.common.constant.KafkaConst.USER_UPSERT_TOPIC;
 import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService {
+    private static final Snowflake evenIdGenerator = Snowflake.getInstance(0);
+    private static final Snowflake oddIdGenerator = Snowflake.getInstance(1);
     private final UserMapper userMapper;
     private final UserProducer userProducer;
 
-    /**
-     * 유저 회원가입 메서드 비밀번호는 sha256으로 암호화해 저장
-     */
+    private static long generateUserId(LocalDateTime now) {
+        long userId;
+        if (now.getSecond() % 2 == 0) {
+            do {
+                userId = evenIdGenerator.nextId();
+            }
+            while (userId % 2L != 0);
+        } else {
+            do {
+                userId = oddIdGenerator.nextId();
+            }
+            while (userId % 2L == 0);
+        }
+
+        return userId;
+    }
+
     @Transactional
     public void insertUser(UserDTO userInfo) {
-
         // 이메일, 닉네임 중 중복 체크
         validateUserInfo(userInfo);
 
-        userInfo.setCreateDate(LocalDateTime.now());
-        userInfo.setUpdateDate(LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
 
+        long userId = generateUserId(now);
+
+        userInfo.setId(userId);
+        userInfo.setCreateDate(now);
+        userInfo.setUpdateDate(now);
         userInfo.setPassword(encryptedPassword(userInfo.getPassword()));
 
         userMapper.insertUser(userInfo);    // mysql에 저장
