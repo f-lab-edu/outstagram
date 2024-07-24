@@ -4,8 +4,8 @@
 <mapper namespace="com.outstagram.outstagram.mapper.NotificationMapper">
 
   <insert id="insertNotification" parameterType="com.outstagram.outstagram.dto.NotificationDTO">
-    INSERT INTO notification (alarm_type, from_id, to_id, target_id, is_read, create_date, update_date)
-    VALUES (#{alarmType}, #{fromId}, #{toId}, #{targetId}, #{isRead}, #{createDate}, #{updateDate})
+    INSERT INTO notification (id, alarm_type, from_id, to_id, target_id, is_read, create_date, update_date)
+    VALUES (#{id}, #{alarmType}, #{fromId}, #{toId}, #{targetId}, #{isRead}, #{createDate}, #{updateDate})
   </insert>
 
 

@@ -8,6 +8,7 @@ import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.service.CommentService;
 import com.outstagram.outstagram.service.NotificationService;
 import com.outstagram.outstagram.service.PostService;
+import com.outstagram.outstagram.util.SnowflakeIdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -31,6 +32,8 @@ public class NotificationConsumer {
     private final PostService postService;
 
     private final CommentService commentService;
+
+    private final SnowflakeIdGenerator idGenerator;
     
     // TODO : toId에게 이메일 보내는걸로 리팩토링
     @KafkaListener(topics = SEND_NOTIFICATION, groupId = NOTIFICATION_GROUPID, containerFactory = "notificationKafkaListenerContainerFactory")
@@ -77,8 +80,10 @@ public class NotificationConsumer {
         }
 
         for (NotificationDTO noti : notificationsToSend) {
+            long notiId = idGenerator.snowflakeIdGenerator(noti.getFromId());
+            noti.setId(notiId);
             notificationService.insertNotification(noti);
-            log.info("Notification sent: from user {} to user {}, type: {}\n", noti.getFromId(), noti.getToId(), noti.getAlarmType());
+            log.info("Notification[{}] sent: from user {} to user {}, type: {}\n", noti.getId(), noti.getFromId(), noti.getToId(), noti.getAlarmType());
         }
 
         log.info("=========== send notification success!");
