@@ -25,27 +25,28 @@ import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
 @Service
 @RequiredArgsConstructor
 public class UserService {
-    private static final Snowflake evenIdGenerator = Snowflake.getInstance(0);
-    private static final Snowflake oddIdGenerator = Snowflake.getInstance(1);
+    private final Snowflake snowflake0;
+    private final Snowflake snowflake1;
     private final UserMapper userMapper;
     private final UserProducer userProducer;
 
-    private static long generateUserId(LocalDateTime now) {
+    private long generateUserId(LocalDateTime now) {
         long userId;
         if (now.getSecond() % 2 == 0) {
             do {
-                userId = evenIdGenerator.nextId();
+                userId = snowflake0.nextId();
             }
             while (userId % 2L != 0);
         } else {
             do {
-                userId = oddIdGenerator.nextId();
+                userId = snowflake1.nextId();
             }
             while (userId % 2L == 0);
         }
 
         return userId;
     }
+
 
     @Transactional
     public void insertUser(UserDTO userInfo) {

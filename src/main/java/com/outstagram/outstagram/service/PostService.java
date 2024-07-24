@@ -51,8 +51,8 @@ import static com.outstagram.outstagram.dto.AlarmType.*;
 @RequiredArgsConstructor
 public class PostService {
 
-    private static final Snowflake evenIdGenerator = Snowflake.getInstance(0);
-    private static final Snowflake oddIdGenerator = Snowflake.getInstance(1);
+    private final Snowflake snowflake0;
+    private final Snowflake snowflake1;
     private final PostMapper postMapper;
     private final ImageService imageService;
     private final UserService userService;
@@ -87,9 +87,9 @@ public class PostService {
     public void insertPost(CreatePostReq createPostReq, Long userId) {
         long postId;
         if (userId % 2 == 0) {
-            postId = evenIdGenerator.nextId();
+            postId = snowflake0.nextId();
         } else {
-            postId = oddIdGenerator.nextId();
+            postId = snowflake1.nextId();
         }
 
         PostDTO newPost = PostDTO.builder()
