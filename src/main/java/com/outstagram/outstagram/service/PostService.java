@@ -1,34 +1,13 @@
 package com.outstagram.outstagram.service;
 
 
-import static com.outstagram.outstagram.common.constant.CacheConst.IN_CACHE;
-import static com.outstagram.outstagram.common.constant.CacheConst.NOT_FOUND;
-import static com.outstagram.outstagram.common.constant.CacheConst.POST;
-import static com.outstagram.outstagram.common.constant.KafkaConst.*;
-import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
-import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.FEED;
-import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.LIKE_COUNT_PREFIX;
-import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_BOOKMARK_PREFIX;
-import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_LIKE_PREFIX;
-import static com.outstagram.outstagram.dto.AlarmType.COMMENT;
-import static com.outstagram.outstagram.dto.AlarmType.LIKE;
-import static com.outstagram.outstagram.dto.AlarmType.REPLY;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.outstagram.outstagram.controller.request.CreateCommentReq;
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditCommentReq;
 import com.outstagram.outstagram.controller.request.EditPostReq;
-import com.outstagram.outstagram.dto.BookmarkRecordDTO;
-import com.outstagram.outstagram.dto.CommentDTO;
-import com.outstagram.outstagram.dto.CommentUserDTO;
-import com.outstagram.outstagram.dto.ImageDTO;
-import com.outstagram.outstagram.dto.LikeCountDTO;
-import com.outstagram.outstagram.dto.LikeRecordDTO;
-import com.outstagram.outstagram.dto.PostDTO;
-import com.outstagram.outstagram.dto.PostDetailsDTO;
-import com.outstagram.outstagram.dto.UserDTO;
+import com.outstagram.outstagram.dto.*;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.kafka.producer.FeedUpdateProducer;
@@ -36,15 +15,7 @@ import com.outstagram.outstagram.kafka.producer.NotificationProducer;
 import com.outstagram.outstagram.kafka.producer.PostDeleteProducer;
 import com.outstagram.outstagram.kafka.producer.PostProducer;
 import com.outstagram.outstagram.mapper.PostMapper;
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
+import com.outstagram.outstagram.util.Snowflake;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.session.ExecutorType;
@@ -62,57 +33,86 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.outstagram.outstagram.common.constant.CacheConst.*;
+import static com.outstagram.outstagram.common.constant.KafkaConst.POST_UPSERT_TOPIC;
+import static com.outstagram.outstagram.common.constant.KafkaConst.SEND_NOTIFICATION;
+import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
+import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.*;
+import static com.outstagram.outstagram.dto.AlarmType.COMMENT;
+import static com.outstagram.outstagram.dto.AlarmType.*;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class PostService {
 
+    private static final Snowflake evenIdGenerator = Snowflake.getInstance(0);
+    private static final Snowflake oddIdGenerator = Snowflake.getInstance(1);
     private final PostMapper postMapper;
-
     private final ImageService imageService;
     private final UserService userService;
     private final LikeService likeService;
     private final BookmarkService bookmarkService;
     private final CommentService commentService;
-
     private final FeedUpdateProducer feedUpdateProducer;
     private final PostDeleteProducer postDeleteProducer;
     private final NotificationProducer notificationProducer;
     private final PostProducer postProducer;
-
     private final RedisTemplate<String, Object> redisTemplate;
-
     private final SqlSessionFactory sqlSessionFactory;
-
     private final DefaultRedisScript<String> increaseLikeScript;
     private final DefaultRedisScript<String> decreaseLikeScript;
     private final ObjectMapper objectMapper;
 
+    /**
+     * 게시물 존재 여부 검증
+     */
+    private static PostDTO validatePostExist(Long postId) {
+        // 존재하는 post인지 검증
+        PostService proxy = (PostService) AopContext.currentProxy();
+        PostDTO post = proxy.getPost(postId);
+
+        if (post == null) {
+            throw new ApiException(ErrorCode.POST_NOT_FOUND);
+        }
+        return post;
+    }
+
     @Transactional
     public void insertPost(CreatePostReq createPostReq, Long userId) {
+        long postId;
+        if (userId % 2 == 0) {
+            postId = evenIdGenerator.nextId();
+        } else {
+            postId = oddIdGenerator.nextId();
+        }
+
         PostDTO newPost = PostDTO.builder()
-            .contents(createPostReq.getContents())
-            .userId(userId)
-            .createDate(LocalDateTime.now())
-            .updateDate(LocalDateTime.now())
-            .build();
+                .id(postId)
+                .contents(createPostReq.getContents())
+                .userId(userId)
+                .createDate(LocalDateTime.now())
+                .updateDate(LocalDateTime.now())
+                .build();
 
         // 게시물 내용 저장 (insertPost 정상 실행되면, newPost의 id 속성에 id값이 들어 있다)
         postMapper.insertPost(newPost);
 
-        Long newPostId = newPost.getId();
-
         // 로컬 디렉토리에 이미지 저장 후, DB에 이미지 정보 저장
         imageService.saveImages(createPostReq.getImgFiles(),
-            newPostId);
+                postId);
 
         // kafka에 메시지 발행 : 팔로워들의 피드목록에 내가 작성한 게시물 ID 넣기
-        feedUpdateProducer.send("feed", userId, newPostId);
+        feedUpdateProducer.send("feed", userId, postId);
 
         // ES DB에도 저장
         postProducer.save(POST_UPSERT_TOPIC, newPost);
     }
-
 
     public List<PostDetailsDTO> getMyPosts(Long userId, Long lastId) {
         // 유저가 작성한 최신 게시물 11개씩 가져오기 (11개 가져와지면 다음 페이지 존재하는 것)
@@ -121,8 +121,8 @@ public class PostService {
         PostService proxy = (PostService) AopContext.currentProxy();
 
         return ids.stream()
-            .map(id -> proxy.getPostDetails(id, userId))
-            .collect(Collectors.toList());
+                .map(id -> proxy.getPostDetails(id, userId))
+                .collect(Collectors.toList());
     }
 
     public List<PostDTO> findByKeyword(String keyword) {
@@ -173,16 +173,16 @@ public class PostService {
 
         // 캐싱 데이터 조합해 종합 게시물 만들기
         return PostDetailsDTO.builder()
-            .postId(postId)
-            .userId(author.getId())
-            .nickname(author.getNickname())
-            .userImgUrl(author.getImgUrl())
-            .contents(post.getContents())
-            .postImgUrls(imageUrlMap)
-            .likes(likeCount)
-            .isCreatedByCurrentUser(isAuthor)
-            .comments(comments)
-            .build();
+                .postId(postId)
+                .userId(author.getId())
+                .nickname(author.getNickname())
+                .userImgUrl(author.getImgUrl())
+                .contents(post.getContents())
+                .postImgUrls(imageUrlMap)
+                .likes(likeCount)
+                .isCreatedByCurrentUser(isAuthor)
+                .comments(comments)
+                .build();
     }
 
     /**
@@ -194,11 +194,11 @@ public class PostService {
 
         // 캐시에서 피드 목록 가져오기
         List<Long> feedList = redisTemplate.opsForList()
-            .range(userFeedKey, 0, -1)
-            .stream()
-            .map(Object::toString)
-            .map(Long::parseLong)
-            .toList();
+                .range(userFeedKey, 0, -1)
+                .stream()
+                .map(Object::toString)
+                .map(Long::parseLong)
+                .toList();
 
         int feedIdSize = feedList.size();
 
@@ -208,18 +208,16 @@ public class PostService {
             if (feedIdSize > PAGE_SIZE) {
                 idList.addAll(feedList.subList(0, PAGE_SIZE + 1));
                 log.info("========= 캐시에서 가져온 id List : {}", idList);
-            }
-            else {
+            } else {
                 idList.addAll(feedList);
                 log.info("========= 캐시에서 가져온 id List : {}", idList);
 
                 int need = PAGE_SIZE + 1 - idList.size();
-                List<Long> feedListFromDB = getFeedIdsFromDB(userId, idList.get(idList.size()-1), need);
+                List<Long> feedListFromDB = getFeedIdsFromDB(userId, idList.get(idList.size() - 1), need);
                 log.info("========= DB에서 가져온 id List : {}", feedListFromDB);
                 idList.addAll(feedListFromDB);
             }
-        }
-        else {
+        } else {
             int startIdx = 0;
             for (int i = 0; i < feedIdSize; i++) {
                 if (feedList.get(i).equals(lastId)) {
@@ -233,15 +231,14 @@ public class PostService {
                 List<Long> feedListFromDB = getFeedIdsFromDB(userId, lastId, PAGE_SIZE + 1);
                 log.info("========= DB에서 가져온 id List : {}", feedListFromDB);
                 idList.addAll(feedListFromDB);
-            }
-            else {
+            } else {
                 int endIdx = Math.min((startIdx + PAGE_SIZE + 1), feedIdSize);
                 idList.addAll(feedList.subList(startIdx, endIdx));
                 log.info("========= 캐시에서 가져온 id List : {}", idList);
                 int need = PAGE_SIZE + 1 - idList.size();
 
                 if (need != 0) {
-                    List<Long> feedListFromDB = getFeedIdsFromDB(userId, idList.get(idList.size()-1), need);
+                    List<Long> feedListFromDB = getFeedIdsFromDB(userId, idList.get(idList.size() - 1), need);
                     log.info("========= DB에서 가져온 id List : {}", feedListFromDB);
                     idList.addAll(feedListFromDB);
                 }
@@ -278,7 +275,7 @@ public class PostService {
         // 추가할 이미지가 있다면 추가하기
         if (editPostReq.getImgFiles() != null && !editPostReq.getImgFiles().isEmpty()) {
             imageService.saveImages(editPostReq.getImgFiles(),
-                post.getId());
+                    post.getId());
         }
 
         // 수정할 내용이 있다면 수정하기
@@ -293,6 +290,8 @@ public class PostService {
 
     }
 
+    /* ========================================================================================== */
+
     /**
      * 게시물 삭제 비동기 처리
      */
@@ -306,8 +305,6 @@ public class PostService {
         // 게시물 삭제 비동기 처리
         postDeleteProducer.send("post-delete", postId);
     }
-
-    /* ========================================================================================== */
 
     /**
      * postId에 대한 좋아요 개수 캐싱되어 있는지 확인 캐싱 안되어 있으면 DB에서 postId의 좋아요 개수를 Redis로 캐싱
@@ -360,7 +357,7 @@ public class PostService {
         // lua script execute
         try {
             redisTemplate.execute(increaseLikeScript, stringSerializer, stringSerializer,
-                Arrays.asList(likeCountKey, userLikeKey), likeRecordString);
+                    Arrays.asList(likeCountKey, userLikeKey), likeRecordString);
         } catch (RedisSystemException e) {
             throw new ApiException(e, ErrorCode.DUPLICATED_LIKE);
         }
@@ -368,7 +365,6 @@ public class PostService {
         // 알림 보내기
         notificationProducer.send(SEND_NOTIFICATION, userId, postId, LIKE);
     }
-
 
     /**
      * 좋아요 취소 기능 - 게시물 좋아요 개수 1 감소 - like table에서 해당 기록 삭제
@@ -393,7 +389,7 @@ public class PostService {
             RedisSerializer<String> stringSerializer = redisTemplate.getStringSerializer();
             try {
                 redisTemplate.execute(decreaseLikeScript, stringSerializer, stringSerializer,
-                    Arrays.asList(key, userLikeKey), postId.toString());
+                        Arrays.asList(key, userLikeKey), postId.toString());
             } catch (RedisSystemException e) {
                 throw new ApiException(e, ErrorCode.NOT_FOUND_LIKE);
             }
@@ -410,10 +406,10 @@ public class PostService {
 
         // 캐시에서 좋아요 누른 기록 가져오기
         List<LikeRecordDTO> recentLikeIdList = redisTemplate.opsForList()
-            .range(userLikeKey, 0, -1)
-            .stream()
-            .map(record -> (LikeRecordDTO) record)
-            .toList();
+                .range(userLikeKey, 0, -1)
+                .stream()
+                .map(record -> (LikeRecordDTO) record)
+                .toList();
 
         int recentIdSize = recentLikeIdList.size();
 
@@ -422,8 +418,8 @@ public class PostService {
         if (lastId == null) {   // 첫 요청 : 캐시 -> DB
             if (recentIdSize > PAGE_SIZE) {      // 짜른게 11개 이상-> 캐시만으로 해결
                 recentLikeIdList.stream()
-                    .limit(PAGE_SIZE + 1)
-                    .forEach(record -> idList.add(record.getPostId()));
+                        .limit(PAGE_SIZE + 1)
+                        .forEach(record -> idList.add(record.getPostId()));
             } else {    // 11개 미만 -> 캐시 + DB로 해결
                 // 캐시에 있는 거 다 가져와 넣기
                 recentLikeIdList.forEach(record -> idList.add(record.getPostId()));
@@ -452,7 +448,7 @@ public class PostService {
             } else {    // lastId가 캐시에 있다 -> 캐시에서 페이징하고 남은만큼 DB에서 페이징
                 int toIndex = Math.min((startIndex + PAGE_SIZE + 1), recentIdSize);
                 recentLikeIdList.subList(startIndex, toIndex)
-                    .forEach(record -> idList.add(record.getPostId()));
+                        .forEach(record -> idList.add(record.getPostId()));
 
                 int need = PAGE_SIZE + 1 - idList.size();
                 if (need != 0) {    // 남은 건 DB에서 가져오기
@@ -471,6 +467,8 @@ public class PostService {
         return postDetailList;
     }
 
+    /* ========================================================================================== */
+
     /**
      * update 쿼리를 배치로 실행해 DB 왕복 줄이기
      */
@@ -480,14 +478,11 @@ public class PostService {
             try (SqlSession session = sqlSessionFactory.openSession(ExecutorType.BATCH)) {
                 PostMapper mapper = session.getMapper(PostMapper.class);
                 likeCountList.forEach(
-                    dto -> mapper.updateLikeCount(dto.getPostId(), dto.getLikeCount()));
+                        dto -> mapper.updateLikeCount(dto.getPostId(), dto.getLikeCount()));
                 session.commit();
             }
         }
     }
-
-    /* ========================================================================================== */
-
 
     /**
      * 북마크 저장 메서드
@@ -526,20 +521,22 @@ public class PostService {
         if (existBookmark == IN_CACHE) {
             // 캐시에서 북마크 누른 기록 삭제
             redisTemplate.opsForList()
-                .range(userBookmarkKey, 0, -1)
-                .stream()
-                .map(record -> (BookmarkRecordDTO) record)
-                .filter(record -> record.getPostId().equals(postId))
-                .findFirst()
-                .ifPresent(
-                    recordToRemove -> redisTemplate.opsForList()
-                        .remove(userBookmarkKey, 1, recordToRemove)
-                );
+                    .range(userBookmarkKey, 0, -1)
+                    .stream()
+                    .map(record -> (BookmarkRecordDTO) record)
+                    .filter(record -> record.getPostId().equals(postId))
+                    .findFirst()
+                    .ifPresent(
+                            recordToRemove -> redisTemplate.opsForList()
+                                    .remove(userBookmarkKey, 1, recordToRemove)
+                    );
         } else {    // DB에 북마크 기록 있는 경우
             // DB에서 바로 delete
             bookmarkService.deleteBookmark(userId, postId);
         }
     }
+
+    /* ========================================================================================== */
 
     /**
      * 로그인한 유저가 북마크한 모든 게시물 가져오기
@@ -550,10 +547,10 @@ public class PostService {
 
         // 캐시에서 북마크 누른 기록 가져오기
         List<BookmarkRecordDTO> recentBookmarkIdList = redisTemplate.opsForList()
-            .range(userBookmarkKey, 0, -1)
-            .stream()
-            .map(record -> (BookmarkRecordDTO) record)
-            .toList();
+                .range(userBookmarkKey, 0, -1)
+                .stream()
+                .map(record -> (BookmarkRecordDTO) record)
+                .toList();
 
         int recentIdSize = recentBookmarkIdList.size();
 
@@ -562,8 +559,8 @@ public class PostService {
         if (lastId == null) {   // 첫 요청 : 캐시 -> DB
             if (recentIdSize > 10) {      // 짜른게 10개 초과 -> 캐시만으로 해결
                 recentBookmarkIdList.stream()
-                    .limit(PAGE_SIZE + 1)
-                    .forEach(record -> idList.add(record.getPostId()));
+                        .limit(PAGE_SIZE + 1)
+                        .forEach(record -> idList.add(record.getPostId()));
             } else {
                 recentBookmarkIdList.forEach(record -> idList.add(record.getPostId()));
                 int need = PAGE_SIZE + 1 - idList.size();
@@ -583,17 +580,17 @@ public class PostService {
             // lastId가 캐시에 없다 = 캐시는 이미 다 읽었거나, 없기 때문에  DB에서 가져와야 함
             if (startIndex == 0 || startIndex == recentIdSize) {
                 List<Long> bookmarkIds = bookmarkService.getBookmarkedPostIds(userId, lastId,
-                    PAGE_SIZE + 1);
+                        PAGE_SIZE + 1);
                 idList.addAll(bookmarkIds);
             } else {    // lastId가 캐시에 있다 -> 캐시에서 페이징하고 남은만큼 DB에서 페이징
                 int toIndex = Math.min((startIndex + PAGE_SIZE + 1), recentIdSize);
                 recentBookmarkIdList.subList(startIndex, toIndex)
-                    .forEach(record -> idList.add(record.getPostId()));
+                        .forEach(record -> idList.add(record.getPostId()));
 
                 int need = PAGE_SIZE + 1 - idList.size();
                 if (need != 0) {    // 남은 건 DB에서 가져오기
                     List<Long> bookmarkIds = bookmarkService.getBookmarkedPostIds(userId, null,
-                        need);
+                            need);
                     idList.addAll(bookmarkIds);
                 }
             }
@@ -608,8 +605,6 @@ public class PostService {
         return postDetailList;
     }
 
-    /* ========================================================================================== */
-
     /**
      * 댓글 저장하는 로직
      */
@@ -619,15 +614,15 @@ public class PostService {
 
         // 댓글 객체 생성하기
         CommentDTO newComment = CommentDTO.builder()
-            .userId(userId)
-            .postId(postId)
-            .parentCommentId(null)
-            .contents(commentReq.getContents())
-            .level(false)
-            .isDeleted(false)
-            .createDate(LocalDateTime.now())
-            .updateDate(LocalDateTime.now())
-            .build();
+                .userId(userId)
+                .postId(postId)
+                .parentCommentId(null)
+                .contents(commentReq.getContents())
+                .level(false)
+                .isDeleted(false)
+                .createDate(LocalDateTime.now())
+                .updateDate(LocalDateTime.now())
+                .build();
 
         // comment 테이블에 댓글 저장하기
         commentService.insertComment(newComment);
@@ -645,15 +640,15 @@ public class PostService {
 
         // 대댓글 객체 생성하기
         CommentDTO newComment = CommentDTO.builder()
-            .userId(userId)
-            .postId(postId)
-            .parentCommentId(commentId)
-            .contents(commentReq.getContents())
-            .level(true)
-            .isDeleted(false)
-            .createDate(LocalDateTime.now())
-            .updateDate(LocalDateTime.now())
-            .build();
+                .userId(userId)
+                .postId(postId)
+                .parentCommentId(commentId)
+                .contents(commentReq.getContents())
+                .level(true)
+                .isDeleted(false)
+                .createDate(LocalDateTime.now())
+                .updateDate(LocalDateTime.now())
+                .build();
 
         // comment 테이블에 댓글 저장하기
         commentService.insertComment(newComment);
@@ -666,18 +661,11 @@ public class PostService {
      * (대)댓글 수정
      */
     public void editComment(EditCommentReq editCommentReq, Long postId, Long commentId,
-        Long userId) {
+                            Long userId) {
         // 게시물&댓글 존재 여부 검증, 작성자인지 검증하기
         validatePostCommentAndOwnership(postId, commentId, userId);
 
         commentService.updateContents(postId, commentId, editCommentReq.getContents());
-    }
-
-    public void deleteComment(Long postId, Long commentId, Long userId) {
-        validatePostCommentAndOwnership(postId, commentId, userId);
-
-        commentService.deleteComment(postId, commentId);
-
     }
 
 
@@ -685,18 +673,11 @@ public class PostService {
 
     /* ========================================================================================== */
 
-    /**
-     * 게시물 존재 여부 검증
-     */
-    private static PostDTO validatePostExist(Long postId) {
-        // 존재하는 post인지 검증
-        PostService proxy = (PostService) AopContext.currentProxy();
-        PostDTO post = proxy.getPost(postId);
+    public void deleteComment(Long postId, Long commentId, Long userId) {
+        validatePostCommentAndOwnership(postId, commentId, userId);
 
-        if (post == null) {
-            throw new ApiException(ErrorCode.POST_NOT_FOUND);
-        }
-        return post;
+        commentService.deleteComment(postId, commentId);
+
     }
 
     /**
