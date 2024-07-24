@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static com.outstagram.outstagram.common.constant.CacheConst.USER;
+import static com.outstagram.outstagram.common.constant.DBConst.DB_COUNT;
 import static com.outstagram.outstagram.common.constant.KafkaConst.USER_DELETE_TOPIC;
 import static com.outstagram.outstagram.common.constant.KafkaConst.USER_UPSERT_TOPIC;
 import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
@@ -32,16 +33,16 @@ public class UserService {
 
     private long generateUserId(LocalDateTime now) {
         long userId;
-        if (now.getSecond() % 2 == 0) {
+        if (now.getSecond() % DB_COUNT == 0) {
             do {
                 userId = snowflake0.nextId();
             }
-            while (userId % 2L != 0);
+            while (userId % DB_COUNT != 0);
         } else {
             do {
                 userId = snowflake1.nextId();
             }
-            while (userId % 2L == 0);
+            while (userId % DB_COUNT == 0);
         }
 
         return userId;

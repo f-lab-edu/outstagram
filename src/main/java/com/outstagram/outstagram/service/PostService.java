@@ -39,6 +39,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.outstagram.outstagram.common.constant.CacheConst.*;
+import static com.outstagram.outstagram.common.constant.DBConst.DB_COUNT;
 import static com.outstagram.outstagram.common.constant.KafkaConst.POST_UPSERT_TOPIC;
 import static com.outstagram.outstagram.common.constant.KafkaConst.SEND_NOTIFICATION;
 import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
@@ -86,7 +87,8 @@ public class PostService {
     @Transactional
     public void insertPost(CreatePostReq createPostReq, Long userId) {
         long postId;
-        if (userId % 2 == 0) {
+        long nodeId = userId % DB_COUNT;
+        if (nodeId == 0) {
             postId = snowflake0.nextId();
         } else {
             postId = snowflake1.nextId();
@@ -105,7 +107,7 @@ public class PostService {
 
         // 로컬 디렉토리에 이미지 저장 후, DB에 이미지 정보 저장
         imageService.saveImages(createPostReq.getImgFiles(),
-                postId);
+                postId, nodeId);
 
         // kafka에 메시지 발행 : 팔로워들의 피드목록에 내가 작성한 게시물 ID 넣기
         feedUpdateProducer.send("feed", userId, postId);
@@ -272,10 +274,11 @@ public class PostService {
             imageService.softDeleteByIds(postId, editPostReq.getDeleteImgIds());    // 이미지 정보 캐시 삭제
         }
 
+        Long nodeId = userId % DB_COUNT;
         // 추가할 이미지가 있다면 추가하기
         if (editPostReq.getImgFiles() != null && !editPostReq.getImgFiles().isEmpty()) {
             imageService.saveImages(editPostReq.getImgFiles(),
-                    post.getId());
+                    post.getId(), nodeId);
         }
 
         // 수정할 내용이 있다면 수정하기
