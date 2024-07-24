@@ -20,6 +20,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+
+import com.outstagram.outstagram.util.Snowflake;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -34,8 +36,8 @@ public class S3ImageService extends AbstractBaseImageService {
     @Value("${cloud.aws.s3.bucketName}")
     private String bucketName;
 
-    public S3ImageService(ImageMapper imageMapper, AmazonS3 amazonS3) {
-        super(imageMapper);
+    public S3ImageService(ImageMapper imageMapper, AmazonS3 amazonS3, Snowflake snowflake0, Snowflake snowflake1) {
+        super(imageMapper, snowflake0, snowflake1);
         this.amazonS3 = amazonS3;
     }
 

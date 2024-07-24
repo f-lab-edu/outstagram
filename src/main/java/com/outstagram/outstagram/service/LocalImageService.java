@@ -4,6 +4,7 @@ import com.outstagram.outstagram.dto.ImageDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.ImageMapper;
+import com.outstagram.outstagram.util.Snowflake;
 import jakarta.annotation.PostConstruct;
 import java.io.File;
 import java.io.IOException;
@@ -24,8 +25,8 @@ public class LocalImageService extends AbstractBaseImageService {
     @Value("com.outstagram.upload.path")
     private String uploadPath;
 
-    public LocalImageService(ImageMapper imageMapper) {
-        super(imageMapper);
+    public LocalImageService(ImageMapper imageMapper, Snowflake snowflake0, Snowflake snowflake1) {
+        super(imageMapper, snowflake0, snowflake1);
     }
 
     @PostConstruct
