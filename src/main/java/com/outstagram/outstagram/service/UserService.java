@@ -1,5 +1,7 @@
 package com.outstagram.outstagram.service;
 
+import com.outstagram.outstagram.common.strategy.ShardingStrategy;
+import com.outstagram.outstagram.config.database.DataSourceContextHolder;
 import com.outstagram.outstagram.controller.request.EditUserReq;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
@@ -63,9 +65,16 @@ public class UserService {
         userInfo.setUpdateDate(now);
         userInfo.setPassword(encryptedPassword(userInfo.getPassword()));
 
-        userMapper.insertUser(userInfo);    // mysql에 저장
+        int shardId = ShardingStrategy.getShardId(userInfo.getId());
+        log.info("============================== shard id : {}", shardId);
+        DataSourceContextHolder.setShardId(shardId);
+        try {
+            userMapper.insertUser(userInfo);    // mysql에 저장
+            userProducer.save(USER_UPSERT_TOPIC, userInfo); // elasticsearch db에 저장
+        } finally {
+            DataSourceContextHolder.clearShardId();
+        }
 
-        userProducer.save(USER_UPSERT_TOPIC, userInfo); // elasticsearch db에 저장
     }
 
     /**
