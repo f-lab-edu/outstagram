@@ -86,13 +86,7 @@ public class PostService {
 
     @Transactional
     public void insertPost(CreatePostReq createPostReq, Long userId) {
-        long postId;
-        long nodeId = userId % DB_COUNT;
-        if (nodeId == 0) {
-            postId = snowflake0.nextId();
-        } else {
-            postId = snowflake1.nextId();
-        }
+        long postId = generateId(userId);
 
         PostDTO newPost = PostDTO.builder()
                 .id(postId)
@@ -107,7 +101,7 @@ public class PostService {
 
         // 로컬 디렉토리에 이미지 저장 후, DB에 이미지 정보 저장
         imageService.saveImages(createPostReq.getImgFiles(),
-                postId, nodeId);
+                postId, userId % DB_COUNT);
 
         // kafka에 메시지 발행 : 팔로워들의 피드목록에 내가 작성한 게시물 ID 넣기
         feedUpdateProducer.send("feed", userId, postId);
@@ -612,11 +606,13 @@ public class PostService {
      * 댓글 저장하는 로직
      */
     public void addComment(CreateCommentReq commentReq, Long postId, Long userId) {
-
         validatePostExist(postId);
+
+        long commentId = generateId(userId);
 
         // 댓글 객체 생성하기
         CommentDTO newComment = CommentDTO.builder()
+                .id(commentId)
                 .userId(userId)
                 .postId(postId)
                 .parentCommentId(null)
@@ -634,6 +630,17 @@ public class PostService {
         notificationProducer.send(SEND_NOTIFICATION, userId, postId, COMMENT);
     }
 
+    private long generateId(Long userId) {
+        long nodeId = userId % DB_COUNT;
+        long commentId;
+        if (nodeId == 0) {
+            commentId = snowflake0.nextId();
+        } else {
+            commentId = snowflake1.nextId();
+        }
+        return commentId;
+    }
+
     /**
      * 대댓글 저장하는 로직
      */
@@ -641,8 +648,11 @@ public class PostService {
         // 존재하는 post인지 검증
         validatePostExist(postId);
 
+        long replyId = generateId(userId);
+
         // 대댓글 객체 생성하기
         CommentDTO newComment = CommentDTO.builder()
+                .id(replyId)
                 .userId(userId)
                 .postId(postId)
                 .parentCommentId(commentId)
@@ -688,10 +698,6 @@ public class PostService {
      */
     private void validatePostOwner(Long postId, Long userId) {
         PostDTO post = validatePostExist(postId);
-//        PostDTO post = postMapper.findById(postId);
-//        if (post == null) {
-//            throw new ApiException(ErrorCode.POST_NOT_FOUND);
-//        }
 
         // 게시물 작성자인지 확인
         if (!Objects.equals(post.getUserId(), userId)) {
