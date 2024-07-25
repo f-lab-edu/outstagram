@@ -1,26 +1,42 @@
 package com.outstagram.outstagram.service;
 
+import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyList;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditPostReq;
-import com.outstagram.outstagram.dto.*;
+import com.outstagram.outstagram.dto.ImageDTO;
+import com.outstagram.outstagram.dto.PostDTO;
+import com.outstagram.outstagram.dto.PostDetailsDTO;
+import com.outstagram.outstagram.dto.PostImageDTO;
+import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
+import com.outstagram.outstagram.kafka.producer.FeedUpdateProducer;
+import com.outstagram.outstagram.kafka.producer.PostProducer;
 import com.outstagram.outstagram.mapper.PostMapper;
+import com.outstagram.outstagram.util.Snowflake;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class PostServiceTest {
@@ -40,6 +56,15 @@ class PostServiceTest {
     @Mock
     private LikeService likeService;
 
+    @Mock
+    private Snowflake snowflake;
+
+    @Mock
+    private FeedUpdateProducer feedUpdateProducer;
+
+    @Mock
+    private PostProducer postProducer;
+
     @Test
     public void testInsertPost_Success() {
         // given
@@ -48,21 +73,17 @@ class PostServiceTest {
                 .contents("게시물 내용입니다.")
                 .imgFiles(List.of(mockFile))
                 .build();
-        Long userId = 1L;
+        long userId = 1L;
+        long postId = snowflake.nextId(1);
+        given(snowflake.nextId(1)).willReturn(postId);
 
         // when
-        // postMapper의 insertPost 메서드가 호출될 때, postId를 1L로 세팅
-        when(postMapper.insertPost(any(PostDTO.class))).thenAnswer(invocation -> {
-            PostDTO p = invocation.getArgument(0);
-            p.setId(1L);
-            return null;
-        });
         postService.insertPost(createPostReq, userId);
 
         // then
         // PostDTO 타입의 어떤 객체든지 상관 없이 insertPost가 정확히 1번 호출되었는지 검증해주는 코드
         verify(postMapper).insertPost(any(PostDTO.class));
-//        verify(imageService).saveImages(anyList(), eq(1L));
+        verify(imageService).saveImages(anyList(), eq(postId));
     }
 
     @Test

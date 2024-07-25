@@ -1,13 +1,36 @@
 package com.outstagram.outstagram.service;
 
 
+import static com.outstagram.outstagram.common.constant.CacheConst.IN_CACHE;
+import static com.outstagram.outstagram.common.constant.CacheConst.NOT_FOUND;
+import static com.outstagram.outstagram.common.constant.CacheConst.POST;
+import static com.outstagram.outstagram.common.constant.DBConst.DB_COUNT;
+import static com.outstagram.outstagram.common.constant.KafkaConst.POST_UPSERT_TOPIC;
+import static com.outstagram.outstagram.common.constant.KafkaConst.SEND_NOTIFICATION;
+import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
+import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.FEED;
+import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.LIKE_COUNT_PREFIX;
+import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_BOOKMARK_PREFIX;
+import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_LIKE_PREFIX;
+import static com.outstagram.outstagram.dto.AlarmType.COMMENT;
+import static com.outstagram.outstagram.dto.AlarmType.LIKE;
+import static com.outstagram.outstagram.dto.AlarmType.REPLY;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.outstagram.outstagram.controller.request.CreateCommentReq;
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditCommentReq;
 import com.outstagram.outstagram.controller.request.EditPostReq;
-import com.outstagram.outstagram.dto.*;
+import com.outstagram.outstagram.dto.BookmarkRecordDTO;
+import com.outstagram.outstagram.dto.CommentDTO;
+import com.outstagram.outstagram.dto.CommentUserDTO;
+import com.outstagram.outstagram.dto.ImageDTO;
+import com.outstagram.outstagram.dto.LikeCountDTO;
+import com.outstagram.outstagram.dto.LikeRecordDTO;
+import com.outstagram.outstagram.dto.PostDTO;
+import com.outstagram.outstagram.dto.PostDetailsDTO;
+import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.kafka.producer.FeedUpdateProducer;
@@ -15,7 +38,16 @@ import com.outstagram.outstagram.kafka.producer.NotificationProducer;
 import com.outstagram.outstagram.kafka.producer.PostDeleteProducer;
 import com.outstagram.outstagram.kafka.producer.PostProducer;
 import com.outstagram.outstagram.mapper.PostMapper;
-import com.outstagram.outstagram.util.SnowflakeIdGenerator;
+import com.outstagram.outstagram.util.Snowflake;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.session.ExecutorType;
@@ -33,25 +65,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static com.outstagram.outstagram.common.constant.CacheConst.*;
-import static com.outstagram.outstagram.common.constant.KafkaConst.POST_UPSERT_TOPIC;
-import static com.outstagram.outstagram.common.constant.KafkaConst.SEND_NOTIFICATION;
-import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
-import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.*;
-import static com.outstagram.outstagram.dto.AlarmType.COMMENT;
-import static com.outstagram.outstagram.dto.AlarmType.*;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class PostService {
-
-    private final SnowflakeIdGenerator idGenerator;
+    private final Snowflake snowflake;
     private final PostMapper postMapper;
     private final ImageService imageService;
     private final UserService userService;
@@ -84,7 +102,7 @@ public class PostService {
 
     @Transactional
     public void insertPost(CreatePostReq createPostReq, Long userId) {
-        long postId = idGenerator.snowflakeIdGenerator(userId);
+        long postId = snowflake.nextId(userId % DB_COUNT);
 
         PostDTO newPost = PostDTO.builder()
                 .id(postId)
@@ -98,7 +116,7 @@ public class PostService {
         postMapper.insertPost(newPost);
 
         // 로컬 디렉토리에 이미지 저장 후, DB에 이미지 정보 저장
-        imageService.saveImages(createPostReq.getImgFiles(), postId, userId);
+        imageService.saveImages(createPostReq.getImgFiles(), postId);
 
         // kafka에 메시지 발행 : 팔로워들의 피드목록에 내가 작성한 게시물 ID 넣기
         feedUpdateProducer.send("feed", userId, postId);
@@ -267,8 +285,7 @@ public class PostService {
 
         // 추가할 이미지가 있다면 추가하기
         if (editPostReq.getImgFiles() != null && !editPostReq.getImgFiles().isEmpty()) {
-            imageService.saveImages(editPostReq.getImgFiles(),
-                    post.getId(), userId);
+            imageService.saveImages(editPostReq.getImgFiles(), post.getId());
         }
 
         // 수정할 내용이 있다면 수정하기
@@ -604,11 +621,8 @@ public class PostService {
     public void addComment(CreateCommentReq commentReq, Long postId, Long userId) {
         validatePostExist(postId);
 
-        long commentId = idGenerator.snowflakeIdGenerator(userId);
-
         // 댓글 객체 생성하기
         CommentDTO newComment = CommentDTO.builder()
-                .id(commentId)
                 .userId(userId)
                 .postId(postId)
                 .parentCommentId(null)
@@ -636,11 +650,9 @@ public class PostService {
         if (comment == null) {
             throw new ApiException(ErrorCode.COMMENT_NOT_FOUND);
         }
-        long replyId = idGenerator.snowflakeIdGenerator(userId);
 
         // 대댓글 객체 생성하기
         CommentDTO newComment = CommentDTO.builder()
-                .id(replyId)
                 .userId(userId)
                 .postId(postId)
                 .parentCommentId(commentId)

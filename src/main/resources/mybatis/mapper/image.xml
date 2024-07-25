@@ -4,10 +4,10 @@
 <mapper namespace="com.outstagram.outstagram.mapper.ImageMapper">
 
   <insert id="insertImages" useGeneratedKeys="true" keyProperty="id">
-    INSERT INTO image (id, post_id, original_img_name, img_url, create_date, update_date)
+    INSERT INTO image (post_id, original_img_name, img_url, create_date, update_date)
     VALUES
     <foreach collection="list" item="image" separator=",">
-      (#{image.id}, #{image.postId}, #{image.originalImgName}, #{image.imgUrl},
+      (#{image.postId}, #{image.originalImgName}, #{image.imgUrl},
       #{image.createDate}, #{image.updateDate})
     </foreach>
   </insert>

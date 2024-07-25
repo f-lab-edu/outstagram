@@ -28,8 +28,7 @@ import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
 @Service
 @RequiredArgsConstructor
 public class UserService {
-    private final Snowflake snowflake0;
-    private final Snowflake snowflake1;
+    private final Snowflake snowflake;
     private final UserMapper userMapper;
     private final UserProducer userProducer;
 
@@ -37,12 +36,12 @@ public class UserService {
         long userId;
         if (now.getSecond() % DB_COUNT == 0) {
             do {
-                userId = snowflake0.nextId();
+                userId = snowflake.nextId(0);
             }
             while (userId % DB_COUNT != 0);
         } else {
             do {
-                userId = snowflake1.nextId();
+                userId = snowflake.nextId(1);
             }
             while (userId % DB_COUNT == 0);
         }

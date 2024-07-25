@@ -1,5 +1,16 @@
 package com.outstagram.outstagram.service;
 
+import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
+import static com.outstagram.outstagram.dto.AlarmType.LIKE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.outstagram.outstagram.dto.ImageDTO;
 import com.outstagram.outstagram.dto.NotificationDTO;
 import com.outstagram.outstagram.dto.NotificationDetailsDTO;
@@ -7,22 +18,16 @@ import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.NotificationMapper;
+import com.outstagram.outstagram.util.Snowflake;
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
-import static com.outstagram.outstagram.dto.AlarmType.LIKE;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationServiceTest {
@@ -38,23 +43,28 @@ class NotificationServiceTest {
     @Mock
     private ImageService imageService;
 
+    @Mock
+    private Snowflake snowflake;
+
     @Test
     public void testInsertNotification_Success() {
         // given
+        long notiId = snowflake.nextId(1L);
         NotificationDTO notification = NotificationDTO.builder()
-                .fromId(1L)
-                .toId(2L)
-                .targetId(1L)
-                .alarmType(LIKE)
-                .isRead(false)
-                .createDate(LocalDateTime.now())
-                .updateDate(LocalDateTime.now())
-                .build();
+            .id(notiId)
+            .fromId(1L)
+            .toId(2L)
+            .targetId(1L)
+            .alarmType(LIKE)
+            .isRead(false)
+            .createDate(LocalDateTime.now())
+            .updateDate(LocalDateTime.now())
+            .build();
 
         // when
         notificationService.insertNotification(notification);
-        when(notificationMapper.findByIdAndUserId(1L, 2L)).thenReturn(notification);
-        NotificationDTO findNotification = notificationMapper.findByIdAndUserId(1L, 2L);
+        when(notificationMapper.findByIdAndUserId(notiId, 2L)).thenReturn(notification);
+        NotificationDTO findNotification = notificationMapper.findByIdAndUserId(notiId, 2L);
 
         // then
         assertEquals(findNotification.getFromId(), notification.getFromId());
