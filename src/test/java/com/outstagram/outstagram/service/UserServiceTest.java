@@ -1,6 +1,7 @@
 package com.outstagram.outstagram.service;
 
 
+import static com.outstagram.outstagram.common.constant.DBConst.DB_COUNT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -52,15 +53,19 @@ public class UserServiceTest {
         // given
         given(userMapper.countByEmail(user.getEmail())).willReturn(0);
         given(userMapper.countByNickname(user.getNickname())).willReturn(0);
-        if (user.getCreateDate().getSecond() % 2 == 0) {
-            given(snowflake.nextId(0)).willReturn(123456L);
+        long userId;
+        long shardId = System.currentTimeMillis() % DB_COUNT;
+        if (shardId == 0) {
+            userId = 123456L;
+            given(snowflake.nextId(0)).willReturn(userId);
         } else {
-            given(snowflake.nextId(1)).willReturn(123457L);
+            userId = 123457L;
+            given(snowflake.nextId(1)).willReturn(userId);
         }
         given(userMapper.insertUser(user)).willReturn(1);
 
         // when
-        userService.insertUser(user);
+        userService.insertUser(shardId, user);
 
         // then
         // UserService 클래스의 insertUser 메서드가 UserMapper의 insertUser 메서드를 올바른 매개변수(user DTO)와 함께 올바르게 호출했는지 확인
@@ -74,7 +79,7 @@ public class UserServiceTest {
         given(userMapper.countByEmail(user.getEmail())).willReturn(1); // 이메일 중복
 
         // when
-        ApiException exception = assertThrows(ApiException.class, () -> userService.insertUser(user));
+        ApiException exception = assertThrows(ApiException.class, () -> userService.insertUser(0L, user));
 
         // then
         assertEquals("중복됩니다.", exception.getDescription());
@@ -86,7 +91,7 @@ public class UserServiceTest {
         given(userMapper.countByNickname(user.getNickname())).willReturn(1); // 닉네임 중복
 
         // when
-        ApiException exception = assertThrows(ApiException.class, () -> userService.insertUser(user));
+        ApiException exception = assertThrows(ApiException.class, () -> userService.insertUser(0L, user));
 
         // then
         assertEquals("중복됩니다.", exception.getDescription());

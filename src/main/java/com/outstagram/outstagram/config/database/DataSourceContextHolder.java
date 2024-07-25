@@ -1,13 +1,13 @@
 package com.outstagram.outstagram.config.database;
 
 public class DataSourceContextHolder {
-    private static final ThreadLocal<Integer> contextHolder = new ThreadLocal<>();
+    private static final ThreadLocal<Long> contextHolder = new ThreadLocal<>();
 
-    public static void setShardId(int shardId) {
+    public static void setShardId(Long shardId) {
         contextHolder.set(shardId);
     }
 
-    public static Integer getShardId() {
+    public static Long getShardId() {
         return contextHolder.get();
     }
 

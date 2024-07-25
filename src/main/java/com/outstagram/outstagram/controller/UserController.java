@@ -2,6 +2,8 @@ package com.outstagram.outstagram.controller;
 
 import com.outstagram.outstagram.common.annotation.Login;
 import com.outstagram.outstagram.common.api.ApiResponse;
+import com.outstagram.outstagram.common.constant.DBConst;
+import com.outstagram.outstagram.config.database.DataSourceContextHolder;
 import com.outstagram.outstagram.controller.request.EditUserReq;
 import com.outstagram.outstagram.controller.request.UserLoginReq;
 import com.outstagram.outstagram.controller.response.SearchUserInfoRes;
@@ -53,11 +55,18 @@ public class UserController {
 
     @PostMapping("/signup")
     public ResponseEntity<ApiResponse> signup(@RequestBody @Valid UserDTO userInfo) {
-        userService.insertUser(userInfo);
+        long shardId = System.currentTimeMillis() % DBConst.DB_COUNT;
+        try {
+            DataSourceContextHolder.setShardId(shardId);
 
-        ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
+            userService.insertUser(shardId, userInfo);
+
+            ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
                 .message("회원가입 성공").build();
-        return ResponseEntity.ok(response);
+            return ResponseEntity.ok(response);
+        } finally {
+            DataSourceContextHolder.clearShardId();
+        }
     }
 
 

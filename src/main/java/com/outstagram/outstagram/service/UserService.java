@@ -1,7 +1,10 @@
 package com.outstagram.outstagram.service;
 
-import com.outstagram.outstagram.common.strategy.ShardingStrategy;
-import com.outstagram.outstagram.config.database.DataSourceContextHolder;
+import static com.outstagram.outstagram.common.constant.CacheConst.USER;
+import static com.outstagram.outstagram.common.constant.KafkaConst.USER_DELETE_TOPIC;
+import static com.outstagram.outstagram.common.constant.KafkaConst.USER_UPSERT_TOPIC;
+import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
+
 import com.outstagram.outstagram.controller.request.EditUserReq;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
@@ -9,20 +12,13 @@ import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.kafka.producer.UserProducer;
 import com.outstagram.outstagram.mapper.UserMapper;
 import com.outstagram.outstagram.util.Snowflake;
+import java.time.LocalDateTime;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.List;
-
-import static com.outstagram.outstagram.common.constant.CacheConst.USER;
-import static com.outstagram.outstagram.common.constant.DBConst.DB_COUNT;
-import static com.outstagram.outstagram.common.constant.KafkaConst.USER_DELETE_TOPIC;
-import static com.outstagram.outstagram.common.constant.KafkaConst.USER_UPSERT_TOPIC;
-import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
 
 @Slf4j
 @Service
@@ -32,48 +28,22 @@ public class UserService {
     private final UserMapper userMapper;
     private final UserProducer userProducer;
 
-    private long generateUserId(LocalDateTime now) {
-        long userId;
-        if (now.getSecond() % DB_COUNT == 0) {
-            do {
-                userId = snowflake.nextId(0);
-            }
-            while (userId % DB_COUNT != 0);
-        } else {
-            do {
-                userId = snowflake.nextId(1);
-            }
-            while (userId % DB_COUNT == 0);
-        }
-
-        return userId;
-    }
-
-
     @Transactional
-    public void insertUser(UserDTO userInfo) {
+    public void insertUser(Long shardId, UserDTO userInfo) {
         // 이메일, 닉네임 중 중복 체크
         validateUserInfo(userInfo);
 
         LocalDateTime now = LocalDateTime.now();
 
-        long userId = generateUserId(now);
+        long userId = snowflake.nextId(shardId);
 
         userInfo.setId(userId);
         userInfo.setCreateDate(now);
         userInfo.setUpdateDate(now);
         userInfo.setPassword(encryptedPassword(userInfo.getPassword()));
 
-        int shardId = ShardingStrategy.getShardId(userInfo.getId());
-        log.info("============================== shard id : {}", shardId);
-        DataSourceContextHolder.setShardId(shardId);
-        try {
-            userMapper.insertUser(userInfo);    // mysql에 저장
-            userProducer.save(USER_UPSERT_TOPIC, userInfo); // elasticsearch db에 저장
-        } finally {
-            DataSourceContextHolder.clearShardId();
-        }
-
+        userMapper.insertUser(userInfo);    // mysql에 저장
+        userProducer.save(USER_UPSERT_TOPIC, userInfo); // elasticsearch db에 저장
     }
 
     /**
