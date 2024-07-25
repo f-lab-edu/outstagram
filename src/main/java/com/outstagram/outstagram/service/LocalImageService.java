@@ -4,7 +4,13 @@ import com.outstagram.outstagram.dto.ImageDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.ImageMapper;
+import com.outstagram.outstagram.util.SnowflakeIdGenerator;
 import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -12,10 +18,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.UUID;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Service
@@ -24,8 +26,8 @@ public class LocalImageService extends AbstractBaseImageService {
     @Value("com.outstagram.upload.path")
     private String uploadPath;
 
-    public LocalImageService(ImageMapper imageMapper) {
-        super(imageMapper);
+    public LocalImageService(ImageMapper imageMapper, SnowflakeIdGenerator idGenerator) {
+        super(imageMapper, idGenerator);
     }
 
     @PostConstruct

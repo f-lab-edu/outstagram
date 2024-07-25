@@ -11,8 +11,8 @@
     </select>
 
     <insert id="insertUser" parameterType="com.outstagram.outstagram.dto.UserDTO" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO user(email, password, nickname, create_date, update_date)
-        VALUES(#{email}, #{password}, #{nickname}, #{createDate}, #{updateDate})
+        INSERT INTO user(id, email, password, nickname, create_date, update_date)
+        VALUES(#{id}, #{email}, #{password}, #{nickname}, #{createDate}, #{updateDate})
     </insert>
 
     <select id="findByEmailAndPassword" resultType="com.outstagram.outstagram.dto.UserDTO">
