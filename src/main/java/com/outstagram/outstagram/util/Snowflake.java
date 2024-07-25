@@ -29,7 +29,6 @@ public class Snowflake {
 
     private final long nodeId;
     private final long customEpoch;
-    //private AtomicLong sequence = new AtomicLong(0L);
 
     private volatile long lastTimestamp = -1L;
     private volatile long sequence = 0L;    // 가시성 보장, 동시성 보장X
@@ -69,7 +68,7 @@ public class Snowflake {
         return localInstance;
     }
 
-    public synchronized long nextId() {
+    public synchronized long nextId(long nodeId) {
         // timestamp 값 구하기
         long curTimestamp = timestamp();
 

@@ -17,9 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @RequiredArgsConstructor
-public abstract class AbstractBaseImageService implements ImageService{
+public abstract class AbstractBaseImageService implements ImageService {
 
     private final ImageMapper imageMapper;
+
 
     @Transactional
     @Override
@@ -34,13 +35,13 @@ public abstract class AbstractBaseImageService implements ImageService{
                 String savedName = uploadImage(img);
 
                 imageDTOList.add(
-                    ImageDTO.builder()
-                        .postId(postId)
-                        .originalImgName(originName)
-                        .imgUrl(savedName)
-                        .createDate(LocalDateTime.now())
-                        .updateDate(LocalDateTime.now())
-                        .build()
+                        ImageDTO.builder()
+                                .postId(postId)
+                                .originalImgName(originName)
+                                .imgUrl(savedName)
+                                .createDate(LocalDateTime.now())
+                                .updateDate(LocalDateTime.now())
+                                .build()
                 );
             }
 
@@ -78,8 +79,8 @@ public abstract class AbstractBaseImageService implements ImageService{
     @Override
     public void hardDeleteByIds(List<ImageDTO> deletedImages) {
         List<Long> deletedImageIds = deletedImages.stream()
-            .map(ImageDTO::getId)
-            .collect(Collectors.toList());
+                .map(ImageDTO::getId)
+                .collect(Collectors.toList());
 
         int result = imageMapper.hardDeleteByIds(deletedImageIds);
         if (result == 0) {

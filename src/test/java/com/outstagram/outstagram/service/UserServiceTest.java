@@ -9,8 +9,10 @@ import static org.mockito.Mockito.verify;
 
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
+import com.outstagram.outstagram.kafka.producer.UserProducer;
 import com.outstagram.outstagram.mapper.UserMapper;
 import com.outstagram.outstagram.util.SHA256Util;
+import com.outstagram.outstagram.util.Snowflake;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +26,12 @@ public class UserServiceTest {
 
     @Mock
     private UserMapper userMapper;
+
+    @Mock
+    private Snowflake snowflake;
+
+    @Mock
+    private UserProducer userProducer;
 
     @InjectMocks
     private UserService userService;
@@ -44,6 +52,11 @@ public class UserServiceTest {
         // given
         given(userMapper.countByEmail(user.getEmail())).willReturn(0);
         given(userMapper.countByNickname(user.getNickname())).willReturn(0);
+        if (user.getCreateDate().getSecond() % 2 == 0) {
+            given(snowflake.nextId(0)).willReturn(123456L);
+        } else {
+            given(snowflake.nextId(1)).willReturn(123457L);
+        }
         given(userMapper.insertUser(user)).willReturn(1);
 
         // when

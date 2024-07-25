@@ -6,8 +6,8 @@
 
   <!--insert 성공 시, DB에서 자동으로 생성된 key를 가져와서 newPost 객체의 id 속성에 값을 넣어준다 (postMapper.insertPost(newPost);)  -->
   <insert id="insertPost" parameterType="com.outstagram.outstagram.dto.PostDTO" useGeneratedKeys="true" keyProperty="id">
-    INSERT INTO post(contents, user_id, create_date, update_date, version)
-    VALUES (#{contents}, #{userId}, #{createDate}, #{updateDate}, 1)
+    INSERT INTO post(id, contents, user_id, create_date, update_date, version)
+    VALUES (#{id}, #{contents}, #{userId}, #{createDate}, #{updateDate}, 1)
   </insert>
 
 
