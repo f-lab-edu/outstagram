@@ -25,7 +25,7 @@ class SnowflakeTest {
         Set<Long> ids = new HashSet<>();
 
         for (int i = 0; i < 1000; i++) {
-            long id = snowflake.nextId();
+            long id = snowflake.nextId(0);
             System.out.println(snowflake.getNodeId() + "    " + snowflake.getSequence());
             System.out.println(Arrays.toString(snowflake.parse(id)));
             assertTrue(ids.add(id), "ID는 고유해야 합니다.");
@@ -51,7 +51,7 @@ class SnowflakeTest {
         Callable<Set<Long>> task = () -> {
             Set<Long> localIds = new HashSet<>();
             for (int i = 0; i < idCount; i++) {
-                long id = snowflake.nextId();
+                long id = snowflake.nextId(0);
                 localIds.add(id);
             }
 
@@ -90,7 +90,7 @@ class SnowflakeTest {
                 Snowflake snowflake = Snowflake.getInstance(finalNodeId); // 각 노드가 별도의 Snowflake 인스턴스를 사용하도록 수정
                 Set<Long> localIds = new HashSet<>();
                 for (int i = 0; i < idCount; i++) {
-                    long id = snowflake.nextId();
+                    long id = snowflake.nextId(finalNodeId);
                     localIds.add(id);
 //                    Thread.sleep(2);
                 }

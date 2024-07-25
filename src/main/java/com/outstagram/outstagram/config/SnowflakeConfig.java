@@ -8,13 +8,8 @@ import org.springframework.context.annotation.Configuration;
 public class SnowflakeConfig {
 
     @Bean
-    public Snowflake snowflake0() {
-        return Snowflake.getInstance(0);
-    }
-
-    @Bean
-    public Snowflake snowflake1() {
-        return Snowflake.getInstance(1);
+    public Snowflake snowflake() {
+        return new Snowflake();
     }
 
 }
