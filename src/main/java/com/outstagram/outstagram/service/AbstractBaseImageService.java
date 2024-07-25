@@ -1,33 +1,30 @@
 package com.outstagram.outstagram.service;
 
+import static com.outstagram.outstagram.common.constant.CacheConst.IMAGE;
+
 import com.outstagram.outstagram.dto.ImageDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.ImageMapper;
-import com.outstagram.outstagram.util.SnowflakeIdGenerator;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import static com.outstagram.outstagram.common.constant.CacheConst.IMAGE;
-
 @RequiredArgsConstructor
 public abstract class AbstractBaseImageService implements ImageService {
 
     private final ImageMapper imageMapper;
 
-    private final SnowflakeIdGenerator idGenerator;
 
     @Transactional
     @Override
-    public void saveImages(List<MultipartFile> imgFiles, Long postId, Long userId) {
+    public void saveImages(List<MultipartFile> imgFiles, Long postId) {
         List<ImageDTO> imageDTOList = new ArrayList<>();
 
         try {
@@ -39,7 +36,6 @@ public abstract class AbstractBaseImageService implements ImageService {
 
                 imageDTOList.add(
                         ImageDTO.builder()
-                                .id(idGenerator.snowflakeIdGenerator(userId))
                                 .postId(postId)
                                 .originalImgName(originName)
                                 .imgUrl(savedName)

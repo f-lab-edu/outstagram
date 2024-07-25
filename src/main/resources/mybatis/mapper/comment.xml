@@ -4,8 +4,8 @@
 <mapper namespace="com.outstagram.outstagram.mapper.CommentMapper">
 
   <insert id="insertComment" parameterType="com.outstagram.outstagram.dto.CommentDTO">
-    INSERT INTO comment (id, user_id, post_id, parent_comment_id, contents, level, is_deleted, create_date, update_date)
-    VALUES (#{id}, #{userId}, #{postId}, #{parentCommentId}, #{contents}, #{level}, #{isDeleted}, #{createDate}, #{updateDate})
+    INSERT INTO comment (user_id, post_id, parent_comment_id, contents, level, is_deleted, create_date, update_date)
+    VALUES (#{userId}, #{postId}, #{parentCommentId}, #{contents}, #{level}, #{isDeleted}, #{createDate}, #{updateDate})
   </insert>
 
   <resultMap id="CommentsResultMap" type="com.outstagram.outstagram.dto.CommentUserDTO">

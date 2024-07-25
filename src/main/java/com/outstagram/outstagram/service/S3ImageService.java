@@ -9,12 +9,6 @@ import com.outstagram.outstagram.dto.ImageDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.mapper.ImageMapper;
-import com.outstagram.outstagram.util.SnowflakeIdGenerator;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,6 +20,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Service
@@ -36,8 +34,8 @@ public class S3ImageService extends AbstractBaseImageService {
     @Value("${cloud.aws.s3.bucketName}")
     private String bucketName;
 
-    public S3ImageService(ImageMapper imageMapper, AmazonS3 amazonS3, SnowflakeIdGenerator idGenerator) {
-        super(imageMapper, idGenerator);
+    public S3ImageService(ImageMapper imageMapper, AmazonS3 amazonS3) {
+        super(imageMapper);
         this.amazonS3 = amazonS3;
     }
 
