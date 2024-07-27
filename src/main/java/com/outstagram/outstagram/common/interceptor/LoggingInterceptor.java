@@ -1,4 +1,4 @@
-package com.outstagram.outstagram.common.filter;
+package com.outstagram.outstagram.common.interceptor;
 
 
 import jakarta.servlet.http.HttpServletRequest;

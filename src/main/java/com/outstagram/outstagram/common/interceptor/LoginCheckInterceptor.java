@@ -1,4 +1,4 @@
-package com.outstagram.outstagram.common.filter;
+package com.outstagram.outstagram.common.interceptor;
 
 
 import static com.outstagram.outstagram.common.constant.SessionConst.LOGIN_USER;
