@@ -1,11 +1,9 @@
 package com.outstagram.outstagram.controller;
 
-import static com.outstagram.outstagram.common.constant.DBConst.DB_COUNT;
 import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
 
 import com.outstagram.outstagram.common.annotation.Login;
 import com.outstagram.outstagram.common.api.ApiResponse;
-import com.outstagram.outstagram.config.database.DataSourceContextHolder;
 import com.outstagram.outstagram.controller.request.CreateCommentReq;
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditCommentReq;
@@ -18,8 +16,10 @@ import com.outstagram.outstagram.dto.PostDTO;
 import com.outstagram.outstagram.dto.PostDetailsDTO;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.service.PostService;
+import com.outstagram.outstagram.async.AsyncPostService;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,21 +43,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class PostController {
 
     private final PostService postService;
+    private final AsyncPostService asyncPostService;
 
     @PostMapping
     public ResponseEntity<ApiResponse> createPost(
         @ModelAttribute @Valid CreatePostReq createPostReq, @Login UserDTO user) {
-        long shardId = user.getId() % DB_COUNT;
-        try {
-            DataSourceContextHolder.setShardId(shardId);
-            postService.insertPost(createPostReq, user.getId());
+        postService.insertPost(createPostReq, user.getId());
 
-            return ResponseEntity.ok(
-                ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK).message("게시물을 저장했습니다.")
-                    .build());
-        } finally {
-            DataSourceContextHolder.clearShardId();
-        }
+        return ResponseEntity.ok(
+                ApiResponse.builder()
+                        .isSuccess(true)
+                        .httpStatus(HttpStatus.OK)
+                        .message("게시물을 저장했습니다.")
+                        .build());
     }
 
     @GetMapping
@@ -71,8 +69,8 @@ public class PostController {
     }
 
     @GetMapping("/{postId}")
-    public ResponseEntity<PostDetailsDTO> getPost(@PathVariable Long postId, @Login UserDTO user) {
-        PostDetailsDTO postDetailsDTO = postService.getPostDetails(postId, user.getId());
+    public ResponseEntity<PostDetailsDTO> getPost(@PathVariable Long postId, @Login UserDTO user) throws ExecutionException, InterruptedException {
+        PostDetailsDTO postDetailsDTO = asyncPostService.getPostDetails(postId, user.getId());
 
         return ResponseEntity.ok(postDetailsDTO);
     }

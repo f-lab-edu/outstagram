@@ -153,7 +153,11 @@ public class PostService {
      */
     public PostDetailsDTO getPostDetails(Long postId, Long userId) {
         // 내부 메서드 호출할 때, @Cacheable 적용되도록 하려면 프록시 객체를 통해서 메서드를 호출해야 함.
-        PostDTO post = validatePostExist(postId);
+        // 존재하는 post인지 검증
+        PostService proxy = (PostService) AopContext.currentProxy();
+        PostDTO post = proxy.getPost(postId);
+        if (post == null) return null;
+
 
         // Post의 이미지 정보 가져오기(캐시 사용)
         List<ImageDTO> imageList = imageService.getImageInfos(post.getId());

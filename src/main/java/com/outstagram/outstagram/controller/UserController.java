@@ -3,7 +3,6 @@ package com.outstagram.outstagram.controller;
 import com.outstagram.outstagram.common.annotation.Login;
 import com.outstagram.outstagram.common.api.ApiResponse;
 import com.outstagram.outstagram.common.constant.DBConst;
-import com.outstagram.outstagram.config.database.DataSourceContextHolder;
 import com.outstagram.outstagram.controller.request.EditUserReq;
 import com.outstagram.outstagram.controller.request.UserLoginReq;
 import com.outstagram.outstagram.controller.response.SearchUserInfoRes;
@@ -12,6 +11,7 @@ import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
 import com.outstagram.outstagram.service.UserService;
+import com.outstagram.outstagram.async.AsyncUserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -20,8 +20,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
 
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import static com.outstagram.outstagram.common.constant.SessionConst.LOGIN_USER;
@@ -34,13 +37,18 @@ import static com.outstagram.outstagram.common.constant.SessionConst.LOGIN_USER;
 public class UserController {
 
     private final UserService userService;
+    private final AsyncUserService asyncUserService;
 
     @GetMapping("check-duplicated-email")
     public ResponseEntity<ApiResponse> isDuplicatedEmail(@RequestParam String email) {
         userService.validateDuplicatedEmail(email);
 
-        ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
-                .message("해당 이메일 사용 가능합니다.").build();
+        ApiResponse response = ApiResponse.builder()
+                .isSuccess(true)
+                .httpStatus(HttpStatus.OK)
+                .message("해당 이메일 사용 가능합니다.")
+                .build();
+
         return ResponseEntity.ok(response);
     }
 
@@ -48,25 +56,29 @@ public class UserController {
     public ResponseEntity<ApiResponse> isDuplicatedNickName(@RequestParam String nickname) {
         userService.validateDuplicatedNickname(nickname);
 
-        ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
-                .message("해당 닉네임이 사용 가능합니다.").build();
+        ApiResponse response = ApiResponse.builder()
+                .isSuccess(true)
+                .httpStatus(HttpStatus.OK)
+                .message("해당 닉네임이 사용 가능합니다.")
+                .build();
+
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/signup")
     public ResponseEntity<ApiResponse> signup(@RequestBody @Valid UserDTO userInfo) {
         long shardId = System.currentTimeMillis() % DBConst.DB_COUNT;
-        try {
-            DataSourceContextHolder.setShardId(shardId);
+        RequestContextHolder.getRequestAttributes().setAttribute("shardId", shardId, RequestAttributes.SCOPE_REQUEST);
 
-            userService.insertUser(shardId, userInfo);
+        userService.insertUser(shardId, userInfo);
 
-            ApiResponse response = ApiResponse.builder().isSuccess(true).httpStatus(HttpStatus.OK)
-                .message("회원가입 성공").build();
-            return ResponseEntity.ok(response);
-        } finally {
-            DataSourceContextHolder.clearShardId();
-        }
+        ApiResponse response = ApiResponse.builder()
+                .isSuccess(true)
+                .httpStatus(HttpStatus.OK)
+                .message("회원가입 성공")
+                .build();
+
+        return ResponseEntity.ok(response);
     }
 
 
@@ -75,9 +87,9 @@ public class UserController {
      */
     @PostMapping("/login")
     public ResponseEntity<ApiResponse> login(@RequestBody @Valid UserLoginReq userLoginReq,
-                                             HttpServletRequest request) {
+                                             HttpServletRequest request) throws ExecutionException, InterruptedException {
 
-        UserDTO user = userService.login(userLoginReq.getEmail(), userLoginReq.getPassword());
+        UserDTO user = asyncUserService.login(userLoginReq.getEmail(), userLoginReq.getPassword());
         log.info("loginUser = {}", user);
 
         if (user == null) {
@@ -95,7 +107,6 @@ public class UserController {
                 .message("로그인 성공").build();
 
         return ResponseEntity.ok(response);
-
     }
 
     /**

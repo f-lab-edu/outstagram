@@ -5,6 +5,7 @@ import static com.outstagram.outstagram.common.constant.KafkaConst.USER_DELETE_T
 import static com.outstagram.outstagram.common.constant.KafkaConst.USER_UPSERT_TOPIC;
 import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
 
+import com.outstagram.outstagram.common.constant.DBConst;
 import com.outstagram.outstagram.controller.request.EditUserReq;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
@@ -28,6 +29,15 @@ public class UserService {
     private final UserMapper userMapper;
     private final UserProducer userProducer;
 
+    // shardId가 1이면 userId % DB_COUNT == 1 인 userId만 존재하도록 만들기 위한 메서드
+    private long generateId(long shardId) {
+        long userId;
+        do {
+            userId = snowflake.nextId(shardId);
+        } while (userId % DBConst.DB_COUNT != shardId);
+        return userId;
+    }
+
     @Transactional
     public void insertUser(Long shardId, UserDTO userInfo) {
         // 이메일, 닉네임 중 중복 체크
@@ -35,7 +45,7 @@ public class UserService {
 
         LocalDateTime now = LocalDateTime.now();
 
-        long userId = snowflake.nextId(shardId);
+        long userId = generateId(shardId);
 
         userInfo.setId(userId);
         userInfo.setCreateDate(now);
