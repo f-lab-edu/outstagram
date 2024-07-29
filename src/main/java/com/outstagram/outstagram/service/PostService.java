@@ -64,6 +64,8 @@ import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
 
 @Slf4j
 @Service
@@ -145,7 +147,18 @@ public class PostService {
      */
     @Cacheable(value = POST, key = "#postId")
     public PostDTO getPost(Long postId) {
-        return postMapper.findById(postId);
+        for (long shardId = 0; shardId < DB_COUNT; shardId++) {
+            RequestContextHolder.getRequestAttributes().setAttribute("shardId", shardId, RequestAttributes.SCOPE_REQUEST);
+            PostDTO post = postMapper.findById(postId);
+            if (post == null) {
+                log.warn("No post details found in shard {}", shardId);
+                RequestContextHolder.getRequestAttributes().removeAttribute("shardId", RequestAttributes.SCOPE_REQUEST);
+                continue;
+            }
+            return post;
+        }
+
+        return null;
     }
 
     /**
@@ -156,7 +169,7 @@ public class PostService {
         // 존재하는 post인지 검증
         PostService proxy = (PostService) AopContext.currentProxy();
         PostDTO post = proxy.getPost(postId);
-        if (post == null) return null;
+        if (post == null) throw new ApiException(ErrorCode.POST_NOT_FOUND);
 
 
         // Post의 이미지 정보 가져오기(캐시 사용)

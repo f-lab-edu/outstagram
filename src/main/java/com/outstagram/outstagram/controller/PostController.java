@@ -16,10 +16,8 @@ import com.outstagram.outstagram.dto.PostDTO;
 import com.outstagram.outstagram.dto.PostDetailsDTO;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.service.PostService;
-import com.outstagram.outstagram.async.AsyncPostService;
 import jakarta.validation.Valid;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,7 +41,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class PostController {
 
     private final PostService postService;
-    private final AsyncPostService asyncPostService;
 
     @PostMapping
     public ResponseEntity<ApiResponse> createPost(
@@ -69,10 +66,10 @@ public class PostController {
     }
 
     @GetMapping("/{postId}")
-    public ResponseEntity<PostDetailsDTO> getPost(@PathVariable Long postId, @Login UserDTO user) throws ExecutionException, InterruptedException {
-        PostDetailsDTO postDetailsDTO = asyncPostService.getPostDetails(postId, user.getId());
+    public ResponseEntity<PostDetailsDTO> getPost(@PathVariable Long postId, @Login UserDTO user) {
+        PostDetailsDTO result = postService.getPostDetails(postId, user.getId());
 
-        return ResponseEntity.ok(postDetailsDTO);
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/search")
