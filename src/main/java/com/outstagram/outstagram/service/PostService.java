@@ -18,6 +18,7 @@ import static com.outstagram.outstagram.dto.AlarmType.REPLY;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.outstagram.outstagram.common.annotation.QueryAllShards;
 import com.outstagram.outstagram.controller.request.CreateCommentReq;
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditCommentReq;
@@ -64,8 +65,6 @@ import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.context.request.RequestAttributes;
-import org.springframework.web.context.request.RequestContextHolder;
 
 @Slf4j
 @Service
@@ -146,19 +145,9 @@ public class PostService {
      * 순수 게시물 캐싱
      */
     @Cacheable(value = POST, key = "#postId")
+    @QueryAllShards
     public PostDTO getPost(Long postId) {
-        for (long shardId = 0; shardId < DB_COUNT; shardId++) {
-            RequestContextHolder.getRequestAttributes().setAttribute("shardId", shardId, RequestAttributes.SCOPE_REQUEST);
-            PostDTO post = postMapper.findById(postId);
-            if (post == null) {
-                log.warn("No post details found in shard {}", shardId);
-                RequestContextHolder.getRequestAttributes().removeAttribute("shardId", RequestAttributes.SCOPE_REQUEST);
-                continue;
-            }
-            return post;
-        }
-
-        return null;
+        return postMapper.findById(postId);
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.outstagram.outstagram.service;
 
 import static com.outstagram.outstagram.common.constant.CacheConst.USER;
+import static com.outstagram.outstagram.common.constant.DBConst.DB_COUNT;
 import static com.outstagram.outstagram.common.constant.KafkaConst.USER_DELETE_TOPIC;
 import static com.outstagram.outstagram.common.constant.KafkaConst.USER_UPSERT_TOPIC;
 import static com.outstagram.outstagram.util.SHA256Util.encryptedPassword;
@@ -20,6 +21,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
 
 @Slf4j
 @Service
@@ -83,9 +86,12 @@ public class UserService {
      * 중복 -> true
      */
     public void validateDuplicatedEmail(String email) {
-        int count = userMapper.countByEmail(email);
-        if (count > 0) {
-            throw new ApiException(ErrorCode.DUPLICATED);
+        for (long shardId = 0; shardId < DB_COUNT; shardId++) {
+            RequestContextHolder.getRequestAttributes().setAttribute("shardId", shardId, RequestAttributes.SCOPE_REQUEST);
+            int count = userMapper.countByEmail(email);
+            if (count > 0) {
+                throw new ApiException(ErrorCode.DUPLICATED);
+            }
         }
     }
 
