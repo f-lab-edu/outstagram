@@ -18,7 +18,8 @@ import static com.outstagram.outstagram.dto.AlarmType.REPLY;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.outstagram.outstagram.common.annotation.QueryAllShards;
+import com.outstagram.outstagram.common.annotation.CacheShardId;
+import com.outstagram.outstagram.common.annotation.LoadShardId;
 import com.outstagram.outstagram.controller.request.CreateCommentReq;
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditCommentReq;
@@ -56,7 +57,6 @@ import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.data.redis.RedisSystemException;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -102,7 +102,8 @@ public class PostService {
     }
 
     @Transactional
-    public void insertPost(CreatePostReq createPostReq, Long userId) {
+    @CacheShardId
+    public PostDTO insertPost(CreatePostReq createPostReq, Long userId) {
         long postId = snowflake.nextId(userId % DB_COUNT);
 
         PostDTO newPost = PostDTO.builder()
@@ -124,6 +125,8 @@ public class PostService {
 
         // ES DB에도 저장
         postProducer.save(POST_UPSERT_TOPIC, newPost);
+
+        return newPost;
     }
 
     public List<PostDetailsDTO> getMyPosts(Long userId, Long lastId) {
@@ -144,8 +147,8 @@ public class PostService {
     /**
      * 순수 게시물 캐싱
      */
-    @Cacheable(value = POST, key = "#postId")
-    @QueryAllShards
+//    @Cacheable(value = POST, key = "#postId")
+    @LoadShardId
     public PostDTO getPost(Long postId) {
         return postMapper.findById(postId);
     }
