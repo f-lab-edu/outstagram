@@ -1,7 +1,7 @@
 package com.outstagram.outstagram.common.aop;
 
 
-import com.outstagram.outstagram.common.annotation.CacheShardId;
+import com.outstagram.outstagram.common.annotation.CachePostIdToShardId;
 import com.outstagram.outstagram.dto.PostDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,11 +17,11 @@ import org.springframework.web.context.request.RequestContextHolder;
 @Component
 @Aspect
 @RequiredArgsConstructor
-public class CacheShardIdAspect {
+public class CachePostIdToShardIdAspect {
     private final RedisTemplate<String, Object> redisTemplate;
 
-    @Around("@annotation(cacheShardId)")
-    public Object queryAllShards(ProceedingJoinPoint joinPoint, CacheShardId cacheShardId) throws Throwable {
+    @Around("@annotation(cachePostIdToShardId)")
+    public Object queryAllShards(ProceedingJoinPoint joinPoint, CachePostIdToShardId cachePostIdToShardId) throws Throwable {
         log.info("============== @CacheShardId Started");
         Object result = joinPoint.proceed();
         Long postId = ((PostDTO) result).getId();

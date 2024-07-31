@@ -18,8 +18,8 @@ import static com.outstagram.outstagram.dto.AlarmType.REPLY;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.outstagram.outstagram.common.annotation.CacheShardId;
-import com.outstagram.outstagram.common.annotation.LoadShardId;
+import com.outstagram.outstagram.common.annotation.CachePostIdToShardId;
+import com.outstagram.outstagram.common.annotation.LoadShardIdFromPostId;
 import com.outstagram.outstagram.controller.request.CreateCommentReq;
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditCommentReq;
@@ -57,6 +57,7 @@ import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.data.redis.RedisSystemException;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -102,7 +103,7 @@ public class PostService {
     }
 
     @Transactional
-    @CacheShardId
+    @CachePostIdToShardId
     public PostDTO insertPost(CreatePostReq createPostReq, Long userId) {
         long postId = snowflake.nextId(userId % DB_COUNT);
 
@@ -147,8 +148,7 @@ public class PostService {
     /**
      * 순수 게시물 캐싱
      */
-//    @Cacheable(value = POST, key = "#postId")
-    @LoadShardId
+    @Cacheable(value = POST, key = "#postId")
     public PostDTO getPost(Long postId) {
         return postMapper.findById(postId);
     }
@@ -156,6 +156,7 @@ public class PostService {
     /**
      * 각 캐싱된 순수 게시물 + 이미지 정보 + 댓글 + 좋아요 + 북마크 들을 조합해서 종합 게시물 만들어주는 메서드
      */
+    @LoadShardIdFromPostId  // postId로 cache에서 매핑된 shardId 찾아서 RequestContextHolder에 넣어줌
     public PostDetailsDTO getPostDetails(Long postId, Long userId) {
         // 내부 메서드 호출할 때, @Cacheable 적용되도록 하려면 프록시 객체를 통해서 메서드를 호출해야 함.
         // 존재하는 post인지 검증
