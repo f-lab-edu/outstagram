@@ -10,11 +10,18 @@ public class DataSourceRouting extends AbstractRoutingDataSource {
     @Override
     protected Object determineCurrentLookupKey() {
         RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+        Long shardId = null;
         if (requestAttributes != null) {
-            Long shardId = (Long) requestAttributes.getAttribute("shardId", RequestAttributes.SCOPE_REQUEST);
+            shardId = (Long) requestAttributes.getAttribute("shardId", RequestAttributes.SCOPE_REQUEST);
+        }
+
+        if (shardId == null) shardId = DataSourceContextHolder.getShardId();
+
+        if (shardId != null) {
             log.info("=============================== Current Shard ID: {}", shardId);
             return shardId;
         }
+
         log.warn("Request attributes are null, defaulting to shard 0");
         return 0L;
     }

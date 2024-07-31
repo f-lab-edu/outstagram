@@ -510,6 +510,7 @@ public class PostService {
      * 북마크 저장 메서드
      */
     @Transactional
+    @LoadShardIdFromPostId
     public void addBookmark(Long postId, Long userId) {
         validatePostExist(postId);
 
@@ -528,6 +529,7 @@ public class PostService {
      * 북마크 취소 메서드
      */
     @Transactional
+    @LoadShardIdFromPostId
     public void deleteBookmark(Long postId, Long userId) {
         validatePostExist(postId);
         String userBookmarkKey = USER_BOOKMARK_PREFIX + userId;
@@ -630,6 +632,7 @@ public class PostService {
     /**
      * 댓글 저장하는 로직
      */
+    @LoadShardIdFromPostId
     public void addComment(CreateCommentReq commentReq, Long postId, Long userId) {
         validatePostExist(postId);
 
@@ -655,6 +658,7 @@ public class PostService {
     /**
      * 대댓글 저장하는 로직
      */
+    @LoadShardIdFromPostId
     public void addComment(CreateCommentReq commentReq, Long postId, Long commentId, Long userId) {
         // 존재하는 post인지 검증
         validatePostExist(postId);
@@ -685,6 +689,7 @@ public class PostService {
     /**
      * (대)댓글 수정
      */
+    @LoadShardIdFromPostId
     public void editComment(EditCommentReq editCommentReq, Long postId, Long commentId,
                             Long userId) {
         // 게시물&댓글 존재 여부 검증, 작성자인지 검증하기
@@ -697,7 +702,7 @@ public class PostService {
 
 
     /* ========================================================================================== */
-
+    @LoadShardIdFromPostId
     public void deleteComment(Long postId, Long commentId, Long userId) {
         validatePostCommentAndOwnership(postId, commentId, userId);
 
