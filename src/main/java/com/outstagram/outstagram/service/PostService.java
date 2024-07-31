@@ -350,6 +350,7 @@ public class PostService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
+    @LoadShardIdFromPostId
     public void increaseLike(Long postId, Long userId) {
         // Redis에 게시물에 대한 좋아요 개수 캐싱하기(없으면 DB에서 좋아요 개수 가져와서 캐싱하고 있으면 pass)
         loadLikeCountIfAbsent(postId); // 게시물 존재 여부도 검증함
@@ -390,6 +391,7 @@ public class PostService {
      * 좋아요 취소 기능 - 게시물 좋아요 개수 1 감소 - like table에서 해당 기록 삭제
      */
     @Transactional(isolation = Isolation.READ_COMMITTED)
+    @LoadShardIdFromPostId
     public void unlikePost(Long postId, Long userId) {
         loadLikeCountIfAbsent(postId);  // 게시물 존재 여부도 검증함
 
