@@ -24,6 +24,8 @@ instagram을 모티브로 만든 SNS API 서버 프로젝트
 ### 💥 분산 DB 환경에서 커서 기반 페이지네이션을 어떻게 구현하는지
 
 - [x] 분산 환경에서 ID로 정렬하기 위해서 Snowflake ID 구현
+    
+- [x] 애플리케이션 레벨에서 DB sharding 로직 구현 (동적으로 DB Source 변경하기)
 
 <br>
 
@@ -57,7 +59,9 @@ instagram을 모티브로 만든 SNS API 서버 프로젝트
 9. [lua script를 통한 Redis 동시성 이슈 해결](https://velog.io/@nick9999/Outstagram-Redis%EC%97%90%EC%84%9C%EB%8F%84-%EB%8F%99%EC%8B%9C%EC%84%B1-%EC%9D%B4%EC%8A%88%EA%B0%80-%EB%B0%9C%EC%83%9D%ED%95%9C%EB%8B%A4%EA%B3%A0...-lua-script-%EC%A0%81%EC%9A%A9%EA%B8%B0)
 10. [nGrinder를 활용해 부하 테스트 후 성능 튜닝](https://velog.io/@nick9999/Outstagram-nGrinder%EB%A5%BC-%ED%99%9C%EC%9A%A9%ED%95%9C-%EB%B6%80%ED%95%98-%ED%85%8C%EC%8A%A4%ED%8A%B8-%ED%9B%84-%EC%84%B1%EB%8A%A5-%ED%8A%9C%EB%8B%9D)
 11. [nGrinder를 활용해 캐시 유무로 인한 성능 비교](https://velog.io/@nick9999/Outstagram-Cache-%EC%9C%A0%EB%AC%B4%EC%97%90-%EB%94%B0%EB%A5%B8-%EC%84%B1%EB%8A%A5-%EB%B9%84%EA%B5%90%ED%95%B4%EB%B3%B4%EA%B8%B0)
-
+12. [kafka 메시지 큐를 활용해 비동기 메시지 전송을 도입한 이유](https://velog.io/@nick9999/Outstagram-kafka-%EB%A9%94%EC%8B%9C%EC%A7%80-%ED%81%90%EB%A5%BC-%ED%99%9C%EC%9A%A9%ED%95%B4-%EB%B9%84%EB%8F%99%EA%B8%B0-%EB%A9%94%EC%8B%9C%EC%A7%80-%EC%A0%84%EC%86%A1%EC%9D%84-%EB%8F%84%EC%9E%85%ED%95%9C-%EC%9D%B4%EC%9C%A0)
+13. [nGrinder & pinpoint로 병목 지점 파악 후, sharding을 통해 성능 개선한 경험](https://velog.io/@nick9999/Outsagram-nGrinder-pinpoint%EB%A1%9C-%EB%B3%91%EB%AA%A9-%EC%A7%80%EC%A0%90-%ED%8C%8C%EC%95%85-%ED%9B%84-sharding%EC%9D%84-%ED%86%B5%ED%95%B4-%EC%84%B1%EB%8A%A5-%EA%B0%9C%EC%84%A0%ED%95%9C-%EA%B2%BD%ED%97%98)
+14. [AOP 활용해 동적으로 DB Source 바꾸기](https://velog.io/@nick9999/Outstagram-AOP-%ED%99%9C%EC%9A%A9%ED%95%B4-%EB%8F%99%EC%A0%81%EC%9C%BC%EB%A1%9C-DataSource-%EB%B0%94%EA%BE%B8%EA%B8%B0)
 <br>
 <br>
 <br>
