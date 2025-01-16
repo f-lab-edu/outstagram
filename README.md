@@ -5,7 +5,7 @@ instagram을 모티브로 만든 SNS API 서버 프로젝트
 <br>
 
 # 🌍 서버 아키텍처
-![image](https://github.com/user-attachments/assets/23e2291f-0796-4e72-b061-5e0a0da18c07)
+![outstagram 서버 아키텍처](https://github.com/user-attachments/assets/c58efb2a-f10a-426d-b170-83dc72cb5ba2)
 
 <br>
 <br>
