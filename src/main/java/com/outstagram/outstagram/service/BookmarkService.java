@@ -6,6 +6,7 @@ import static com.outstagram.outstagram.common.constant.CacheConst.NOT_FOUND;
 import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_BOOKMARK_PREFIX;
 
+import com.outstagram.outstagram.common.annotation.Slave;
 import com.outstagram.outstagram.dto.BookmarkDTO;
 import com.outstagram.outstagram.dto.BookmarkRecordDTO;
 import com.outstagram.outstagram.dto.PostImageDTO;
@@ -60,6 +61,7 @@ public class BookmarkService {
      * DB에 있음 -> 1
      * 없음 -> 0
      */
+    @Slave
     public int existsBookmark(Long userId, Long postId) {
         String userBookmarkKey = USER_BOOKMARK_PREFIX + userId;
 

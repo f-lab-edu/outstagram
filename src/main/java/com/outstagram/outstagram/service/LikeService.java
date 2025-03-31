@@ -6,6 +6,7 @@ import static com.outstagram.outstagram.common.constant.CacheConst.IN_DB;
 import static com.outstagram.outstagram.common.constant.PageConst.PAGE_SIZE;
 import static com.outstagram.outstagram.common.constant.RedisKeyPrefixConst.USER_LIKE_PREFIX;
 
+import com.outstagram.outstagram.common.annotation.Slave;
 import com.outstagram.outstagram.dto.LikeDTO;
 import com.outstagram.outstagram.dto.LikeRecordDTO;
 import com.outstagram.outstagram.dto.PostImageDTO;
@@ -53,6 +54,7 @@ public class LikeService {
     /**
      * 캐시에 있음 -> 2 DB에 있음 -> 1 없음 -> 0
      */
+    @Slave
     public int existsLike(Long userId, Long postId) {
         String userLikeKey = USER_LIKE_PREFIX + userId;
 

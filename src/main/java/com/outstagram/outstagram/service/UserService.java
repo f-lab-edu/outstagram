@@ -1,5 +1,6 @@
 package com.outstagram.outstagram.service;
 
+import com.outstagram.outstagram.common.annotation.Slave;
 import com.outstagram.outstagram.controller.request.EditUserReq;
 import com.outstagram.outstagram.dto.UserDTO;
 import com.outstagram.outstagram.exception.ApiException;
@@ -48,6 +49,7 @@ public class UserService {
     /**
      * userId로 유저 찾기
      */
+    @Slave
     @Cacheable(value = USER, key = "#userId")
     public UserDTO getUser(Long userId) {
         UserDTO user = userMapper.findById(userId);

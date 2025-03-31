@@ -2,6 +2,7 @@ package com.outstagram.outstagram.service;
 
 import static com.outstagram.outstagram.common.constant.CacheConst.IMAGE;
 
+import com.outstagram.outstagram.common.annotation.Slave;
 import com.outstagram.outstagram.dto.ImageDTO;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
@@ -55,6 +56,7 @@ public abstract class AbstractBaseImageService implements ImageService{
     }
 
     @Override
+    @Slave
     @Cacheable(cacheNames = IMAGE, key = "#postId")
     public List<ImageDTO> getImageInfos(Long postId) {
         return imageMapper.findImagesByPostId(postId);

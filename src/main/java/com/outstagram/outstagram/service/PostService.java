@@ -16,6 +16,7 @@ import static com.outstagram.outstagram.dto.AlarmType.REPLY;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.outstagram.outstagram.common.annotation.Slave;
 import com.outstagram.outstagram.controller.request.CreateCommentReq;
 import com.outstagram.outstagram.controller.request.CreatePostReq;
 import com.outstagram.outstagram.controller.request.EditCommentReq;
@@ -113,7 +114,6 @@ public class PostService {
         postProducer.save(POST_UPSERT_TOPIC, newPost);
     }
 
-
     public List<PostDetailsDTO> getMyPosts(Long userId, Long lastId) {
         // 유저가 작성한 최신 게시물 11개씩 가져오기 (11개 가져와지면 다음 페이지 존재하는 것)
         List<Long> ids = postMapper.findIdsByUserId(userId, lastId, PAGE_SIZE + 1);
@@ -125,6 +125,7 @@ public class PostService {
             .collect(Collectors.toList());
     }
 
+    @Slave
     public List<PostDTO> findByKeyword(String keyword) {
         return postMapper.findByKeyword(keyword);
     }
@@ -132,6 +133,7 @@ public class PostService {
     /**
      * 순수 게시물 캐싱
      */
+    @Slave
     @Cacheable(value = POST, key = "#postId")
     public PostDTO getPost(Long postId) {
         return postMapper.findById(postId);
@@ -140,6 +142,7 @@ public class PostService {
     /**
      * 각 캐싱된 순수 게시물 + 이미지 정보 + 댓글 + 좋아요 + 북마크 들을 조합해서 종합 게시물 만들어주는 메서드
      */
+    @Slave
     public PostDetailsDTO getPostDetails(Long postId, Long userId) {
         // 내부 메서드 호출할 때, @Cacheable 적용되도록 하려면 프록시 객체를 통해서 메서드를 호출해야 함.
         PostDTO post = validatePostExist(postId);
@@ -190,6 +193,7 @@ public class PostService {
     /**
      * 피드 가져오기
      */
+    @Slave
     public List<PostDetailsDTO> getFeed(Long lastId, Long userId) {
 
         String userFeedKey = FEED + userId;
@@ -320,7 +324,8 @@ public class PostService {
         // Redis에 좋아요 개수 캐싱된적 없으면 -> DB에서 가져와서 좋아요 개수 캐싱하기
         if (Boolean.FALSE.equals(redisTemplate.hasKey(key))) {
             // 삭제되거나 없는 게시물이면 예외 던지기
-            PostDTO post = postMapper.findById(postId);
+            PostService proxy = (PostService) AopContext.currentProxy();
+            PostDTO post = proxy.getPost(postId);
             if (post == null) {
                 throw new ApiException(ErrorCode.POST_NOT_FOUND);
             }
@@ -406,6 +411,7 @@ public class PostService {
         }
     }
 
+    @Slave
     public List<PostDetailsDTO> getLikePostsPlusOne(Long userId, Long lastId) {
         // 먼저 캐시 좋아요 누른 기록 확인 후 -> 모자라면 DB에서 좋아요 ID 목록 가져오기 (캐시에 항상 최신 데이터)
         String userLikeKey = USER_LIKE_PREFIX + userId;
@@ -546,6 +552,7 @@ public class PostService {
     /**
      * 로그인한 유저가 북마크한 모든 게시물 가져오기
      */
+    @Slave
     public List<PostDetailsDTO> getBookmarkedPostsPlusOne(Long userId, Long lastId) {
         // 먼저 캐시 북마크 누른 기록 확인 후 -> 모자라면 DB에서 북마크 ID 목록 가져오기 (캐시에 항상 최신 데이터)
         String userBookmarkKey = USER_BOOKMARK_PREFIX + userId;

@@ -2,6 +2,7 @@ package com.outstagram.outstagram.service;
 
 import static com.outstagram.outstagram.common.constant.CacheConst.COMMENT;
 
+import com.outstagram.outstagram.common.annotation.Slave;
 import com.outstagram.outstagram.dto.CommentDTO;
 import com.outstagram.outstagram.dto.CommentUserDTO;
 import com.outstagram.outstagram.exception.ApiException;
@@ -24,6 +25,7 @@ public class CommentService {
         commentMapper.insertComment(comment);
     }
 
+    @Slave
     @Cacheable(cacheNames = COMMENT, key = "#postId")
     public List<CommentUserDTO> getComments(Long postId) {
         return commentMapper.findByPostId(postId);
