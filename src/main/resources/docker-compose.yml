@@ -1,0 +1,136 @@
+version: '3.8'
+
+services:
+  # Spring Boot Application
+  outstagram:
+    image: amazoncorretto:17-alpine
+    container_name: outstagram-app
+    volumes:
+      - /Users/ikhyeon/IdeaProjects/outstagram/build/libs/outstagram-0.0.1-SNAPSHOT.jar:/app/app.jar
+    working_dir: /app
+    command: java -jar app.jar
+    ports:
+      - "7777:7777"
+    depends_on:
+      - mysql-shard0
+      - mysql-shard1
+      - elasticsearch
+      - redis
+      - kafka
+    environment:
+      - SPRING_DATASOURCE_MASTER_JDBC-URL=jdbc:mysql://mysql-shard0:3306/outstagram
+      - SPRING_DATASOURCE_SLAVE_JDBC-URL=jdbc:mysql://mysql-shard1:3306/outstagram
+      - SPRING_DATASOURCE_MASTER_USERNAME=root
+      - SPRING_DATASOURCE_MASTER_PASSWORD=whdlrgus99@
+      - SPRING_DATASOURCE_SLAVE_USERNAME=root
+      - SPRING_DATASOURCE_SLAVE_PASSWORD=whdlrgus99@
+      - SPRING_ELASTICSEARCH_URIS=http://elasticsearch:9200
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_DATA_REDIS_PASSWORD=whdlrgus99@
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - SERVER_PORT=7777
+      - IMAGE_SERVICE_TYPE=local
+      - SPRING_AOP_PROXY-TARGET-CLASS=true
+      - SPRING_AOP_EXPOSE-PROXY=true
+
+  # MySQL Shard 0
+  mysql-shard0:
+    image: mysql:8.0
+    container_name: mysql-shard0
+    environment:
+      MYSQL_ROOT_PASSWORD: whdlrgus99@
+      MYSQL_DATABASE: outstagram
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-shard0-data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  # MySQL Shard 1
+  mysql-shard1:
+    image: mysql:8.0
+    container_name: mysql-shard1
+    environment:
+      MYSQL_ROOT_PASSWORD: whdlrgus99@
+      MYSQL_DATABASE: outstagram
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-shard1-data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  # Elasticsearch
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.9
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+
+  # Redis
+  redis:
+    image: redis:6.2
+    container_name: redis
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass whdlrgus99@
+    volumes:
+      - redis-data:/data
+
+  # Kafka & Zookeeper
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.3.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+
+  # nGrinder Controller
+  controller:
+    image: ngrinder/controller
+    container_name: controller
+    ports:
+      - "8080:80"
+      - "16001:16001"
+      - "12000-12009:12000-12009"
+    volumes:
+      - ~/ngrinder-controller:/opt/ngrinder-controller
+
+  # nGrinder Agent
+  agent:
+    image: ngrinder/agent
+    platform: linux/amd64
+    container_name: agent
+    environment:
+      - CONTROLLER_HOST=controller
+      - CONTROLLER_PORT=16001
+
+volumes:
+  mysql-shard0-data:
+  mysql-shard1-data:
+  elasticsearch-data:
+  redis-data:
