@@ -100,6 +100,7 @@ public class BookmarkService {
         return bookmarkMapper.findWithPostsAndImageByUserId(userId, postId, PAGE_SIZE);
     }
 
+    @Slave
     public List<Long> getBookmarkedPostIds(Long userId, Long postId, int size) {
         return bookmarkMapper.findIdsByUserId(userId, postId, size);
     }

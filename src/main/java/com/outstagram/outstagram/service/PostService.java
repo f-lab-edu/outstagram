@@ -114,6 +114,7 @@ public class PostService {
         postProducer.save(POST_UPSERT_TOPIC, newPost);
     }
 
+    @Slave
     public List<PostDetailsDTO> getMyPosts(Long userId, Long lastId) {
         // 유저가 작성한 최신 게시물 11개씩 가져오기 (11개 가져와지면 다음 페이지 존재하는 것)
         List<Long> ids = postMapper.findIdsByUserId(userId, lastId, PAGE_SIZE + 1);
@@ -262,12 +263,13 @@ public class PostService {
         return postDetailList;
     }
 
+    @Slave
     private List<Long> getFeedIdsFromDB(Long userId, Long lastId, int size) {
         return postMapper.getFeedIdsFromDB(userId, lastId, size);
     }
 
-    @Transactional(rollbackFor = Exception.class)   // 해당 transaction 안에서 Exception 발생하면 무조건 rollback 실행
-    @Caching(evict = @CacheEvict(value = POST, key = "#postId"))    // editPost() 수행 후 캐시에서 삭제
+    @Transactional(rollbackFor = Exception.class)
+    @Caching(evict = @CacheEvict(value = POST, key = "#postId"))
     public void editPost(Long postId, EditPostReq editPostReq, Long userId) {
         // 수정할 게시물 가져오기
         PostService proxy = (PostService) AopContext.currentProxy();
@@ -318,6 +320,7 @@ public class PostService {
     /**
      * postId에 대한 좋아요 개수 캐싱되어 있는지 확인 캐싱 안되어 있으면 DB에서 postId의 좋아요 개수를 Redis로 캐싱
      */
+    @Slave
     public Integer loadLikeCountIfAbsent(Long postId) {
         String key = LIKE_COUNT_PREFIX + postId;
         int likeCount;

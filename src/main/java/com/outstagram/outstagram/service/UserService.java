@@ -63,6 +63,7 @@ public class UserService {
     /**
      * 로그인 메서드
      */
+    @Slave
     public UserDTO login(String email, String password) {
         String cryptoPassword = encryptedPassword(password);
         return userMapper.findByEmailAndPassword(email, cryptoPassword);
@@ -73,6 +74,7 @@ public class UserService {
     /**
      * 중복 -> true
      */
+    @Slave
     public void validateDuplicatedEmail(String email) {
         int count = userMapper.countByEmail(email);
         if (count > 0) {
@@ -80,6 +82,7 @@ public class UserService {
         }
     }
 
+    @Slave
     public void validateDuplicatedNickname(String nickname) {
         int count = userMapper.countByNickname(nickname);
         if (count > 0) {
@@ -87,6 +90,7 @@ public class UserService {
         }
     }
 
+    @Slave
     public List<UserDTO> searchByNickname(String searchText) {
         return userMapper.findByNicknameContaining(searchText);
     }

@@ -31,10 +31,12 @@ public class CommentService {
         return commentMapper.findByPostId(postId);
     }
 
+    @Slave
     public CommentDTO findByIdAndPostId(Long postId, Long commentId) {
         return commentMapper.findByIdAndPostID(postId, commentId);
     }
 
+    @Slave
     public CommentDTO findById(Long commentId) {
         return commentMapper.findById(commentId);
     }

@@ -1,5 +1,6 @@
 package com.outstagram.outstagram.service;
 
+import com.outstagram.outstagram.common.annotation.Slave;
 import com.outstagram.outstagram.dto.*;
 import com.outstagram.outstagram.exception.ApiException;
 import com.outstagram.outstagram.exception.errorcode.ErrorCode;
@@ -34,6 +35,7 @@ public class NotificationService {
         notificationMapper.insertNotification(notification);
     }
 
+    @Slave
     public List<NotificationDetailsDTO> getNotificationDetailsPlusOne(Long userId, Long lastId) {
         List<NotificationDTO> notificationList = notificationMapper.findByUserIdAndLastId(userId,
                 lastId, PAGE_SIZE + 1);

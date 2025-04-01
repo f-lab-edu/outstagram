@@ -79,10 +79,12 @@ public class LikeService {
         }
     }
 
+    @Slave
     public List<PostImageDTO> getLikePosts(Long userId, Long lastId) {
         return likeMapper.findWithPostsAndImageByUserId(userId, lastId, PAGE_SIZE);
     }
 
+    @Slave
     public List<Long> getLikePostIds(Long userId, Long lastId, int size) {
         return likeMapper.findIdsByUserId(userId, lastId, size);
     }
